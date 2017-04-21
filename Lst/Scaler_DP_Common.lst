@@ -1,0 +1,776 @@
+C51 COMPILER V9.54   SCALER_DP_COMMON                                                      01/06/2017 14:56:38 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE SCALER_DP_COMMON
+OBJECT MODULE PLACED IN .\Bin\Scaler_DP_Common.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Lib\NT68810 Series\Scaler_DP_Common.c LARGE OPTIMIZE(9,SPEED) BROWSE INC
+                    -DIR(.\App;.\App\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Co
+                    -mponent;.\Phy\SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT6
+                    -8870_MODULE,LVIEW_2560X1440,FLASH_BANK=8) PRINT(.\Lst\Scaler_DP_Common.lst) TABS(2) OBJECT(.\Bin\Scaler_DP_Common.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          #if defined(ENABLE_FPGA_MODE)
+              #include "FpgaIIC.h"
+              #endif
+  16          #include "ScalerProfile.h"
+  17          
+  18          #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INT
+             -ERFACE&INPUT_DP3)
+  19          //******************************************************************************
+  20          // M A C R O   D E F I N I T I O N S
+  21          //******************************************************************************
+  22          
+  23          //******************************************************************************
+  24          // G L O B A L   V A R I A B L E S
+  25          //******************************************************************************
+  26          
+  27          //******************************************************************************
+  28          // S T A T I C   V A R I A B L E S
+  29          //******************************************************************************
+  30          static UCHAR ucSetDPLink = 0;
+  31          
+  32          //******************************************************************************
+  33          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  34          //******************************************************************************
+  35          
+  36          //******************************************************************************
+  37          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  38          //******************************************************************************
+  39          
+  40          //******************************************************************************
+  41          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  42          //******************************************************************************
+  43          
+  44          //******************************************************************************
+  45          // F U N C T I O N   B O D Y S
+  46          //******************************************************************************
+  47          //******************************************************************************
+  48          // Prototype: 
+  49          //  void SetDPLink()
+  50          // Parameters:
+  51          //
+C51 COMPILER V9.54   SCALER_DP_COMMON                                                      01/06/2017 14:56:38 PAGE 2   
+
+  52          // Return:
+  53          //  None
+  54          // Purpose:
+  55          //
+  56          // Notes:
+  57          //  None
+  58          //******************************************************************************
+  59          #if !lrd_dis
+              void SetDPLink(void)
+              {
+               ucSetDPLink = TRUE;
+              }
+              #endif
+  65          //******************************************************************************
+  66          // Prototype: 
+  67          //  void GetDPLink()
+  68          // Parameters:
+  69          //
+  70          // Return:
+  71          //  None
+  72          // Purpose:
+  73          //
+  74          // Notes:
+  75          //  None
+  76          //******************************************************************************
+  77          UCHAR GetDPLink(void)
+  78          {
+  79   1       return ucSetDPLink;
+  80   1      }
+  81          
+  82          
+  83          //******************************************************************************
+  84          // Prototype: 
+  85          //  void ClrDPLink()
+  86          // Parameters:
+  87          //
+  88          // Return:
+  89          //  None
+  90          // Purpose:
+  91          //
+  92          // Notes:
+  93          //  None
+  94          //******************************************************************************
+  95          void ClrDPLink(void)
+  96          {
+  97   1       ucSetDPLink = FALSE;
+  98   1      }
+  99          
+ 100          
+ 101          //******************************************************************************
+ 102          // Prototype: 
+ 103          //  void DP_InitDPCD()
+ 104          // Parameters:
+ 105          //
+ 106          // Return:
+ 107          //  None
+ 108          // Purpose:
+ 109          //
+ 110          // Notes:
+ 111          //  None
+ 112          //******************************************************************************
+ 113          void DP_InitDPCD(void)// using 1
+C51 COMPILER V9.54   SCALER_DP_COMMON                                                      01/06/2017 14:56:38 PAGE 3   
+
+ 114          {
+ 115   1          SC_DP_DEBUG = 0x80;  // enable I2C write DPCD page  // 0x1030
+ 116   1      #if  !lrd_change_scaler_code
+                  SC_DP_DPCD_00000 = 0x11;  // ver 1.1 // 0x1100
+              #else
+ 119   1      #if DP_VerSion == DP_V1_2//DPRX540G == ON
+ 120   1          if (UserData.bDPVersion == TRUE) {
+ 121   2              SC_DP_DPCD_00000 = 0x12;  // ver 1.2
+ 122   2          }
+ 123   1          else {
+ 124   2              SC_DP_DPCD_00000 = 0x11;  // ver 1.1
+ 125   2          }
+ 126   1      #else
+              #if ENABLE_FREESYNC_DEMO == ON// For FreeSync
+                  SC_DP_DPCD_00000 = 0x12;  // ver 1.2
+              #else
+                  SC_DP_DPCD_00000 = 0x11;  // ver 1.1
+              #endif
+              #endif
+ 133   1      #endif
+ 134   1      #if DP_LINKRATE == DP_162G
+                  SC_DP_DPCD_00001 = 0x06;  // 1.62G  // 0x1101
+              #elif DP_LINKRATE == DP_270G
+ 137   1           SC_DP_DPCD_00001 = 0x0A;  // 2.70G// 0x1101
+ 138   1      #else
+              #if !lrd_change_scaler_code
+                   SC_DP_DPCD_00001 = 0x14;  // 5.40G// 0x1101
+              #else
+                  if (UserData.bDPVersion == TRUE) {
+                      SC_DP_DPCD_00001 = 0x14;  // 5.40G
+                  }
+                  else {
+                      SC_DP_DPCD_00001 = 0x0A;  // 2.70G
+                  }
+              #endif
+              #endif
+ 150   1          SC_DP_DPCD_00002 = 0x80|DP_LANECNT;  // bit7=1 Enhanced Framing symbol + lane count
+ 151   1      #if !lrd_change_scaler_code
+                  SC_DP_DPCD_00003 = 0x01;  // DPCD 0x003 MAX_DOWNSPREAD = 0.5%
+              #else
+ 154   1      #if DP_LINKRATE == DP_540G//DPRX540G == ON
+                  if (UserData.bDPVersion == TRUE) {
+                      SC_DP_DPCD_00003 = 0x00;  // DPCD 0x003 MAX_DOWNSPREAD = 0.5%
+                  }
+                  else {
+                      SC_DP_DPCD_00003 = 0x01;  // DPCD 0x003 MAX_DOWNSPREAD = 0.5%
+                  }
+              #else
+ 162   1          SC_DP_DPCD_00003 = 0x01;  // DPCD 0x003 MAX_DOWNSPREAD = 0.5%
+ 163   1      #endif
+ 164   1      #endif
+ 165   1          SC_DP_DPCD_00004 = 0x01;  // DPCD 0x004 Number of receiver ports
+ 166   1          SC_DP_DPCD_00006 = 0x01;  // DPCD 0x006 ANSI_8B10B  // 0x1106
+ 167   1          SC_DP_DPCD_00101 = 0x00;  // DPCD 0x101 LANE_COUNT_SET  // 0x111d
+ 168   1          SC_DP_DPCD_00200 = 0x41;  // DPCD 0x200 bit6 enable CP_Ready  // 0x1125
+ 169   1          SC_DP_DPCD_00201 = 0x00;  // DPCD 0x201 DEVICE_SERVICE_IRQ_VECTOR  // 0x1126
+ 170   1          SC_DP_DPCD_0000D = 0x00;  // DPCD 0x00D   // 0x1161
+ 171   1      
+ 172   1      #if ENABLE_FREESYNC_DEMO == ON
+                  // 20150909 Yung Add for DP AMD free-sync use
+                  SC_DP_DPCD_00007 = 0x40; // bit6 ignore MSA timing  // 0x1107
+              #endif
+C51 COMPILER V9.54   SCALER_DP_COMMON                                                      01/06/2017 14:56:38 PAGE 4   
+
+ 176   1          SC_DP_DEBUG = 0x00;  //disable I2C write DPCD page// 0x1030
+ 177   1          SC_DP_10C0 |= BIT4;
+ 178   1          SC_DP_10C1 &= ~BIT7;
+ 179   1          SC_DP_10C2 |= (BIT1|BIT0);
+ 180   1          SC_DP_10C8 |= BIT2;
+ 181   1      }
+ 182          #if TPV_DP_VERSION_SELECT == ON 
+ 183          
+ 184          //******************************************************************************
+ 185          // Prototype: 
+ 186          //  void SetDPSpeed(bit speed)
+ 187          // Parameters:
+ 188          //speed:1=5.4G, 0=2.7G
+ 189          // Return:
+ 190          //  None
+ 191          // Purpose:
+ 192          //
+ 193          // Notes:
+ 194          //  None
+ 195          //******************************************************************************
+ 196          void SetDPSpeed(bit speed)
+ 197          {
+ 198   1      #if DP_VerSion == DP_V1_2//DPRX540G == ON
+ 199   1      
+ 200   1          SC_DP_DEBUG |= BIT7;  // enable I2C write DPCD page
+ 201   1          if (speed == TRUE) {
+ 202   2              SC_DP_DPCD_00000 = 0x12;  // ver 1.2
+ 203   2          }
+ 204   1          else {
+ 205   2              SC_DP_DPCD_00000 = 0x11;  // ver 1.1
+ 206   2          }
+ 207   1          SC_DP_DEBUG &= ~BIT7;  //disable I2C write DPCD page    
+ 208   1      #endif
+ 209   1      
+ 210   1      #if DP_LINKRATE == DP_540G//DPRX540G == ON
+                  if (speed == TRUE) {
+                      SC_DP_DPCD_00001 = 0x14;  // 5.40G
+                  }
+                  else {
+                      SC_DP_DPCD_00001 = 0x0A;  // 2.70G
+                  }
+              
+                  if (speed == TRUE) {
+                      SC_DP_DPCD_00003 = 0x00;  // DPCD 0x003 MAX_DOWNSPREAD = 0.5%
+                  }
+                  else {
+                      SC_DP_DPCD_00003 = 0x01;  // DPCD 0x003 MAX_DOWNSPREAD = 0.5%
+                  }
+                  SC_DP_DEBUG &= ~BIT7;  //disable I2C write DPCD page
+              
+                 // NEED DP HPD??     
+              #else
+ 228   1          speed = 0;
+ 229   1      #endif
+ 230   1      }
+ 231          #endif
+ 232          
+ 233          //******************************************************************************
+ 234          // Prototype: 
+ 235          //  void DP_InitDPConfigPage()
+ 236          // Parameters:
+ 237          //
+C51 COMPILER V9.54   SCALER_DP_COMMON                                                      01/06/2017 14:56:38 PAGE 5   
+
+ 238          // Return:
+ 239          //  None
+ 240          // Purpose:
+ 241          //
+ 242          // Notes:
+ 243          //  None
+ 244          //******************************************************************************
+ 245          void DP_InitDPConfigPage(void)// using 1
+ 246          {
+ 247   1      #if defined(ENABLE_FPGA_MODE)
+                  //Configure page 0x1000
+                  //DebugPage 0x0F00
+                  //DPCD Page 0x1100
+                  UCHAR d;
+              #endif
+ 253   1          // New register mapping (2012/02/20 David)
+ 254   1      
+ 255   1          //BIST
+ 256   1      //    if ((GetSCID() == SCID_850_C) || (GetSCID() == SCID_790_A)) {
+ 257   1      #if IS_NT68790_SERIES || IS_NT68810_SERIES || IS_NT68870_SERIES
+ 258   1          SC_DP_1000 = 0x1F;  // 0x1000
+ 259   1          SC_DP_DEBUG |= BIT4; // Bit4:Gate R0 interrupt// 0x1030
+ 260   1      #else
+                  if (GetSCID() == SCID_850_C) {
+                      SC_DP_1000 = 0x27;  // Fixed VBID issue  // 0x1000
+                  }
+                  else {
+                      SC_DP_1000 = 0x07;  // Fixed VBID issue   // 0x1000
+                      SC_DP_FAST_MUTE_CTRL |= BIT6; // 0xb88
+                  }
+              #endif
+ 269   1      
+ 270   1      #if defined(ENABLE_FPGA_MODE)
+                  // enable auto-train 0x40A[4]=1
+                  d = ReadScaler(0xF00+0x0a);
+                  WriteScaler(0xF00+0x0a,d | 0x10);
+              #endif
+ 275   1          // Init..
+ 276   1          SC_DP_ERR_DET_CTRL |= 0x87; // enable error detection 0x33[7]=1 // 0x1033
+ 277   1      
+ 278   1          // disable bit 6 (2012/02/07)
+ 279   1          SC_DP_ERR_DET_DISABLE |= 0x38; // 0x1037
+ 280   1      
+ 281   1          // Set HPD width
+ 282   1      #if DP_NEW_HPD == ON
+ 283   1          SC_DP_HPD_IRQ_WIDTH = 0x80; // set HDP auto. // 0x103a
+ 284   1      #else
+                  SC_DP_HPD_IRQ_WIDTH = 0x07; // set HDP low duty.// 0x103a
+              #endif
+ 287   1          // cerr_detect
+ 288   1          SC_DP_CERR_RANGE = 0x50; // cerr_range // 0x1034
+ 289   1          SC_DP_CERR_RST_APHY_RANGE = 0x20;// 0x1231
+ 290   1          SC_DP_CERR_CLR_PHY_RANGE = 0x30;// 0x1232
+ 291   1          SC_DP_CERR_NO_LINK_RANGE = 0x40;// 0x1233
+ 292   1          SC_DP_CERR_NO_LINK_BS_RANGE = 0x50;// 0x1234
+ 293   1          SC_DP_CERR_DET_THRESHOLD = 0x20;// 0x1237
+ 294   1          SC_DP_1001 &= 0xF0;// 0x1001
+ 295   1      #if defined(ENABLE_FPGA_MODE)
+                  SC_DP_VIDEO_CONTROL = 0x17;  // DP DE original mode// 0x1046
+              #else
+ 298   1      //    SC_DP_1001 &= 0xF0;
+ 299   1          SC_DP_MN_CTRL = 0x20;  // MN control new shift mode// 0x103f
+C51 COMPILER V9.54   SCALER_DP_COMMON                                                      01/06/2017 14:56:38 PAGE 6   
+
+ 300   1          
+ 301   1          // 0x17 DE mode; 0x10 Sync mode
+ 302   1      #if ENABLE_EDP == OFF
+ 303   1          SC_DP_VIDEO_CONTROL = 0x17;//0x13;//0x17;  // DP DE original mode// 0x1046
+ 304   1      #else
+                  SC_DP_VIDEO_CONTROL = 0x17;//0x13;//0x17;  // DP DE original mode// 0x1046
+              #endif
+ 307   1      #endif
+ 308   1      #if defined(ENABLE_FPGA_MODE)
+              #if DP_LINKRATE == DP_162G
+                      // Adjust DP input FIFO start position
+                      SC_DP_DE_START_POS = 0x40;  // Yung ADD for 2 lane 1.62G// 0x1047
+                      // DP input clock invert
+                      //WriteScaler(0x0F0C,0x02);  // Yung ADD for 2 lane 1.62G
+                      // LS_CLK phase adjust
+                      WriteScaler(0x0F0C,0x00);
+              #elif DP_LINKRATE == DP_270G
+                       // Adjust DP input FIFO start position
+                       SC_DP_DE_START_POS = 0x80;  //// 0x1047
+                       // DP input clock invert
+                       WriteScaler(0x0F0C,0x00);  // 2 lane 2.7G //bit1: LS_clock inv
+                       // LS_CLK phase adjust
+                       //WriteScaler(0x0F0B,0x30);  //  FPGA code 20121008
+                       WriteScaler(0x0F0B,0x00);   // FPGA code 20121109
+              #else
+                       // 5.4 Gbps
+              #endif
+              
+              #if DP_LANECNT == DP_4LANE
+                  d = ReadScaler(0x0F0C);
+                  WriteScaler(0x0F0C, d | 0x80);  // sel 4 lane
+                  SC_DP_DE_START_POS = 0x80;  //// 0x1047
+              #endif
+              
+                  // FPGA code:20120329 (DP)   add
+                  // 0x1FE[4]: 0->DP use LS_clk ; 1->DP use OSC clk
+                  d = ReadScaler(0x0100+0xFE);
+                  d &= 0xEF; // set bit4=0
+                  WriteScaler(0x0100+0xFE,d);  // use LS_clk
+              #else
+ 340   1      #if DP_LINKRATE == DP_162G
+                  // Adjust DP input FIFO start position
+                  SC_DP_DE_START_POS = 0x40;  // Yung ADD for 2 lane 1.62G// 0x1047
+              #elif DP_LINKRATE == DP_270G
+ 344   1          // Adjust DP input FIFO start position
+ 345   1          SC_DP_DE_START_POS = 0x80;  //    // 0x1047
+ 346   1      #else
+                  // 5.4 Gbps
+              #endif
+ 349   1      #endif //#if defined(ENABLE_FPGA_MODE)
+ 350   1          //Audio
+ 351   1          SC_ACR_CLK_OUT_SEL = 0x08;  //acr clk / 2  // 0xb50
+ 352   1          SC_DP_I2S_CTRL = 0x00;  // audio I2S en// 0x1055
+ 353   1          SC_DP_CLK_CYCLE_VALUE = 0x03;  // for digital audio  // 0x1057
+ 354   1          SC_DP_SPDIF_CTRL = 0x00;  // audio SPDIF en  // 0x1058
+ 355   1          SC_DP_DSD_CTRL = 0x00;  //audio DSD en  // 0x1059
+ 356   1          SC_DP_AUDIO_DAC_CTRL = 0x80;  //audio DAC en// 0x105A
+ 357   1          SC_DP_AUDIO_FIFO_CTRL = 0x80;  // audio FIFO enable// 0x1050
+ 358   1          SC_DP_AUDIO_ERROR_FLAG = 0xff;  // Audio error flag// 0x1054
+ 359   1          SC_DP_CRPLL = 0x15;  //clk path // 0x16d1
+ 360   1      #if IS_NT68870_SERIES
+ 361   1          SC_DP_AUDIO_16D6 |= BIT2;
+C51 COMPILER V9.54   SCALER_DP_COMMON                                                      01/06/2017 14:56:38 PAGE 7   
+
+ 362   1      #endif
+ 363   1          //set default M/N value
+ 364   1          SC_DP_PLL_CTRL |= BIT6; //default manual   // 0x1081
+ 365   1          //WriteScaler(0x1000+0xd0, ReadScaler(0x1000+0xd0) | BIT3); //block
+ 366   1          SC_DP_MANUAL_MAUD_LO = 0xAD; // 0x1011
+ 367   1          SC_DP_MANUAL_MAUD_MI = 0x0B; // 0x1010
+ 368   1          SC_DP_MANUAL_MAUD_HI = 0x00; // 0x100f
+ 369   1          SC_DP_MANUAL_NAUD_LO = 0x00; // 0x1014
+ 370   1          SC_DP_MANUAL_NAUD_MI =0x80; // 0x1013
+ 371   1          SC_DP_MANUAL_NAUD_HI = 0x00; // 0x1012
+ 372   1      
+ 373   1          //NLT:NO LINK TRAINING
+ 374   1      //    SC_DP_10B0 |= BIT7;
+ 375   1      //    SC_DP_10B7 &= 0xD5; // 10b7[1] [3] [5] = 0
+ 376   1      }
+ 377          
+ 378          //******************************************************************************
+ 379          // Prototype: 
+ 380          //  void DP_InitPHY(UCHAR phyindex)
+ 381          // Parameters:
+ 382          //
+ 383          // Return:
+ 384          //  None
+ 385          // Purpose:
+ 386          //
+ 387          // Notes:
+ 388          //  None
+ 389          //******************************************************************************
+ 390          void DP_InitPHY(UCHAR phyindex)// using 1
+ 391          {
+ 392   1         //SC_DP_AUX_CTRL = 0x31; // AUX
+ 393   1         DPPHY_PowerOn(phyindex);
+ 394   1      }
+ 395          
+ 396          //******************************************************************************
+ 397          // Prototype: 
+ 398          //  void DPPHY_PowerOn(UCHAR phyindex)
+ 399          // Parameters:
+ 400          //
+ 401          // Return:
+ 402          //  None
+ 403          // Purpose:
+ 404          //
+ 405          // Notes:
+ 406          //  None
+ 407          //******************************************************************************
+ 408          void DPPHY_PowerOn(UCHAR phyindex)// using 1
+ 409          {
+ 410   1          SC_SetByteDPppPHY(phyindex, _DP_ANA_CDR_CFG0, 0x2F);  // 0x1b06
+ 411   1          
+ 412   1      #if DP_LINKRATE == DP_540G
+                  SC_SetByteDPppPHY(phyindex, _DPPHY_FCTRL, 0x74);//WriteScaler(0x1C00, 0x44); // bit6:DP mode enable bi
+             -t2:Leak0back block enable
+              #else
+ 415   1          SC_SetByteDPppPHY(phyindex, _DPPHY_FCTRL, 0x44);//WriteScaler(0x1C00, 0x44); // bit6:DP mode enable bi
+             -t2:Leak0back block enable
+ 416   1      #endif
+ 417   1      #if 0//6502 control (new lib)
+                  SC_SetByteDPppPHY(phyindex, _DPRXANAIF_AEQ_CFG2, 0x13);//WriteScaler(0x1B42, 0x13);
+                  SC_SetByteDPppPHY(phyindex, _DPRXANAIF_AEQ_CFG3, 0x07);//WriteScaler(0x1B49, 0x0F);
+                  SC_SetByteDPppPHY(phyindex, _DPRXANAIF_AEQ_CFG4, 0xFF);//WriteScaler(0x1B4A, 0x01);
+                  SC_SetByteDPppPHY(phyindex, _DPRXANAIF_AEQ_CFG5, 0xFF);//WriteScaler(0x1B4B, 0x00);
+C51 COMPILER V9.54   SCALER_DP_COMMON                                                      01/06/2017 14:56:38 PAGE 8   
+
+              #endif
+ 423   1      #if DPRX_PN_SWAP == ON
+ 424   1          SC_SetByteDPppPHY(phyindex, _DPRM_LANE_POLARITY, 0x0F);//WriteScaler(0x1AD5, 0x0F);  // PN swap
+ 425   1      #else
+                  SC_SetByteDPppPHY(phyindex, _DPRM_LANE_POLARITY, 0x00);//WriteScaler(0x1AD5, 0x00);  // PN swap
+              #endif
+ 428   1          SC_SetByteDPppPHY(phyindex, _DPPHY_ICTRL, 0x00);//WriteScaler(0x1C01, 0x00);  // 
+ 429   1          SC_SetByteDPppPHY(phyindex, _DPPHY_EQR_IMP_ENABLE, 0xFF);//WriteScaler(0x1C02, 0xFF);  // Lane0~3 EQR 
+             -& Impedance enableif 
+ 430   1          SC_SetByteDPppPHY(phyindex, _DPPHY_EQR_RES_CTRL3, 0xF0);
+ 431   1      #if IS_NT68810_SERIES
+                  SC_SetByteDPppPHY(phyindex, _DPPHY_IMPEDANCE_L0_L2_L3, 0x18);//WriteScaler(0x1C03, 0x18);  // Lane0&2&
+             -3 Impedance control
+                  SC_SetByteDPppPHY(phyindex, _DPPHY_IMPEDANCE_L1, 0x18);//WriteScaler(0x1C04, 0x18);  // Lane1  Impedan
+             -ce control
+              #else //NT68870
+ 435   1          SC_SetByteDPppPHY(phyindex, _DPPHY_IMPEDANCE_L0_L2_L3, 0x1A);//WriteScaler(0x1C03, 0x18);  // Lane0&2&
+             -3 Impedance control
+ 436   1          SC_SetByteDPppPHY(phyindex, _DPPHY_IMPEDANCE_L1, 0x1A);//WriteScaler(0x1C04, 0x18);  // Lane1  Impedan
+             -ce control
+ 437   1      #endif
+ 438   1          SC_SetByteDPppPHY(phyindex, _DPPHY_EQR_POS_IOFFSET_L0, 0x00);//WriteScaler(0x1C05, 0x00);  // L0 EQR p
+             -ositive current offset control 
+ 439   1          SC_SetByteDPppPHY(phyindex, _DPPHY_EQR_POS_IOFFSET_L1, 0x00);//WriteScaler(0x1C06, 0x00);  // L1 EQR p
+             -ositive current offset control
+ 440   1          SC_SetByteDPppPHY(phyindex, _DPPHY_EQR_POS_IOFFSET_L2, 0x00);//WriteScaler(0x1C07, 0x00);  // L2 EQR p
+             -ositive current offset control
+ 441   1          SC_SetByteDPppPHY(phyindex, _DPPHY_EQR_POS_IOFFSET_L3, 0x00);//WriteScaler(0x1C08, 0x00);  // L3 EQR p
+             -ositive current offset control
+ 442   1          SC_SetByteDPppPHY(phyindex, _DPPHY_EQR_NEG_IOFFSET_L0, 0x00);//WriteScaler(0x1C09, 0x00);  // L0 EQR n
+             -egative current offset control
+ 443   1          SC_SetByteDPppPHY(phyindex, _DPPHY_EQR_NEG_IOFFSET_L1, 0x00);//WriteScaler(0x1C0A, 0x00);  // L1 EQR n
+             -egative current offset control
+ 444   1          SC_SetByteDPppPHY(phyindex, _DPPHY_EQR_NEG_IOFFSET_L2, 0x00);//WriteScaler(0x1C0B, 0x00);  // L2 EQR n
+             -egative current offset control
+ 445   1          SC_SetByteDPppPHY(phyindex, _DPPHY_EQR_NEG_IOFFSET_L3, 0x00);//WriteScaler(0x1C0C, 0x00);  // L3 EQR n
+             -egative current offset control
+ 446   1          SC_SetByteDPppPHY(phyindex, _DPPHY_BIAS_POWER, 0xA0);//WriteScaler(0x1C1C, 0xA0);  // bit7:Bias Power 
+             -up  bit5:Bias ref sel bandgap
+ 447   1      #if IS_NT68810_SERIES
+                  SC_SetByteDPppPHY(phyindex, _DPPHY_BIAS_LDO, 0x02);//WriteScaler(0x1C1D, 0x02);  // VCO LDO voltage co
+             -ntrol
+              #else //NT68870
+ 450   1          SC_SetByteDPppPHY(phyindex, _DPPHY_BIAS_LDO, 0x04);//WriteScaler(0x1C1D, 0x02);  // VCO LDO voltage co
+             -ntrol
+ 451   1      #endif
+ 452   1          SC_SetByteDPppPHY(phyindex, _DPPHY_BIAS_R12K, 0x0F);//WriteScaler(0x1C1E, 0x09);//0x06);  // R12K resi
+             -stance tuning
+ 453   1          SC_SetByteDPppPHY(phyindex, _DPPHY_IBIAS_SEL, 0x0F);//WriteScaler(0x1C1F, 0x0F);  // Current bias fine
+             - tune
+ 454   1      #if IS_NT68810_SERIES
+                  SC_SetByteDPppPHY(phyindex, _DPPHY_LDO_CTRL, 0x62);  // 0x1228
+              #else //NT68870
+ 457   1          SC_SetByteDPppPHY(phyindex, _DPPHY_LDO_CTRL, 0x64);
+ 458   1      #endif
+ 459   1          SC_SetByteDPppPHY(phyindex, 0x092, 0x07); // 0x1a92
+ 460   1      
+ 461   1          SC_SetByteDPppPHY(phyindex, 0x1FC, 0x64);  // 0x1bfc
+ 462   1          SC_SetByteDPppPHY(phyindex, _DPRP_REG_1FD, 0x64);  // 0x1bfd
+ 463   1      
+ 464   1          if (phyindex == _DPPP_PHY0) {
+ 465   2              SC_SetByteDPppPHY(_DPPP_PHY0, 0x240, 0x31);  // 0x1c40
+C51 COMPILER V9.54   SCALER_DP_COMMON                                                      01/06/2017 14:56:38 PAGE 9   
+
+ 466   2              SC_SetByteDPppPHY(_DPPP_PHY0, 0x241, 0x46);// 0x1c41
+ 467   2              SC_SetByteDPppPHY(_DPPP_PHY0, 0x242, 0x44);// 0x1c42
+ 468   2          }
+ 469   1          else {
+ 470   2              SC_SetByteDPppPHY(_DPPP_PHY0, 0x250, 0x31);
+ 471   2              SC_SetByteDPppPHY(_DPPP_PHY0, 0x251, 0x46);
+ 472   2              SC_SetByteDPppPHY(_DPPP_PHY0, 0x252, 0x44);
+ 473   2          }
+ 474   1      /*
+ 475   1      #if IS_NT68810_SERIES
+ 476   1          SC_SetByteDPppPHY(phyindex, 0x244, 0x05);
+ 477   1      #else
+ 478   1          SC_SetByteDPppPHY(phyindex, 0x244, 0x07);//0x05);
+ 479   1      #endif
+ 480   1      */
+ 481   1      #if (INPUT_INTERFACE&INPUT_DP)
+ 482   1          DPAUX_Select(_AUX_CH0);
+ 483   1      #endif
+ 484   1      #if (INPUT_INTERFACE&INPUT_DP1)
+                  DPAUX_Select(_AUX_CH1);
+              #endif
+ 487   1      #if (INPUT_INTERFACE&INPUT_DP2)
+                  DPAUX_Select(_AUX_CH2);
+              #endif
+ 490   1      #if (INPUT_INTERFACE&INPUT_DP3)
+                  DPAUX_Select(_AUX_CH3);
+              #endif
+ 493   1      
+ 494   1          SC_SetByteDPppPHY(phyindex, 0x1FE, 0x00);  // 0x1bfe
+ 495   1      } 
+ 496          
+ 497          void DPAUX_Select(UCHAR ch)
+ 498          {
+ 499   1      #if IS_NT68810_SERIES
+                  if (ch == _AUX_CH1) {  
+                      SC_SetByteDPppPHY(_DPPP_PHY0, 0x244, 0x07); // 0x1c44
+                  }
+                  else {
+                      SC_SetByteDPppPHY(_DPPP_PHY0, 0x244, 0x05);
+                  }
+              #else
+ 507   1          switch (ch) {
+ 508   2              case _AUX_CH0:
+ 509   2                  SC_SetByteDPppPHY(_DPPP_PHY0, 0x244, 0x07);
+ 510   2                  AUX_I2C_MANUAL &= ~BIT7;// 0x1024
+ 511   2                  break;
+ 512   2              case _AUX_CH1:
+ 513   2                  SC_SetByteDPppPHY(_DPPP_PHY0, 0x244, 0x05);
+ 514   2                  AUX_I2C_MANUAL &= ~BIT7;// 0x1024
+ 515   2                  break;
+ 516   2              case _AUX_CH2:
+ 517   2                  SC_SetByteDPppPHY(_DPPP_PHY0, 0x254, 0x07);
+ 518   2                  AUX_I2C_MANUAL |= BIT7;// 0x1024
+ 519   2                  break;
+ 520   2              case _AUX_CH3:
+ 521   2                  SC_SetByteDPppPHY(_DPPP_PHY0, 0x254, 0x05);
+ 522   2                  AUX_I2C_MANUAL |= BIT7;// 0x1024
+ 523   2                  break;
+ 524   2          }
+ 525   1      #endif
+ 526   1      }
+ 527          
+C51 COMPILER V9.54   SCALER_DP_COMMON                                                      01/06/2017 14:56:38 PAGE 10  
+
+ 528          //******************************************************************************
+ 529          // Prototype: 
+ 530          //  void DPPHY_PowerOff()
+ 531          // Parameters:
+ 532          //
+ 533          // Return:
+ 534          //  None
+ 535          // Purpose:
+ 536          //
+ 537          // Notes:
+ 538          //  None
+ 539          //******************************************************************************
+ 540          void DPPHY_PowerOff(void)// using 1
+ 541          {
+ 542   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1)
+ 543   1          SC_SetByteDPppPHY(_DPPP_PHY0, _DPPHY_FCTRL, 0x04);//WriteScaler(0x1C00, 0x04);
+ 544   1          SC_SetByteDPppPHY(_DPPP_PHY0, _DPPHY_EQR_IMP_ENABLE, 0x00);//WriteScaler(0x1C02, 0x00);
+ 545   1          SC_SetByteDPppPHY(_DPPP_PHY0, _DPPHY_EQR_RES_CTRL3, 0x00);
+ 546   1          SC_SetByteDPppPHY(_DPPP_PHY0, _DPPHY_EQR_POS_IOFFSET_L0, 0x00);//WriteScaler(0x1C05, 0x00);
+ 547   1          SC_SetByteDPppPHY(_DPPP_PHY0, _DPPHY_BIAS_POWER, 0x00);//WriteScaler(0x1C1C, 0x00);
+ 548   1          SC_SetByteDPppPHY(_DPPP_PHY0, _DPRM_LANE_HI_CFG, 0x0F);//1AD2
+ 549   1          SC_SetByteDPppPHY(_DPPP_PHY0, _DPRP_STATUS, 0x10);//CDR off
+ 550   1      #endif
+ 551   1      #if IS_NT68870_SERIES
+ 552   1      #if (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INTERFACE&INPUT_DP3)
+                  SC_SetByteDPppPHY(_DPPP_PHY1, _DPPHY_FCTRL, 0x04);//WriteScaler(0x1C00, 0x04);
+                  SC_SetByteDPppPHY(_DPPP_PHY1, _DPPHY_EQR_IMP_ENABLE, 0x00);//WriteScaler(0x1C02, 0x00);
+                  SC_SetByteDPppPHY(_DPPP_PHY0, _DPPHY_EQR_RES_CTRL3, 0x00);  // feng-160902  
+                  SC_SetByteDPppPHY(_DPPP_PHY1, _DPPHY_EQR_POS_IOFFSET_L0, 0x00);//WriteScaler(0x1C05, 0x00);
+                  SC_SetByteDPppPHY(_DPPP_PHY1, _DPPHY_BIAS_POWER, 0x00);//WriteScaler(0x1C1C, 0x00);
+                  SC_SetByteDPppPHY(_DPPP_PHY1, _DPRM_LANE_HI_CFG, 0x0F);//1AD2
+                  SC_SetByteDPppPHY(_DPPP_PHY1, _DPRP_STATUS, 0x10);//CDR off
+              #endif
+ 561   1      #endif
+ 562   1      }
+ 563          
+ 564          //******************************************************************************
+ 565          // Prototype: 
+ 566          //  void DP_ConfigAUX2IICSpeed()
+ 567          // Parameters:
+ 568          //
+ 569          // Return:
+ 570          //  None
+ 571          // Purpose:
+ 572          //
+ 573          // Notes:
+ 574          //  None
+ 575          //******************************************************************************
+ 576          void DP_ConfigAUX2IICSpeed(void)// using 1
+ 577          {
+ 578   1          // Init AUX to I2C clock speed.
+ 579   1      #if AUX2IICSPEED > 500  //20130715_1006_SYS#3
+ 580   1          SC_DP_SCL_HI_HALF_WIDTH = 0x10;// 0x1026
+ 581   1          SC_DP_SCL_HI_WIDTH = 0x20;// 0x1027
+ 582   1          SC_DP_SDA_SETUP = 0x12;// 0x1028
+ 583   1          SC_DP_SDA_HOLD = 0x1F;// 0x1029
+ 584   1      #elif AUX2IICSPEED == 500
+                  SC_DP_SCL_HI_HALF_WIDTH = 0x1F;
+                  SC_DP_SCL_HI_WIDTH = 0x2F;
+                  SC_DP_SDA_SETUP = 0x12;
+                  SC_DP_SDA_HOLD = 0x1F;
+              #elif AUX2IICSPEED == 400
+C51 COMPILER V9.54   SCALER_DP_COMMON                                                      01/06/2017 14:56:38 PAGE 11  
+
+                  SC_DP_SCL_HI_HALF_WIDTH = 0x20;
+                  SC_DP_SCL_HI_WIDTH = 0x3C;
+                  SC_DP_SDA_SETUP = 0x1D;
+                  SC_DP_SDA_HOLD = 0x1F;
+              #elif AUX2IICSPEED == 300
+                  SC_DP_SCL_HI_HALF_WIDTH = 0x2E;
+                  SC_DP_SCL_HI_WIDTH = 0x50;
+                  SC_DP_SDA_SETUP = 0x31;
+                  SC_DP_SDA_HOLD = 0x1F;
+              #else
+                  SC_DP_SCL_HI_HALF_WIDTH = 0x58;//0x48;
+                  SC_DP_SCL_HI_WIDTH = 0xA0;//0x7D);
+                  SC_DP_SDA_SETUP = 0x81;//0x5E);
+                  SC_DP_SDA_HOLD = 0x1F;
+              #endif
+ 605   1      
+ 606   1          if(SC_CHIP_ID == 0x0B && SC_REVISION_ID == 0x02) {//850, C version
+ 607   2      #if AUX2IICSPEED < 300
+                      SC_DP_AUX_I2C_CTRL = 0x34;  // BIT5:differ en  // 0x102a
+              #else
+ 610   2              SC_DP_AUX_I2C_CTRL = 0x34|BIT1|BIT0;// 0x102a
+ 611   2      #endif
+ 612   2          }
+ 613   1          else {
+ 614   2              SC_DP_AUX_I2C_CTRL = 0x36;  // BIT5:differ en, cut4 BIT0=0// 0x102a
+ 615   2      #if IS_NT68790_SERIES || IS_NT68810_SERIES || IS_NT68870_SERIES
+ 616   2              SC_DP_AUX_I2C_CTRL2 |= (BIT5 | BIT4 | BIT0); //// 0x102e
+ 617   2      #else
+                      SC_DP_MASK_AUX_I2C_RW_SEL &= ~BIT0;// 0xb87
+                      SC_DP_AUX_CTRL2 |= BIT5;// 0xb8a
+              #endif
+ 621   2          }
+ 622   1      
+ 623   1          // Init Pre-charge pulse count
+ 624   1          SC_DP_TX_PRE_CHG_NUM = 0x19|BIT6|BIT7;// 0x102b
+ 625   1          SC_DP_RX_PRE_CHG_NUM = 0x0F;// 0x102c
+ 626   1      }
+ 627          
+ 628          //******************************************************************************
+ 629          // Prototype: 
+ 630          //  void DP_CLKOn()
+ 631          // Parameters:
+ 632          //
+ 633          // Return:
+ 634          //  None
+ 635          // Purpose:
+ 636          //
+ 637          // Notes:
+ 638          //  None
+ 639          //******************************************************************************
+ 640          void DP_CLKOn(void)// using 1
+ 641          {
+ 642   1          SC_POWER_CTRL3 &= ~(BIT2|BIT1|BIT0); //CLK   0x103
+ 643   1          SC_LVDS_PAD_POWER &= ~BIT7; //int-dp_rck_gated   0x1fe
+ 644   1      }
+ 645          
+ 646          //******************************************************************************
+ 647          // Prototype: 
+ 648          //  void DP_CLKOff()
+ 649          // Parameters:
+ 650          //
+ 651          // Return:
+C51 COMPILER V9.54   SCALER_DP_COMMON                                                      01/06/2017 14:56:38 PAGE 12  
+
+ 652          //  None
+ 653          // Purpose:
+ 654          //
+ 655          // Notes:
+ 656          //  None
+ 657          //******************************************************************************
+ 658          void DP_CLKOff(void)// using 1
+ 659          {
+ 660   1          SC_POWER_CTRL3 |= (BIT2|BIT1|BIT0); //CLK   0x103
+ 661   1          SC_LVDS_PAD_POWER |= BIT7; //int-dp_rck_gated  0x1fe
+ 662   1      }
+ 663          
+ 664          #if ENABLE_USB_TYPE_C == ON
+              void DPLane_Switch(UCHAR interface)
+              {
+              #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1)
+                  if (interface == USB_TYPE_C_INTERFACE) {
+                      if ((SC_USBC_CC_CFG & 0x0C) == 0x00) { //CC1   // 0x1660
+                          SC_SetByteDPppPHY(_DPPP_PHY0, _DPRM_CG_CFG3, 0x1B);// Yung add for USB typeC reverse plug Lane
+             - need swap
+                      }
+                      else { //CC2
+                          SC_SetByteDPppPHY(_DPPP_PHY0, _DPRM_CG_CFG3, 0xE4);// Yung add for USB typeC Normal plug Lane 
+             -no swap
+                      }
+                  }
+              #endif
+                  
+              #if (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INTERFACE&INPUT_DP3)
+                  if (interface == USB_TYPE_C_INTERFACE) {
+                      if ((SC_USBC_CC_CFG & 0x0C) == 0x00) { //CC1   // 0x1660
+                          SC_SetByteDPppPHY(_DPPP_PHY1, _DPRM_CG_CFG3, 0x1B);// Yung add for USB typeC reverse plug Lane
+             - need swap
+                      }
+                      else { //CC2
+                          SC_SetByteDPppPHY(_DPPP_PHY1, _DPRM_CG_CFG3, 0xE4);// Yung add for USB typeC Normal plug Lane 
+             -no swap
+                      }
+                  }
+              #endif
+              }
+              #endif
+ 690          
+ 691          #else
+              void ForDPCompilerCodePass1(void)
+              {
+                code UCHAR temp[]={0x00};
+                UCHAR i;
+                i = temp[0];
+              }
+              #endif
+ 699          
+ 700          
+ 701          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    939    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      1       1
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+C51 COMPILER V9.54   SCALER_DP_COMMON                                                      01/06/2017 14:56:38 PAGE 13  
+
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

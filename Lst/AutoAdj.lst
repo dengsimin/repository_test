@@ -1,0 +1,1614 @@
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE AUTOADJ
+OBJECT MODULE PLACED IN .\Bin\AutoAdj.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Lib\AutoAdj.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD;.\Ap
+                    -p\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NVT\Key
+                    -pad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_2560X1
+                    -440,FLASH_BANK=8) PRINT(.\Lst\AutoAdj.lst) TABS(2) OBJECT(.\Bin\AutoAdj.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          
+  14          //******************************************************************************
+  15          // M A C R O   D E F I N I T I O N S
+  16          //******************************************************************************
+  17          #define LOOP_COUNTER        10 /*!< Count of iteration of ADC gain/offset calibration. */
+  18          #define ADC_GAIN_TOLERANCE   3 /*!< The tolerance of ADC gain calibration. */
+  19          #define ADC_OFFSET_TOLERANCE 3 /*!< The tolerance of ADC offset calibration. */
+  20          #define GetInputHActWid() (ReadShortScaler(&SC_GI_POS_HWID_LO) & 0x0FFF) /*!< Horizontal active pixel coun
+             -t from scaler. */
+  21          #define GetInputVActLen() (ReadShortScaler(&SC_GI_POS_VLEN_LO) & 0x07FF) /*!< Vertical active line count f
+             -rom scaler. */
+  22          #define GetInputHActBeg() (ReadShortScaler(&SC_GI_POS_HBEG_LO) & 0x0FFF) /*!< Horizontal start position co
+             -unt from scaler. */
+  23          #define GetInputVActBeg() (ReadShortScaler(&SC_GI_POS_VBEGO_LO) & 0x07FF) /*!< Vertical start position cou
+             -nt from scaler. */
+  24          
+  25          //******************************************************************************
+  26          // G L O B A L   V A R I A B L E S
+  27          //******************************************************************************
+  28          
+  29          //******************************************************************************
+  30          // S T A T I C   V A R I A B L E S
+  31          //******************************************************************************
+  32          static BOOL bAbortAutoTune; /*!< Flag of status of auto-tune. */
+  33          static BOOL bIsNonFullScreen; /*!< Flag of status of full-screen. */
+  34          static xdata UCHAR ucPhaseRange; /*!< The range of phase calibration. The value would be 16 or 32. */
+  35          static xdata UCHAR ucPhaseIndexLo; /*!< Variable for auto-tune functions. */
+  36          static xdata UCHAR ucPhaseIndexHi; /*!< Variable for auto-tune functions. */
+  37          static xdata UCHAR ucAutoPct; /*!< Percentage of progress of auto-tune. */
+  38          
+  39          //******************************************************************************
+  40          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  41          //******************************************************************************
+  42          
+  43          //******************************************************************************
+  44          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  45          //******************************************************************************
+  46          static void AutoTuneComplete(void);
+  47          static ULONG CheckPhaseData(void);
+  48          static BOOL AutoGainCoarse(void);
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 2   
+
+  49          static BOOL MeasureImageSize(void);
+  50          static BOOL AutoClockByPhase(void);
+  51          static void CheckImageOutOfScreen(void);
+  52          
+  53          //******************************************************************************
+  54          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  55          //******************************************************************************
+  56          
+  57          //******************************************************************************
+  58          // F U N C T I O N   B O D Y S
+  59          //******************************************************************************
+  60          
+  61          /**************************************************************************//**
+  62           * Check we can perform auto-tune on the the current input interface or not.
+  63           * @return TRUE if interface is valid else FALSE.
+  64           ******************************************************************************/
+  65          BOOL IsAutoTuneValid(void)
+  66          {
+  67   1          UCHAR interface = GetCurrInputInterface();
+  68   1      
+  69   1          if ((interface == DIGITAL_INPUT0) || (interface == DIGITAL_INPUT1) || (interface == DISPLAY_PORT_INPUT
+             -)) {
+  70   2              return FALSE;
+  71   2          }
+  72   1      
+  73   1          return TRUE;
+  74   1      }
+  75          
+  76          /**************************************************************************//**
+  77           * Automatically find H/V start position, input clock and ADC phase
+  78           * @return TRUE if auto-tune is succeeded else FALSE.
+  79           ******************************************************************************/
+  80          BOOL AutoTune(void)
+  81          {
+  82   1          UCHAR reg_bak1, reg_bak2;
+  83   1      
+  84   1          if (!IsAutoTuneValid()) {
+  85   2              return FALSE;
+  86   2          }
+  87   1      
+  88   1          ucAutoPct = 4;
+  89   1      
+  90   1          reg_bak1 = SC_JITTER_CTRL;
+  91   1          reg_bak2 = SC_VI_AUTO_CTRL;
+  92   1      
+  93   1          SC_JITTER_CTRL = 0x00;
+  94   1      #if IS_NT68810_SERIES
+                  if ((SC_ADC_IP_CTRL_1D80[_ADC_CLAMP_VMID_SEL] & 0xE0) == YPBPR_CLAMP) {
+              #elif IS_NT68870_SERIES
+  97   1          if ((SC_ADC_IP_CTRL_1D80[_ADC_VREF_BIAS] & 0xE0) == YPBPR_CLAMP) {
+  98   2      #else
+                  if ((SC_ADC_MID_CH_SEL & 0x07) == YPBPR_CLAMP) {
+              #endif
+ 101   2              SC_VI_AUTO_CTRL |= BIT7;
+ 102   2          }
+ 103   1          else {
+ 104   2              SC_VI_AUTO_CTRL &= ~BIT7;
+ 105   2          }
+ 106   1      
+ 107   1          bIsNonFullScreen = FALSE;
+ 108   1          bAbortAutoTune = FALSE;
+ 109   1          if (AutoPosition() == FALSE) {
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 3   
+
+ 110   2              SC_JITTER_CTRL = reg_bak1;
+ 111   2              SC_VI_AUTO_CTRL = reg_bak2;
+ 112   2              AutoTuneComplete();
+ 113   2              return FALSE;
+ 114   2          }
+ 115   1          if ((bAbortAutoTune == FALSE) && (bIsNonFullScreen == FALSE)) {
+ 116   2              if (AutoClock() == FALSE) {
+ 117   3                  SC_JITTER_CTRL = reg_bak1;
+ 118   3                  SC_VI_AUTO_CTRL = reg_bak2;
+ 119   3                  AutoTuneComplete();
+ 120   3                  return FALSE;
+ 121   3              }
+ 122   2          }
+ 123   1      
+ 124   1          if (ucAutoPct < 100) {
+ 125   2              OSDUpdateAutoTune(ucAutoPct++);
+ 126   2          }
+ 127   1      
+ 128   1          if (AutoClockByPhase() == FALSE) {
+ 129   2              SC_JITTER_CTRL = reg_bak1;
+ 130   2              SC_VI_AUTO_CTRL = reg_bak2;
+ 131   2              AutoTuneComplete();
+ 132   2              return FALSE;
+ 133   2          }
+ 134   1      
+ 135   1          if (AutoPhaseFineTune(ucPhaseRange) == FALSE) {
+ 136   2              SC_JITTER_CTRL = reg_bak1;
+ 137   2              SC_VI_AUTO_CTRL = reg_bak2;
+ 138   2              AutoTuneComplete();
+ 139   2              return FALSE;
+ 140   2          }
+ 141   1      
+ 142   1          if (AutoPosition() == FALSE) {
+ 143   2              SC_JITTER_CTRL = reg_bak1;
+ 144   2              SC_VI_AUTO_CTRL = reg_bak2;
+ 145   2              AutoTuneComplete();
+ 146   2              return FALSE;
+ 147   2          }
+ 148   1      
+ 149   1          AutoTuneComplete();
+ 150   1      
+ 151   1          SC_JITTER_CTRL = reg_bak1;
+ 152   1          SC_VI_AUTO_CTRL = reg_bak2;
+ 153   1          return TRUE;
+ 154   1      }
+ 155          
+ 156          /**************************************************************************//**
+ 157           * Complete the remainder percentage of auto-tune.
+ 158           ******************************************************************************/
+ 159          static void AutoTuneComplete(void)
+ 160          {
+ 161   1          while (ucAutoPct < 100) {
+ 162   2              OSDUpdateAutoTune(ucAutoPct++);
+ 163   2              Sleep(20);
+ 164   2              if (CheckModeChangeFlag() == TRUE) {
+ 165   3                  bAbortAutoTune = TRUE;
+ 166   3                  return ;
+ 167   3              }
+ 168   2          }
+ 169   1          OSDUpdateAutoTune(100);
+ 170   1      }
+ 171          
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 4   
+
+ 172          /**************************************************************************//**
+ 173           * Automatically find image H/V start position.
+ 174           * If system detect mode changed or non-full-screen content, system will stop AutoPosition.
+ 175           * @return TRUE if system succeed in finding H/V position else FALSE.
+ 176           ******************************************************************************/
+ 177          BOOL AutoPosition(void)
+ 178          {
+ 179   1      #define MAX_THR_LEVEL 0xA0
+ 180   1      #ifdef ENABLE_FPGA_MODE
+              #define MIN_THR_LEVEL 0x60
+              #else
+ 183   1      #if IS_NT68870_SERIES
+ 184   1      #define MIN_THR_LEVEL 0x60//0x30
+ 185   1      #else
+              #define MIN_THR_LEVEL 0x30
+              #endif
+ 188   1      #endif
+ 189   1          USHRT temph, tempv, h_active, v_active;
+ 190   1          USHRT cap_vlen, cap_hwid;
+ 191   1          UCHAR thr_level, k;
+ 192   1          BOOL pass_fail;
+ 193   1      
+ 194   1          cap_vlen = ReadShortScaler(&SC_GI_CAP_VLEN_LO) & 0x07FF;
+ 195   1          cap_hwid = ReadShortScaler(&SC_GI_CAP_HWID_LO) & 0x0FFF;
+ 196   1          SetHmask();
+ 197   1          SC_GI_AUTO_TUNE_CTRL = 0x00;
+ 198   1      
+ 199   1          for (thr_level=MIN_THR_LEVEL; thr_level<MAX_THR_LEVEL; thr_level+=0x10) {
+ 200   2              SC_GI_POS_THR = thr_level; //Red Noise Margin
+ 201   2              
+ 202   2              for (k=0; k<5; k++) {
+ 203   3                  if (MeasureImageSize() == TRUE) {
+ 204   4                      tempv = GetInputVActLen();
+ 205   4                      temph = GetInputHActWid();
+ 206   4                      if ((tempv > 0x100) && (temph > 0x100)) {
+ 207   5                          pass_fail = TRUE;//pass
+ 208   5                      }
+ 209   4                      else {
+ 210   5                          pass_fail = FALSE;//fail
+ 211   5                      }
+ 212   4                  }
+ 213   3                  else {
+ 214   4                      return FALSE;
+ 215   4                  }
+ 216   3                  if (pass_fail == FALSE) {
+ 217   4                      break;
+ 218   4                  }
+ 219   3              }
+ 220   2              if (k == 5) {
+ 221   3                  break;
+ 222   3              }
+ 223   2          }
+ 224   1      
+ 225   1          if (thr_level > MAX_THR_LEVEL) {
+ 226   2              return FALSE;
+ 227   2          }
+ 228   1      
+ 229   1          //SC_GI_POS_THR = 0x40; //Red Noise Margin
+ 230   1          if (MeasureImageSize() == TRUE) {
+ 231   2              v_active = GetInputVActLen();
+ 232   2              h_active = GetInputHActWid();
+ 233   2              if ((abs(h_active-temph) > 5) || (abs(v_active-tempv) > 5)) {
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 5   
+
+ 234   3                  bIsNonFullScreen = TRUE;
+ 235   3                  CheckImageOutOfScreen();
+ 236   3                  return FALSE;
+ 237   3              }
+ 238   2          }
+ 239   1          else {
+ 240   2              return FALSE;
+ 241   2          }
+ 242   1      
+ 243   1          temph = GetInputHActBeg();
+ 244   1          tempv = GetInputVActBeg();
+ 245   1      #if (!defined(ENABLE_FPGA_MODE))
+ 246   1          if (IsHNonFullScreen(temph,h_active)) {
+ 247   2              bIsNonFullScreen = TRUE;
+ 248   2              CheckImageOutOfScreen();
+ 249   2              return FALSE;
+ 250   2          }
+ 251   1      #endif
+ 252   1          SetHP(temph);
+ 253   1      
+ 254   1          if (!IsVNonFullScreen(tempv,v_active)){
+ 255   2          SetVP(tempv);
+ 256   2          }
+ 257   1      
+ 258   1          return TRUE;
+ 259   1      }
+ 260          
+ 261          /**************************************************************************//**
+ 262           * Check current input content is full-screen or not.
+ 263           * @return TRUE if content is full-screen else FALSE.
+ 264           ******************************************************************************/
+ 265          void CheckImageOutOfScreen(void)
+ 266          {
+ 267   1          USHRT h_start, v_start, h_active, v_active;
+ 268   1          USHRT cap_vlen, cap_hwid, cap_vstart, cap_hstart, ref;
+ 269   1      
+ 270   1          cap_vlen = ReadShortScaler(&SC_GI_CAP_VLEN_LO) & 0x07FF;
+ 271   1          cap_hwid = ReadShortScaler(&SC_GI_CAP_HWID_LO) & 0x0FFF;
+ 272   1          cap_vstart = ReadShortScaler(&SC_GI_CAP_VBEGO_LO) & 0x07FF;
+ 273   1          cap_hstart = ReadShortScaler(&SC_GI_CAP_HBEG_LO) & 0x0FFF;
+ 274   1          v_active = GetInputVActLen();
+ 275   1          h_active = GetInputHActWid();
+ 276   1          v_start = GetInputVActBeg();
+ 277   1          h_start = GetInputHActBeg();
+ 278   1      
+ 279   1          if ((v_active < cap_vlen) && (v_start < GetInputVTotal())) {//vertical small then screen
+ 280   2              if (v_start > cap_vstart) {//down
+ 281   3                  ref = v_active + v_start - cap_vstart;
+ 282   3                  if (ref > cap_vlen) {
+ 283   4                      cap_vstart = ref - cap_vlen + cap_vstart;
+ 284   4                  }
+ 285   3              }
+ 286   2              else {//up
+ 287   3                  cap_vstart = v_start;
+ 288   3              }
+ 289   2          }
+ 290   1          if ((h_active < cap_hwid) && (h_start < GetAngInputHTotal())) {//horizontal small then screen
+ 291   2              if (h_start > cap_hstart) {//right
+ 292   3                  ref = h_active + h_start - cap_hstart;
+ 293   3                  if (ref > cap_hwid) {
+ 294   4                      cap_hstart = ref - cap_hwid + cap_hstart;
+ 295   4                  }
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 6   
+
+ 296   3              }
+ 297   2              else {//left
+ 298   3                  cap_hstart = h_start;
+ 299   3              }
+ 300   2          }
+ 301   1      
+ 302   1          // Avoid InputTiming.usHStart < Min, make Hstart related operation abnormal, ex: OSD SliderBar overflo
+             -w
+ 303   1          if (cap_hstart < InputTiming.usHStartMin) 
+ 304   1              cap_hstart = InputTiming.usHStartMin;
+ 305   1          else if (cap_hstart > InputTiming.usHStartMax)
+ 306   1              cap_hstart = InputTiming.usHStartMax;
+ 307   1      
+ 308   1          SetHP(cap_hstart);
+ 309   1          SetVP(cap_vstart);
+ 310   1      
+ 311   1          InputTiming.usHStart = GetInputHStart();
+ 312   1          InputTiming.usVStart = GetInputVStart();
+ 313   1      //    InputTiming.usHStart50 = InputTiming.usHStart;
+ 314   1      //    InputTiming.usVStart50 = InputTiming.usVStart;
+ 315   1      }
+ 316          
+ 317          /**************************************************************************//**
+ 318           * Waiting for scaler to complete the image size detection .
+ 319           * The detection includes H/V start position, width and height.
+ 320           * The maximum waiting time is 100ms.
+ 321           * If the time is over 100ms, the function will return FASLE.
+ 322           * @return TRUE if the detection is completed else FALSE.
+ 323           ******************************************************************************/
+ 324          static BOOL MeasureImageSize(void)
+ 325          {
+ 326   1          BOOL i;
+ 327   1          USHRT local_timer;
+ 328   1      
+ 329   1          i = FALSE;
+ 330   1          SC_GI_AUTO_TUNE_CTRL = 0x41;
+ 331   1      
+ 332   1          local_timer = GetTimerTick();
+ 333   1          do {
+ 334   2              ResetWDTimer();
+ 335   2              if (CheckModeChangeFlag() == TRUE) {
+ 336   3                  break;
+ 337   3              }
+ 338   2              if ((SC_GI_AUTO_TUNE_CTRL & BIT0) == 0) {
+ 339   3                  i = TRUE;
+ 340   3                  break;
+ 341   3              }
+ 342   2          } while ((GetTimerTick()-local_timer) < 100);
+ 343   1      
+ 344   1          if (i == FALSE) {
+ 345   2              bAbortAutoTune = TRUE;
+ 346   2          }
+ 347   1      
+ 348   1          return i;
+ 349   1      }
+ 350          
+ 351          /**************************************************************************//**
+ 352           * Automatically find the best htotal (HPLL divider)  to the present analog timing.
+ 353           * If content is not full-screen, the function will return FALSE.
+ 354           * @return TRUE if the function is completed else FALSE.
+ 355           ******************************************************************************/
+ 356          BOOL AutoClock(void)
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 7   
+
+ 357          {
+ 358   1          UCHAR h_difference, i, compare;
+ 359   1          USHRT h_ref, h_max, h_total, h_active, h_total_bak;
+ 360   1      
+ 361   1          h_ref = ReadShortScaler(&SC_GI_CAP_HWID_LO);
+ 362   1          h_max = h_ref << 1;
+ 363   1          //Set H active reference
+ 364   1          WriteShortScaler(&SC_GI_CLK_REF_LO, h_ref);
+ 365   1      //#if IS_NT68790_SERIES || IS_NT68658_SERIES
+ 366   1      #if IS_NT68790_SERIES_LATER
+ 367   1          SC_GI_CLK_REF_HI |= (BIT7|BIT6|BIT5);
+ 368   1      #endif
+ 369   1          //Read pll divider
+ 370   1      #if defined(ENABLE_FPGA_MODE)
+                  h_total = AD9884_GetHTotal();
+              #else    
+ 373   1          h_total = ReadShortScaler(&SC_HSDDS_DIVIDER_LO);
+ 374   1      #endif
+ 375   1          h_total_bak = h_total;
+ 376   1          if (h_total <= h_ref) {
+ 377   2              h_total = h_ref + 16;
+ 378   2              SetADCPLL2(h_total);
+ 379   2          }
+ 380   1      
+ 381   1          for (i=0; i<0x20; i++) {
+ 382   2              SetHmask();
+ 383   2              if (MeasureImageSize() == TRUE) {
+ 384   3                  h_active = GetInputHActWid();
+ 385   3                  h_difference = SC_GI_CLK_RESULT;
+ 386   3                  compare = (h_difference & 0xC0) >> 6;
+ 387   3                  h_difference = h_difference & 0x3F;
+ 388   3                  if (compare == 0x00) { //h_ref is equal to h_active
+ 389   4                      break;
+ 390   4                  }
+ 391   3                  if (compare == 0x01) { //less than
+ 392   4                      h_total = h_total + h_difference;
+ 393   4                      if (h_total > h_max) {
+ 394   5                          i = 0xFF;
+ 395   5                          break;
+ 396   5                      }
+ 397   4                  }
+ 398   3                  if (compare > 0x01) { //greater than
+ 399   4                      h_total = h_total - h_difference;
+ 400   4                      if (h_total < h_ref) {
+ 401   5                          i = 0xFF;
+ 402   5                          break;
+ 403   5                      }
+ 404   4                  }
+ 405   3                  if (CheckADCPLLOutOfRange(h_total) == TRUE) {
+ 406   4                      i = 0xFF;
+ 407   4                      break;
+ 408   4                  }
+ 409   3                  SetADCPLL2(h_total);
+ 410   3              }
+ 411   2              else {
+ 412   3                  SetADCPLL2(h_total_bak);
+ 413   3                  return FALSE;
+ 414   3              }
+ 415   2          }
+ 416   1      
+ 417   1          if (i == 0xFF) {
+ 418   2              SetADCPLL2(h_total_bak);
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 8   
+
+ 419   2              bIsNonFullScreen = TRUE;
+ 420   2              return FALSE;
+ 421   2          }
+ 422   1          else {
+ 423   2              return TRUE;
+ 424   2          }
+ 425   1      }
+ 426          
+ 427          /**************************************************************************//**
+ 428           * Automatically find tune the HPLL phase setting.
+ 429           * If system detect mode changed, the function will return FALSE.
+ 430           * @return TRUE if the function is completed else FALSE.
+ 431           ******************************************************************************/
+ 432          BOOL AutoPhaseFineTune(UCHAR len)
+ 433          {
+ 434   1          UCHAR qq, yy, uu, i, k;
+ 435   1          ULONG phase_0, phase_1, phase_2, phase_pre3, phase_now3, phase_delta;
+ 436   1          USHRT local_timer;
+ 437   1      
+ 438   1          phase_1 = 0x00000000; //(i-1)
+ 439   1          phase_2 = 0x00000000; //(i-2)
+ 440   1          phase_pre3 = 0x00000000; //(pre sum)->(delta)->(now sum)
+ 441   1          phase_delta = 0xFFFFFFFF; //(min delta)
+ 442   1      #if defined(ENABLE_FPGA_MODE)
+                  qq = AD9884_GetPhase();
+              #else    
+ 445   1          qq = SC_HPLL_PHASE_CTRL1 & 0x3F;
+ 446   1      #endif
+ 447   1          SC_GI_AUTO_TUNE_CTRL = 0x42;
+ 448   1      
+ 449   1          for (yy=1; yy<len; yy++) {
+ 450   2              if (ucAutoPct < 100) {
+ 451   3                  OSDUpdateAutoTune(ucAutoPct++);
+ 452   3              }
+ 453   2      
+ 454   2              k = 0;
+ 455   2              local_timer = GetTimerTick();
+ 456   2              do {
+ 457   3                  ResetWDTimer();
+ 458   3                  if (CheckModeChangeFlag() == TRUE) {
+ 459   4                      bAbortAutoTune = TRUE;
+ 460   4                      return FALSE;
+ 461   4                  }
+ 462   3                  if ((SC_GI_AUTO_TUNE_CTRL & BIT1) == 0) {
+ 463   4                      k = 1;
+ 464   4                      break;
+ 465   4                  }
+ 466   3              } while ((GetTimerTick()-local_timer) < 100);
+ 467   2      
+ 468   2              if (k == 0) {
+ 469   3                  bAbortAutoTune = TRUE;
+ 470   3                  return FALSE;
+ 471   3              }
+ 472   2              k = (qq + yy) & 0x3F;
+ 473   2              SetADCPhase(k);
+ 474   2      
+ 475   2              SC_GI_AUTO_TUNE_CTRL = 0x42;
+ 476   2      
+ 477   2              phase_now3 = ReadShortScaler(&SC_GI_PHS_SDIFF_HI0);
+ 478   2              phase_now3 <<= 16;
+ 479   2              phase_now3 += ReadShortScaler(&SC_GI_PHS_SDIFF_LO0);
+ 480   2              i = (k - 1) & 0x3F;
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 9   
+
+ 481   2      
+ 482   2              phase_2 = phase_1; //Shift    
+ 483   2              phase_1 = phase_0;
+ 484   2              phase_0 = phase_now3;
+ 485   2              phase_now3 = (phase_0>>2) + (phase_1>>1) + (phase_2>>2);
+ 486   2              if (yy < 4) {
+ 487   3                  phase_pre3 = phase_now3; //phase_pre3 = phase_now3
+ 488   3              }
+ 489   2              else {
+ 490   3                  if (phase_now3 > phase_pre3) {
+ 491   4                      phase_pre3 = phase_now3 - phase_pre3;
+ 492   4                  }
+ 493   3                  else {
+ 494   4                      phase_pre3 = phase_pre3 - phase_now3; //phase_pre3 = delta
+ 495   4                  }
+ 496   3                  if (phase_pre3 < phase_delta) {
+ 497   4                      uu = i;           
+ 498   4                      phase_delta = phase_pre3;
+ 499   4                  }
+ 500   3                  phase_pre3 = phase_now3; //phase_pre3 = phase_now3
+ 501   3              }     
+ 502   2          }
+ 503   1          k = (uu - 1) & 0x3F;
+ 504   1          SetADCPhase(k);
+ 505   1      
+ 506   1          return TRUE;
+ 507   1      }
+ 508          
+ 509          /**************************************************************************//**
+ 510           * Calibrate the ADC offset of R/G/B channels.
+ 511           * This function will perform simple auto-gain function first then h/w auto-offset.
+ 512           * @return TRUE if the calibration is succeeded else FALSE.
+ 513           ******************************************************************************/
+ 514          BOOL AutoOffset(void)
+ 515          {
+ 516   1          if (AutoGainCoarse() == TRUE) {
+ 517   2              return HwAutoOffset();
+ 518   2          }
+ 519   1          else {
+ 520   2              return FALSE;
+ 521   2          }
+ 522   1      }
+ 523          
+ 524          /**************************************************************************//**
+ 525           * Calibrate the ADC offset of R/G/B channels by scaler.
+ 526           * @return TRUE if the calibration is succeeded else FALSE.
+ 527           ******************************************************************************/
+ 528          BOOL HwAutoOffset(void)
+ 529          {
+ 530   1          USHRT local_timer, totalRGB[3];
+ 531   1          UCHAR rgb[3], rgbbk[3], k, value;
+ 532   1      #if defined(ENABLE_FPGA_MODE)
+                  return TRUE;
+              #endif
+ 535   1      #if 0//IS_NT68150_SERIES
+                  SC_CAP_SWAP |= BIT5;
+              #endif
+ 538   1      
+ 539   1          rgbbk[0] = GetADCROffset();
+ 540   1          rgbbk[1] = GetADCGOffset();
+ 541   1          rgbbk[2] = GetADCBOffset();
+ 542   1      
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 10  
+
+ 543   1          rgb[0] = 0;
+ 544   1          rgb[1] = 0;
+ 545   1          rgb[2] = 0;
+ 546   1          SetADCROffset(0);
+ 547   1          SetADCGOffset(0);
+ 548   1          SetADCBOffset(0);
+ 549   1      
+ 550   1      #if IS_NT68750_SERIES// || IS_NT68770_SERIES || IS_NT68850_SERIES || IS_NT68655_SERIES
+                  SC_VI_AUTO_CTRL |= BIT5;
+              
+                  SC_AUTO_OFFSET_TARGET_RED = 0x00;
+                  SC_AUTO_OFFSET_TARGET_GREEN = 0x00;
+                  SC_AUTO_OFFSET_TARGET_BLUE = 0x00;
+              #else
+ 557   1          SC_AUTO_OFFSET_TARGET_GREEN = 0x00;
+ 558   1      #if IS_NT68810_SERIES
+                  if ((SC_ADC_IP_CTRL_1D80[_ADC_CLAMP_VMID_SEL] & 0xE0) == YPBPR_CLAMP) {
+              #elif IS_NT68870_SERIES
+ 561   1          if ((SC_ADC_IP_CTRL_1D80[_ADC_VREF_BIAS] & 0xE0) == YPBPR_CLAMP) {
+ 562   2      #else
+                  if ((SC_ADC_MID_CH_SEL & 0x07) == YPBPR_CLAMP) {
+              #endif
+ 565   2              SC_AUTO_OFFSET_TARGET_RED = 0x80;
+ 566   2              SC_AUTO_OFFSET_TARGET_BLUE = 0x80;
+ 567   2          }
+ 568   1          else {
+ 569   2              SC_AUTO_OFFSET_TARGET_RED = 0x00;
+ 570   2              SC_AUTO_OFFSET_TARGET_BLUE = 0x00;
+ 571   2          }
+ 572   1      #endif
+ 573   1          
+ 574   1      #if 0//IS_NT68810_SERIES || IS_NT68870_SERIES
+                  if (SC_ADC_IP_CTRL_1D80[_ADC_MISC_CTRL_33] == 0xDE) {//sog temp solution
+                      SC_AUTO_OFFSET_CTRL4 = 0x40;
+                      SC_AUTO_OFFSET_HCNT_MODE01 = 0x10;
+                  }
+                  else {
+                      SC_AUTO_OFFSET_CTRL4 = 0x00;
+                      SC_AUTO_OFFSET_HCNT_MODE01 = 0x00;
+                  }
+              #endif
+ 584   1      
+ 585   1          SC_AUTO_OFFSET_CTRL2 = 0x80;
+ 586   1          SC_AUTO_OFFSET_CTRL3 = 0x03;
+ 587   1          
+ 588   1          k = LOOP_COUNTER;
+ 589   1          totalRGB[0] = 0;
+ 590   1          totalRGB[1] = 0;
+ 591   1          totalRGB[2] = 0;
+ 592   1      
+ 593   1          local_timer = GetTimerTick();
+ 594   1          do {
+ 595   2              ResetWDTimer();
+ 596   2              Sleep(2);
+ 597   2              if (CheckModeChangeFlag() == TRUE) {
+ 598   3                  k = LOOP_COUNTER;
+ 599   3                  break;
+ 600   3              }
+ 601   2              else {
+ 602   3                  value = GetADCROffset();
+ 603   3                  if (abs(rgb[0] - value) > ADC_OFFSET_TOLERANCE) {
+ 604   4                      k = LOOP_COUNTER;
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 11  
+
+ 605   4                  }
+ 606   3                  rgb[0] = value;
+ 607   3                  value = GetADCGOffset();
+ 608   3                  if (abs(rgb[1] - value) > ADC_OFFSET_TOLERANCE) {
+ 609   4                      k = LOOP_COUNTER;
+ 610   4                  }
+ 611   3                  rgb[1] = value;
+ 612   3                  value = GetADCBOffset();
+ 613   3                  if (abs(rgb[2] - value) > ADC_OFFSET_TOLERANCE) {
+ 614   4                      k = LOOP_COUNTER;
+ 615   4                  }
+ 616   3                  rgb[2] = value;
+ 617   3                  if (k == LOOP_COUNTER) {//reset totalRGB[]
+ 618   4                      totalRGB[0] = rgb[0];
+ 619   4                      totalRGB[1] = rgb[1];
+ 620   4                      totalRGB[2] = rgb[2];
+ 621   4                  }
+ 622   3                  else {//accumulate
+ 623   4                      totalRGB[0] += rgb[0];
+ 624   4                      totalRGB[1] += rgb[1];
+ 625   4                      totalRGB[2] += rgb[2];
+ 626   4                  }
+ 627   3                  if (--k == 0) {
+ 628   4                      rgb[0] = totalRGB[0] / LOOP_COUNTER;
+ 629   4                      rgb[1] = totalRGB[1] / LOOP_COUNTER;
+ 630   4                      rgb[2] = totalRGB[2] / LOOP_COUNTER;
+ 631   4                  }
+ 632   3              }
+ 633   2          } while ((k != 0) && ((GetTimerTick() - local_timer) < 300));
+ 634   1      
+ 635   1          SC_AUTO_OFFSET_CTRL2 = 0x00;
+ 636   1          SC_AUTO_OFFSET_CTRL3 = 0x00;
+ 637   1      
+ 638   1      #if 0//IS_NT68150_SERIES
+                  SC_CAP_SWAP &= ~BIT5;
+              #endif
+ 641   1          if (k != 0) {
+ 642   2              SetADCROffset(rgbbk[0]);
+ 643   2              SetADCGOffset(rgbbk[1]);
+ 644   2              SetADCBOffset(rgbbk[2]);
+ 645   2              return FALSE;
+ 646   2          }
+ 647   1      
+ 648   1      #if IS_NT68810_SERIES
+                  if ((SC_ADC_IP_CTRL_1D80[_ADC_CLAMP_VMID_SEL] & 0xE0) == YPBPR_CLAMP) {
+              #elif IS_NT68870_SERIES
+ 651   1          if ((SC_ADC_IP_CTRL_1D80[_ADC_VREF_BIAS] & 0xE0) == YPBPR_CLAMP) {
+ 652   2      #else
+                  if ((SC_ADC_MID_CH_SEL & 0x07) == YPBPR_CLAMP) {
+              #endif
+ 655   2              SetADCROffset(rgb[0]);
+ 656   2              SetADCGOffset(rgb[1] + ADC_OFFSET_ADJ);
+ 657   2              SetADCBOffset(rgb[2]);
+ 658   2          }
+ 659   1          else {
+ 660   2              SetADCROffset(rgb[0] + ADC_OFFSET_ADJ);
+ 661   2              SetADCGOffset(rgb[1] + ADC_OFFSET_ADJ);
+ 662   2              SetADCBOffset(rgb[2] + ADC_OFFSET_ADJ);
+ 663   2          }
+ 664   1      
+ 665   1          return TRUE;
+ 666   1      }
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 12  
+
+ 667          
+ 668          /**************************************************************************//**
+ 669           * Calibrate the ADC gain of R/G/B channels.
+ 670           * If we enable ENABLE_HW_AUTOCOLOR, this function will call h/w ADC gain calibration.
+ 671           * Otherwise, f/w based calibration will be performed.
+ 672           * @return TRUE if the calibration is succeeded else FALSE.
+ 673           ******************************************************************************/
+ 674          BOOL AutoGain(void)
+ 675          {
+ 676   1      #if ENABLE_HW_AUTOCOLOR == ON
+                  return HWAutoGain();
+              #else
+ 679   1          UCHAR i, j, k, m, n, value, *p, offset, bak[3];
+ 680   1          USHRT local_timer;
+ 681   1          ULONG phase_result, temp, basic_level;
+ 682   1          BOOL time;
+ 683   1      
+ 684   1          bak[0] = GetADCRGain();
+ 685   1          bak[1] = GetADCGGain();
+ 686   1          bak[2] = GetADCBGain();
+ 687   1          SC_GAUGE_OFFSET = 0xF8;
+ 688   1          basic_level = ReadShortScaler(&SC_GI_CAP_VLEN_LO);
+ 689   1          for (m=0; m<3; m++) {
+ 690   2      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 691   2              i = 2 - m;//2,1,0 = R,G,B
+ 692   2              p = &SC_ADC_IP_CTRL_1D80;
+ 693   2      #else
+                      i = 0x001 + m * 3; //1,4,7
+                      p = &SC_ADC_CTRL;
+              #endif
+ 697   2              p += i;
+ 698   2              offset = *p;
+ 699   2              for (k=offset; k>7; k=k-8) {
+ 700   3                  SC_GAUGE_CTRL2 = 0x00;
+ 701   3      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 702   3                  i = 2 - m;//2,1,0 = R,G,B
+ 703   3                  p = &SC_ADC_IP_CTRL_1D80;
+ 704   3      #else
+                          i = 0x001 + m * 3; //1,4,7
+                          p = &SC_ADC_CTRL;
+              #endif
+ 708   3                  p += i;
+ 709   3                  *p = k;
+ 710   3                  i = 0x80 + (2-m)*0x08;
+ 711   3                  SC_GAUGE_CTRL2 = i;
+ 712   3                  time = 0;
+ 713   3                  local_timer = GetTimerTick();
+ 714   3                  do {
+ 715   4                      ResetWDTimer();
+ 716   4                      if (CheckModeChangeFlag() == TRUE) {
+ 717   5                          bAbortAutoTune = TRUE;
+ 718   5                          break;
+ 719   5                      }
+ 720   4                      if ((SC_GAUGE_CTRL2 & BIT7) == 0) {
+ 721   5                          time = 1;
+ 722   5                          break;
+ 723   5                      }
+ 724   4                  } while((GetTimerTick() - local_timer) < 100);
+ 725   3          
+ 726   3                  if (time == 0) {
+ 727   4                      bAbortAutoTune = TRUE;
+ 728   4                  }
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 13  
+
+ 729   3                  if (bAbortAutoTune == TRUE) {
+ 730   4                      SetADCRGain(bak[0]);
+ 731   4                      SetADCGGain(bak[1]);
+ 732   4                      SetADCBGain(bak[2]);
+ 733   4                      return FALSE;
+ 734   4                  }
+ 735   3      
+ 736   3                  j = 0;
+ 737   3                  temp = 0;
+ 738   3                  for (i=0; i<8; i++) {
+ 739   4                      SC_GAUGE_AREA_SEL = i;
+ 740   4                      phase_result = ReadShortScaler(&SC_GAUGE_RESULT_MI);
+ 741   4                      phase_result <<= 8;
+ 742   4                      value = SC_GAUGE_RESULT_LO;
+ 743   4                      phase_result += value;
+ 744   4                      //printf("phase_result %x = %x %ld\r\n",(USHRT)m,(USHRT)k,(phase_result));
+ 745   4                      if (phase_result > (basic_level*3)) {
+ 746   5                          j = 0xFF;
+ 747   5                          break;
+ 748   5                      }
+ 749   4                  }
+ 750   3                  if (j != 0) {
+ 751   4                      break;
+ 752   4                  }
+ 753   3              }
+ 754   2              if (k == 0) {
+ 755   3                  bAbortAutoTune = TRUE;
+ 756   3                  SetADCRGain(bak[0]);
+ 757   3                  SetADCGGain(bak[1]);
+ 758   3                  SetADCBGain(bak[2]);
+ 759   3                  return FALSE;
+ 760   3              }
+ 761   2              for (n=0; n<16; n++) {
+ 762   3                  SC_GAUGE_CTRL2 = 0x00;
+ 763   3      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 764   3                  i = 2 - m;//2,1,0 = R,G,B
+ 765   3                  p = &SC_ADC_IP_CTRL_1D80;
+ 766   3      #else
+                          i = 0x001 + m * 3; //1,4,7
+                          p = &SC_ADC_CTRL;
+              #endif
+ 770   3                  p += i;
+ 771   3                  *p = k-n;
+ 772   3                  i = 0x80 + (2-m)*0x08;
+ 773   3                  SC_GAUGE_CTRL2 = i;
+ 774   3                  time = 0;
+ 775   3                  local_timer = GetTimerTick();
+ 776   3                  do {
+ 777   4                      ResetWDTimer();
+ 778   4                      if (CheckModeChangeFlag() == TRUE) {
+ 779   5                          bAbortAutoTune = TRUE;
+ 780   5                          break;
+ 781   5                      }
+ 782   4                      if ((SC_GAUGE_CTRL2 & BIT7) == 0) {
+ 783   5                          time = 1;
+ 784   5                          break;
+ 785   5                      }
+ 786   4                  } while ((GetTimerTick() - local_timer) < 100);
+ 787   3          
+ 788   3                  if (time == 0) {
+ 789   4                      bAbortAutoTune = TRUE;
+ 790   4                  }
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 14  
+
+ 791   3                  if (bAbortAutoTune == TRUE) {
+ 792   4                      SetADCRGain(bak[0]);
+ 793   4                      SetADCGGain(bak[1]);
+ 794   4                      SetADCBGain(bak[2]);
+ 795   4                      return FALSE;
+ 796   4                  }
+ 797   3                  j = 0;
+ 798   3                  temp = 0;
+ 799   3                  SC_GAUGE_AREA_SEL = 7;
+ 800   3                  phase_result = ReadShortScaler(&SC_GAUGE_RESULT_MI);
+ 801   3                  phase_result <<= 8;
+ 802   3                  value = SC_GAUGE_RESULT_LO;
+ 803   3                  phase_result += value;
+ 804   3                  //printf("phase_result %x = %x %ld\r\n",(USHRT)m,(USHRT)n,phase_result);
+ 805   3                  if (phase_result > (basic_level * 10)) {//80
+ 806   4                      break;
+ 807   4                  }
+ 808   3              }
+ 809   2      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 810   2              i = 2 - m;//2,1,0 = R,G,B
+ 811   2              p = &SC_ADC_IP_CTRL_1D80;
+ 812   2      #else
+                      i = 0x001 + m * 3;  //1,4,7
+                      p = &SC_ADC_CTRL;
+              #endif
+ 816   2              j = k-n;
+ 817   2              p += i;
+ 818   2              *p = j;
+ 819   2              //printf("Gain %x = %x %x\r\n",(USHRT)m,(USHRT)k,(USHRT)j);
+ 820   2          }
+ 821   1      
+ 822   1          return TRUE;
+ 823   1      #endif
+ 824   1      }
+ 825          
+ 826          /**************************************************************************//**
+ 827           * Calibrate the ADC gain of R/G/B channels by scaler.
+ 828           * @return TRUE if the calibration is succeeded else FALSE.
+ 829           ******************************************************************************/
+ 830          #if ENABLE_SELF_AUTOCOLOR == ON
+              BOOL HWAutoGain(void)
+              {
+                  USHRT local_timer, totalRGB[3];
+                  UCHAR rgb[3], rgbbk[3], k, value;
+              #if 0//IS_NT68150_SERIES
+                  SC_CAP_SWAP |= BIT5;
+              #endif
+              
+                  rgbbk[0] = GetADCRGain();
+                  rgbbk[1] = GetADCGGain();
+                  rgbbk[2] = GetADCBGain();
+              
+                  SetADCInput(ADC_INPUT_INT_WHITE);
+                  SC_ADC_TRIM_CTRL |= BIT7;
+              
+                  SC_AUTO_GAIN_CTRL2 = 0x71;
+                  SC_AUTO_GAIN_CTRL3 = 0xFF;
+                  SC_AUTO_GAIN_CTRL4 = 0x00;
+              
+                  rgb[0] = 0;
+                  rgb[1] = 0;
+                  rgb[2] = 0;
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 15  
+
+                  SetADCRGain(0xFF);
+                  SetADCGGain(0xFF);
+                  SetADCBGain(0xFF);
+              
+              #if 1
+                  SC_AUTO_OFFSET_TARGET_RED = 0xF4;
+                  SC_AUTO_OFFSET_TARGET_GREEN = 0xF1;
+                  SC_AUTO_OFFSET_TARGET_BLUE = 0xEC;
+              #else
+                  SC_AUTO_OFFSET_TARGET_RED = 0xF5;
+                  SC_AUTO_OFFSET_TARGET_GREEN = 0xF4;
+                  SC_AUTO_OFFSET_TARGET_BLUE = 0xF0;
+              #endif
+              
+                  SC_AUTO_OFFSET_CTRL2 = 0x80;
+                  SC_AUTO_OFFSET_CTRL3 = 0x03;
+                  
+                  k = LOOP_COUNTER;
+                  totalRGB[0] = 0;
+                  totalRGB[1] = 0;
+                  totalRGB[2] = 0;
+              
+                  local_timer = GetTimerTick();
+                  do {
+                      ResetWDTimer();
+                      Sleep(2);
+                      if (CheckModeChangeFlag() == TRUE) {
+                          k = LOOP_COUNTER;
+                          break;
+                      }
+                      else {
+                          value = GetADCRGain();
+                          if (abs(rgb[0] - value) > ADC_GAIN_TOLERANCE) {
+                              k = LOOP_COUNTER;
+                          }
+                          rgb[0] = value;
+                          value = GetADCGGain();
+                          if (abs(rgb[1] - value) > ADC_GAIN_TOLERANCE) {
+                              k = LOOP_COUNTER;
+                          }
+                          rgb[1] = value;
+                          value = GetADCBGain();
+                          if (abs(rgb[2] - value) > ADC_GAIN_TOLERANCE) {
+                              k = LOOP_COUNTER;
+                          }
+                          rgb[2] = value;
+                          if (k == LOOP_COUNTER) {//reset totalRGB[]
+                              totalRGB[0] = rgb[0];
+                              totalRGB[1] = rgb[1];
+                              totalRGB[2] = rgb[2];
+                          }
+                          else {//accumulate
+                              totalRGB[0] += rgb[0];
+                              totalRGB[1] += rgb[1];
+                              totalRGB[2] += rgb[2];
+                          }
+                          if (--k == 0) {
+                              rgb[0] = totalRGB[0] / LOOP_COUNTER;
+                              rgb[1] = totalRGB[1] / LOOP_COUNTER;
+                              rgb[2] = totalRGB[2] / LOOP_COUNTER;
+                          }
+                      }
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 16  
+
+                  } while ((k != 0) && ((GetTimerTick() - local_timer) < 300));
+              
+                  SC_AUTO_OFFSET_CTRL2 = 0x00;
+                  SC_AUTO_OFFSET_CTRL3 = 0x00;
+              
+                  SC_ADC_TRIM_CTRL &= ~BIT7;
+                  SC_AUTO_GAIN_CTRL2 = 0x00;
+                  SetADCInput(ADC_INPUT_EXT_RGB);
+              #if 0//IS_NT68150_SERIES
+                  SC_CAP_SWAP &= ~BIT5;
+              #endif
+              
+                  if (k != 0) {
+                      SetADCRGain(rgbbk[0]);
+                      SetADCGGain(rgbbk[1]);
+                      SetADCBGain(rgbbk[2]);
+                      return FALSE;
+                  }
+              
+                  SetADCRGain(rgb[0] + ADC_GAIN_ADJ);
+                  SetADCGGain(rgb[1] + ADC_GAIN_ADJ);
+                  SetADCBGain(rgb[2] + ADC_GAIN_ADJ);
+                  return TRUE;
+              }
+              #endif
+ 940          
+ 941          /**************************************************************************//**
+ 942           * Check we can perform auto-color on the the current input interface or not.
+ 943           * @return TRUE if the interface is valid else FALSE.
+ 944           ******************************************************************************/
+ 945          BOOL IsAutoColorValid(void)
+ 946          {
+ 947   1          UCHAR interface = GetCurrInputInterface();
+ 948   1      
+ 949   1          if ((interface == DIGITAL_INPUT0) ||
+ 950   1              (interface == DIGITAL_INPUT1) ||
+ 951   1              (interface == DISPLAY_PORT_INPUT)
+ 952   1              ) {
+ 953   2              return FALSE;
+ 954   2          }
+ 955   1      
+ 956   1          return TRUE;
+ 957   1      }
+ 958          
+ 959          /**************************************************************************//**
+ 960           * Perform auto-color function with external signal.
+ 961           * @return TRUE if auto-color is succeeded else FALSE.
+ 962           ******************************************************************************/
+ 963          BOOL AutoColor(void)
+ 964          {
+ 965   1          UCHAR reg_bak1, reg_bak2, rgb[6];
+ 966   1      
+ 967   1          if (!IsAutoColorValid()) {
+ 968   2              return FALSE;
+ 969   2          }
+ 970   1      
+ 971   1          reg_bak1 = SC_JITTER_CTRL;
+ 972   1          reg_bak2 = SC_VI_AUTO_CTRL;
+ 973   1           
+ 974   1          SC_JITTER_CTRL = 0x00;
+ 975   1          SC_VI_AUTO_CTRL &= ~BIT5;
+ 976   1          
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 17  
+
+ 977   1          bAbortAutoTune = FALSE;
+ 978   1      
+ 979   1          //offset
+ 980   1          rgb[0] = GetADCROffset();
+ 981   1          rgb[1] = GetADCGOffset();
+ 982   1          rgb[2] = GetADCBOffset();
+ 983   1          //gain
+ 984   1          rgb[3] = GetADCRGain();
+ 985   1          rgb[4] = GetADCGGain();
+ 986   1          rgb[5] = GetADCBGain();
+ 987   1      
+ 988   1          if (AutoOffset() == TRUE) {
+ 989   2              if (AutoGain() == FALSE) {
+ 990   3                  bAbortAutoTune = TRUE;
+ 991   3              }
+ 992   2          }
+ 993   1          else {
+ 994   2              bAbortAutoTune = TRUE;
+ 995   2          }
+ 996   1      
+ 997   1          if (bAbortAutoTune == TRUE) {
+ 998   2              //offset
+ 999   2              SetADCROffset(rgb[0]);
+1000   2              SetADCGOffset(rgb[1]);
+1001   2              SetADCBOffset(rgb[2]);
+1002   2              //gain
+1003   2              SetADCRGain(rgb[3]);
+1004   2              SetADCGGain(rgb[4]);
+1005   2              SetADCBGain(rgb[5]);
+1006   2      
+1007   2              // We do not have to invoke offset again.
+1008   2              //HwAutoOffset();
+1009   2              //bAbortAutoTune = TRUE;
+1010   2          }
+1011   1      #if 0//(ModelName == AOC_e2252Vw && defined(AUO_M215HW01_VB)) || (ModelName == AOC_e2351Fh&&defined(LPL_BM
+             -230WF5_TJC1)) || (ModelName==AOC_i2353Ph&&defined(LPL_BM230WF3_SJC1))||(ModelName==Envision_G2465Wgl && defined(CMI_M236
+             -H3_LA3))////v31_110803_1530_SYS#4
+                  else {
+                      SetADCRGain(GetADCRGain() - 5);
+                      SetADCGGain(GetADCGGain() - 5);
+                      SetADCBGain(GetADCBGain() - 5);
+                  }
+              #endif
+1018   1      
+1019   1          SC_JITTER_CTRL = reg_bak1;
+1020   1          SC_VI_AUTO_CTRL = reg_bak2;
+1021   1          return !bAbortAutoTune;
+1022   1      }
+1023          
+1024          /**************************************************************************//**
+1025           * Perform auto-color function with internal white level.
+1026           * @return TRUE if auto-color is succeeded else FALSE.
+1027           ******************************************************************************/
+1028          #if ENABLE_SELF_AUTOCOLOR == ON
+              BOOL InternalAutoColor(void)
+              {
+                  UCHAR reg_bak1, reg_bak2, result;
+              
+                  result = FALSE;
+                  reg_bak1 = SC_JITTER_CTRL;
+                  reg_bak2 = SC_VI_AUTO_CTRL;
+              
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 18  
+
+                  SC_JITTER_CTRL = 0x00;
+                  SC_VI_AUTO_CTRL &= ~BIT5;
+              
+                  EnableSyncProcFreeRun(TRUE);
+                  SetADCInput(ADC_INPUT_INT_GND);
+                  if (HwAutoOffset()) {
+                      SetADCInput(ADC_INPUT_INT_WHITE);
+                      if (HWAutoGain()) {
+                          result = TRUE;
+                      }
+                  }
+              
+                  SetADCInput(ADC_INPUT_EXT_RGB);
+                  EnableSyncProcFreeRun(FALSE);
+              
+                  SC_JITTER_CTRL = reg_bak1;
+                  SC_VI_AUTO_CTRL = reg_bak2;
+              
+                  return result;
+              }
+              #endif
+1058          
+1059          /**************************************************************************//**
+1060           * Automatically fine tune htotal with best ADC phase.
+1061           * @return TRUE if the function is succeeded else FALSE.
+1062           ******************************************************************************/
+1063          static BOOL AutoClockByPhase(void)
+1064          {
+1065   1          #define CLOCKFINETUNESTEP 2
+1066   1      
+1067   1          UCHAR k,templ,temph;
+1068   1          USHRT good_dot_clock, poor_dot_clock, htotal;
+1069   1          ULONG maximum_delta, value, minimum_delta;
+1070   1      
+1071   1      #if defined(ENABLE_FPGA_MODE)
+                  htotal = AD9884_GetHTotal();
+              #else
+1074   1          htotal = ReadShortScaler(&SC_HSDDS_DIVIDER_LO);
+1075   1      #endif
+1076   1          good_dot_clock = htotal;
+1077   1          poor_dot_clock = htotal;
+1078   1          maximum_delta = 0;
+1079   1          minimum_delta = 0xFFFFFFFF;
+1080   1          htotal -= CLOCKFINETUNESTEP; //2005-05-25 mingyu: reduce fine tune time change to 2 times from 5 times
+1081   1          for (k=0; k<(CLOCKFINETUNESTEP+2); k++) {
+1082   2              SetADCPLL2(htotal);
+1083   2              //WaitSetup(40);
+1084   2              value = CheckPhaseData();
+1085   2              if (bAbortAutoTune == TRUE)
+1086   2                  return FALSE;
+1087   2              if (maximum_delta < value) {
+1088   3                  good_dot_clock = htotal;
+1089   3                  maximum_delta = value;
+1090   3                  templ = ucPhaseIndexLo;
+1091   3                  temph = ucPhaseIndexHi;
+1092   3              }
+1093   2              if (minimum_delta > value) {
+1094   3                  minimum_delta = value;
+1095   3                  poor_dot_clock = htotal;
+1096   3              }
+1097   2              htotal ++;
+1098   2          }
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 19  
+
+1099   1      
+1100   1          htotal = good_dot_clock;
+1101   1      
+1102   1          if (abs(good_dot_clock - poor_dot_clock) != 1) {
+1103   2              htotal &= 0xfffe;
+1104   2          }
+1105   1      
+1106   1          SetADCPLL2(htotal);
+1107   1          if (good_dot_clock != htotal) {
+1108   2              value = CheckPhaseData();
+1109   2              maximum_delta = value;
+1110   2              templ = ucPhaseIndexLo;
+1111   2              temph = ucPhaseIndexHi;
+1112   2          }
+1113   1      
+1114   1          good_dot_clock = ReadShortScaler(&SC_GI_CAP_HWID_LO);
+1115   1          poor_dot_clock = ReadShortScaler(&SC_GI_CAP_VLEN_LO);
+1116   1          value = (ULONG)good_dot_clock * poor_dot_clock *64; //V028, FIND BEST IN PAT-1
+1117   1          //printf("Value=%ld\r\n", Value);
+1118   1          //printf("maximum_delta=%ld\r\n", maximum_delta);
+1119   1          if (maximum_delta < value) {
+1120   2              k = (templ + 24) & 0x3F;
+1121   2              ucPhaseRange = 32;
+1122   2              //printf("REVERSE 180\r\n");
+1123   2          }
+1124   1          else {
+1125   2              k = (temph - 8) & 0x3F;
+1126   2              ucPhaseRange = 16;
+1127   2              //printf("FIND BEST PHASE\r\n");
+1128   2          }
+1129   1          SetADCPhase(k);
+1130   1      
+1131   1          return TRUE;
+1132   1      }
+1133          
+1134          /**************************************************************************//**
+1135           * Get the difference of maximum SOD and minimum SOD.
+1136           * @return The difference of maximum SOD and minimum SOD.
+1137           ******************************************************************************/
+1138          static ULONG CheckPhaseData(void)
+1139          {
+1140   1          ULONG value, minimum_value, maximum_value;
+1141   1          USHRT local_timer;
+1142   1          UCHAR phase;
+1143   1          BOOL k;
+1144   1      
+1145   1          maximum_value = 0;
+1146   1          minimum_value = 0xFFFFFFFF;
+1147   1          phase = 0;
+1148   1          SetADCPhase(phase);
+1149   1      
+1150   1          SC_GI_AUTO_TUNE_CTRL = 0x42;
+1151   1          for (phase=4; phase<0x42; phase=phase+4) {
+1152   2              if (ucAutoPct < 100) {
+1153   3                  OSDUpdateAutoTune(ucAutoPct++);
+1154   3              }
+1155   2              k = 0;
+1156   2              local_timer = GetTimerTick();
+1157   2              do {
+1158   3                  ResetWDTimer();
+1159   3                  if (CheckModeChangeFlag() == TRUE) {
+1160   4                      bAbortAutoTune = TRUE;
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 20  
+
+1161   4                      return FALSE;
+1162   4                  }
+1163   3                  if ((SC_GI_AUTO_TUNE_CTRL & BIT1) == 0) {
+1164   4                      k = 1;
+1165   4                      break;
+1166   4                  }
+1167   3              } while ((GetTimerTick()-local_timer) < 100);
+1168   2              if (k == 0) {
+1169   3                  bAbortAutoTune = TRUE;
+1170   3                  return FALSE;
+1171   3              }
+1172   2              SetADCPhase(phase);
+1173   2              SC_GI_AUTO_TUNE_CTRL = 0x42;
+1174   2              value = ReadShortScaler(&SC_GI_PHS_SDIFF_HI0);
+1175   2              value <<= 16;
+1176   2              value += ReadShortScaler(&SC_GI_PHS_SDIFF_LO0);
+1177   2              //printf("Phase %d = %ld\r\n", (USHRT)(phase), value);
+1178   2              //printf("Phase %d = %ld\r\n", (USHRT)(phase-4), value);
+1179   2              if (value < minimum_value) {
+1180   3                  minimum_value = value;
+1181   3                  ucPhaseIndexLo = (phase - 4) & 0x3F;
+1182   3              }
+1183   2              if (value > maximum_value) {
+1184   3                  maximum_value = value;
+1185   3                  ucPhaseIndexHi = (phase - 4) & 0x3F;
+1186   3              }
+1187   2          }
+1188   1      
+1189   1          value = maximum_value - minimum_value;
+1190   1      
+1191   1          //printf("usHTotal = %d\r\n",usHTotal);
+1192   1          //printf("MaxMin = %ld\r\n",Value);
+1193   1      
+1194   1          return value;
+1195   1      }
+1196          
+1197          /**************************************************************************//**
+1198           * Automatically calibrate the ADC gain by Max/Min function in scaler.
+1199           * @return TRUE if the calibration is succeeded else FALSE..
+1200           ******************************************************************************/
+1201          static BOOL AutoGainCoarse(void)
+1202          {
+1203   1      #define MAX_WHITE_GAIN  0xF8
+1204   1      #define MIN_WHITE_GAIN  0xF0
+1205   1      #define ADC_MIN_GAIN    0x08
+1206   1      #define ADC_MAX_GAIN    0xF8
+1207   1      
+1208   1      #if ENABLE_HW_AUTOCOLOR == ON
+                  return TRUE;
+              #else
+1211   1          UCHAR i,k,value,rgb[3],bak[3];
+1212   1          USHRT local_timer, temp;
+1213   1      
+1214   1      #if defined(ENABLE_FPGA_MODE)
+                  return TRUE;
+              #endif
+1217   1          bak[0] = GetADCRGain();
+1218   1          bak[1] = GetADCGGain();
+1219   1          bak[2] = GetADCBGain();
+1220   1          rgb[0] = GetADCRGain();
+1221   1          rgb[1] = GetADCGGain();
+1222   1          rgb[2] = GetADCBGain();
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 21  
+
+1223   1      
+1224   1          for (k=0; k<128; k++) {
+1225   2              i = 0;
+1226   2              local_timer = GetTimerTick();
+1227   2              SC_GI_AUTO_TUNE_CTRL = 0x6e;
+1228   2              do {
+1229   3                  ResetWDTimer();
+1230   3                  if (CheckModeChangeFlag() == TRUE) {
+1231   4                      bAbortAutoTune = TRUE;
+1232   4                      break;
+1233   4                  }
+1234   3                  if ((SC_GI_AUTO_TUNE_CTRL & BIT1) == 0) {
+1235   4                      i = 1;
+1236   4                      break;
+1237   4                  }
+1238   3              } while ((GetTimerTick() - local_timer) < 100);
+1239   2      
+1240   2              if (i == 0) { //timeout
+1241   3                  bAbortAutoTune = TRUE;
+1242   3              }
+1243   2      
+1244   2              if (bAbortAutoTune == TRUE) { //timeout or mode change
+1245   3                  SetADCRGain(bak[0]);
+1246   3                  SetADCGGain(bak[1]);
+1247   3                  SetADCBGain(bak[2]);
+1248   3                  return FALSE;
+1249   3              }
+1250   2      
+1251   2              //printf("\r\n");
+1252   2              //printf("r = %d\r\n", (USHRT)rgb[0]);
+1253   2              //printf("g = %d\r\n", (USHRT)rgb[1]);
+1254   2              //printf("b = %d\r\n", (USHRT)rgb[2]);
+1255   2              i = 0;
+1256   2              value = SC_GI_PHS_SDIFF_LO0;
+1257   2      
+1258   2              // Basic concept of the following formula is
+1259   2              //   ADC code is 0x60 when input is 0.5V and gain setting is 0xFF
+1260   2              //   ADC code is 0xF0 when input is 0.5V and gain setting is 0x00
+1261   2              //   (Those assumptions are always true!)
+1262   2              // If the ADC code of 0.5V with specific gain setting is larger than
+1263   2              // real input data, it means the input data is too small to meet our
+1264   2              // Scaler spec. (0.5V ~ 0.9V white video level)
+1265   2              temp = (USHRT)(0xFF-rgb[0]) * (0xF0-0x60) / 0xFF + 0x60;
+1266   2      //        printf("R = %d %d\r\n", (USHRT)value, temp);
+1267   2              if (value < temp) {
+1268   3                  break;
+1269   3              }
+1270   2      
+1271   2              if ((value<MIN_WHITE_GAIN) && (rgb[0]>ADC_MIN_GAIN)) {
+1272   3                  rgb[0] -= (MIN_WHITE_GAIN-value);
+1273   3                  i = 0xFF;
+1274   3              }
+1275   2              if ((value>MAX_WHITE_GAIN) && (rgb[0]<ADC_MAX_GAIN)) {
+1276   3                  rgb[0] += (value-MAX_WHITE_GAIN);
+1277   3                  i = 0xFF;
+1278   3              }
+1279   2              value = SC_GI_PHS_SDIFF_LO1;
+1280   2      
+1281   2              temp = (USHRT)(0xFF-rgb[1]) * (0xF0-0x60) / 0xFF + 0x60;
+1282   2      //        printf("G = %d %d\r\n", (USHRT)value, temp);
+1283   2              if (value < temp) {
+1284   3                  break;
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 22  
+
+1285   3              }
+1286   2      
+1287   2              if ((value<MIN_WHITE_GAIN) && (rgb[1]>ADC_MIN_GAIN)) {
+1288   3                  rgb[1] -= (MIN_WHITE_GAIN-value);
+1289   3                  i = 0xFF;
+1290   3              }
+1291   2              if ((value>MAX_WHITE_GAIN) && (rgb[1]<ADC_MAX_GAIN)) {
+1292   3                  rgb[1] += (value-MAX_WHITE_GAIN);
+1293   3                  i = 0xFF;
+1294   3              }
+1295   2              value = SC_GI_PHS_SDIFF_HI0;
+1296   2      
+1297   2              temp = (USHRT)(0xFF-rgb[2]) * (0xF0-0x60) / 0xFF + 0x60;
+1298   2      //        printf("B = %d %d\r\n", (USHRT)value, temp);
+1299   2              if (value < temp) {
+1300   3                  break;
+1301   3              }
+1302   2      
+1303   2              if ((value<MIN_WHITE_GAIN) && (rgb[2]>ADC_MIN_GAIN)) {
+1304   3                  rgb[2] -= (MIN_WHITE_GAIN-value);
+1305   3                  i = 0xFF;
+1306   3              }
+1307   2              if ((value>MAX_WHITE_GAIN) && (rgb[2]<ADC_MAX_GAIN)) {
+1308   3                  rgb[2] += (value-MAX_WHITE_GAIN);
+1309   3                  i = 0xFF;
+1310   3              }
+1311   2              if (i == 0) {
+1312   3                  if ((rgb[0] < ADC_MIN_GAIN) || (rgb[0] > ADC_MAX_GAIN)) {
+1313   4                      break;
+1314   4                  }
+1315   3                  if ((rgb[1] < ADC_MIN_GAIN) || (rgb[1] > ADC_MAX_GAIN)) {
+1316   4                      break;
+1317   4                  }
+1318   3                  if ((rgb[2] < ADC_MIN_GAIN) || (rgb[2] > ADC_MAX_GAIN)) {
+1319   4                      break;
+1320   4                  }
+1321   3                  return TRUE;
+1322   3              }
+1323   2              else {
+1324   3                  SetADCRGain(rgb[0]);
+1325   3                  SetADCGGain(rgb[1]);
+1326   3                  SetADCBGain(rgb[2]);
+1327   3                  //Sleep(10);
+1328   3              }
+1329   2          }
+1330   1          SetADCRGain(bak[0]);
+1331   1          SetADCGGain(bak[1]);
+1332   1          SetADCBGain(bak[2]);
+1333   1          bAbortAutoTune = TRUE;
+1334   1      
+1335   1          return FALSE;
+1336   1      #endif
+1337   1      }
+1338          
+1339          /**************************************************************************//**
+1340           * Set horizontal mask to mask the coupling noise from HSync.
+1341           ******************************************************************************/
+1342          void SetHmask(void)
+1343          {
+1344   1      #define ADC_PIPE_DELAY    0x08
+1345   1      #define HSYNC_LOCK_DELAY  0x18
+1346   1      
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 23  
+
+1347   1          UCHAR sw;
+1348   1          USHRT input_active_width, htotal, hposition, hw, mask;
+1349   1          float temp;
+1350   1      
+1351   1      //#if IS_NT68790_SERIES || IS_NT68658_SERIES
+1352   1      #if 0//IS_NT68658_SERIES//IS_NT68790_SERIES_LATER
+                  SC_GPORT_CTRL |= BIT5;
+              #endif
+1355   1          sw = SC_INPUT_SELECT & 0x03;
+1356   1          if (sw > 0x01) {//DVI
+1357   2              SC_GI_HMASK_BEG = 1;  // AutoPosition Pixel mask -> H
+1358   2              SC_GI_HMASK_END = 0;  // AutoPosition Pixel mask -> H
+1359   2              SC_GI_VMASK_BEG = 0;
+1360   2              SC_GI_VMASK_END = 0;
+1361   2          }
+1362   1          else {
+1363   2              /*
+1364   2              SC_GI_HMASK_BEG = 0x10;  // AutoPosition Pixel mask -> H
+1365   2              SC_GI_HMASK_END = 0x10;  // AutoPosition Pixel mask -> H
+1366   2              SC_GI_VMASK_BEG = 3;
+1367   2              SC_GI_VMASK_END = 3;
+1368   2              */
+1369   2              input_active_width = ReadShortScaler(&SC_GI_CAP_HWID_LO);
+1370   2      #if defined(ENABLE_FPGA_MODE)
+                      htotal = AD9884_GetHTotal();
+                 #else        
+1373   2              htotal = ReadShortScaler(&SC_HSDDS_DIVIDER_LO);
+1374   2         #endif
+1375   2              hposition = ReadShortScaler(&SC_GI_CAP_HBEG_LO);
+1376   2              sw = SC_GI_HS_WID + 1;   // Always + 1 to avoid HMask taking no effect to coupling noise.
+1377   2              hw = ReadShortScaler(&SC_GI_HCNT_LO) & 0x1FFF;
+1378   2              temp = (float)htotal * sw * 8 / hw;
+1379   2              mask = (USHRT)temp + (HSYNC_LOCK_DELAY - ADC_PIPE_DELAY);
+1380   2              if (mask > 0xFF) {
+1381   3                  mask = 0xFF;
+1382   3              }
+1383   2              hw = htotal - input_active_width - hposition;
+1384   2              if (mask > hw) {
+1385   3                  mask = hw;
+1386   3              }
+1387   2              SC_GI_HMASK_BEG = 0;
+1388   2          #if defined(ENABLE_FPGA_MODE)
+                      SC_GI_HMASK_END = 6;
+                  #else
+1391   2              SC_GI_HMASK_END = mask;
+1392   2          #endif
+1393   2              SC_GI_VMASK_BEG = 0;
+1394   2              SC_GI_VMASK_END = 0;
+1395   2      
+1396   2      #if IS_NT68658_SERIES
+                      if ((SC_ADC_MID_CH_SEL & 0x07) == YPBPR_CLAMP) {
+                          input_active_width = ReadShortScaler(&SC_GI_CAP_HWID_LO);
+                          hw = ReadShortScaler(&SC_GI_CAP_VLEN_LO);
+                        if (((input_active_width == 1920) && (hw == 1080)) || ((input_active_width == 1280) && (hw == 720
+             -))){
+                              SC_GI_HMASK_BEG = mask;
+                              SC_GI_VMASK_BEG = 2;
+                          }
+                      }
+              #endif
+1406   2          }
+1407   1      }
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 24  
+
+1408          
+1409          #if (DVI_MODE==DVI_HV_MODE) || (DVI_MODE==DVI_HVDE_MODE)
+1410          /**************************************************************************//**
+1411           * Automatically find the H/V start position of content when input is digital timing.
+1412           * @return TRUE if the function is succeeded else FALSE.
+1413           ******************************************************************************/
+1414          BOOL DVIAutoPosition(void)
+1415          {
+1416   1          BOOL i;
+1417   1          USHRT local_timer;
+1418   1      
+1419   1          if ((SC_GI_SYNC_CTRL & BIT7) == 0x00) {
+1420   2              // DVIAutoPosition is only available under H+V.
+1421   2              return FALSE;
+1422   2          }
+1423   1      
+1424   1          bAbortAutoTune = 0;
+1425   1          SetHmask();
+1426   1          SC_GI_POS_THR = 0x40;  // Red Noise Margin
+1427   1          SC_GI_AUTO_TUNE_CTRL = 0x00;
+1428   1       
+1429   1          SC_GI_AUTO_TUNE_CTRL = 0x11;
+1430   1          Sleep(20);
+1431   1          i = 0;
+1432   1          local_timer = GetTimerTick();
+1433   1          do {
+1434   2              ResetWDTimer();
+1435   2              if (CheckModeChangeFlag() == TRUE) {
+1436   3                  bAbortAutoTune = TRUE;
+1437   3                  break;
+1438   3              }
+1439   2              if ((SC_GI_AUTO_TUNE_CTRL & BIT0) == 0) {
+1440   3                  i = 1;
+1441   3                  break;
+1442   3              }
+1443   2          } while ((GetTimerTick() - local_timer) < 100);
+1444   1      
+1445   1          if (i == 0) {//timeout
+1446   2              bAbortAutoTune = TRUE;
+1447   2          }
+1448   1          if (bAbortAutoTune == TRUE) {
+1449   2              return FALSE;
+1450   2          }
+1451   1          else {
+1452   2              WriteShortScaler(&SC_GI_CAP_VBEGE_LO, ReadShortScaler(&SC_GI_POS_VBEGE_LO));
+1453   2              WriteShortScaler(&SC_GI_CAP_VBEGO_LO, ReadShortScaler(&SC_GI_POS_VBEGO_LO));
+1454   2              WriteShortScaler(&SC_GI_CAP_HBEG_LO, GetInputHActBeg());
+1455   2              if (ReadShortScaler(&SC_GI_POS_VBEGE_LO) > ReadShortScaler(&SC_GI_POS_VBEGO_LO)) {
+1456   3                  SetEvenFieldOffset(1);
+1457   3              }
+1458   2              else if (ReadShortScaler(&SC_GI_POS_VBEGE_LO) < ReadShortScaler(&SC_GI_POS_VBEGO_LO)) {
+1459   3                  SetEvenFieldOffset(-1);
+1460   3              }
+1461   2              else {
+1462   3                  SetEvenFieldOffset(0);
+1463   3              }
+1464   2              return TRUE;
+1465   2          }
+1466   1      }
+1467          #endif
+1468          
+1469          /**************************************************************************//**
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 25  
+
+1470           * Set htotal (HPLL divider) step by step.
+1471           * @param htotal Horizontal pixel count of input timing.
+1472           ******************************************************************************/
+1473          void SetADCPLL2(USHRT htotal)
+1474          {
+1475   1          USHRT htotal_end, htotal_begin;
+1476   1      
+1477   1          SC_HPLL_PHASE_CTRL &= ~BIT2;
+1478   1      #if defined(ENABLE_FPGA_MODE)
+                  htotal_begin = AD9884_GetHTotal();
+                  if ( htotal_begin==0 ) {
+                      return;
+                  }
+              #else    
+1484   1          htotal_begin = ReadShortScaler(&SC_HSDDS_DIVIDER_LO);
+1485   1      #endif
+1486   1          htotal_end = htotal;
+1487   1          htotal = htotal_begin;
+1488   1          do {
+1489   2              if (htotal_end != htotal_begin) {
+1490   3                  if (htotal_end > htotal_begin) {
+1491   4                      htotal += 4;
+1492   4                      if (htotal > htotal_end)
+1493   4                          htotal = htotal_end;
+1494   4                  }
+1495   3                  else {
+1496   4                      htotal -= 4;
+1497   4                      if (htotal < htotal_end)
+1498   4                          htotal = htotal_end;
+1499   4                  }
+1500   3                  WaitDisVSync();
+1501   3              #if defined(ENABLE_FPGA_MODE)
+                          AD9884_SetHTotal(htotal);
+                      #else            
+1504   3                  WriteShortScaler(&SC_HSDDS_DIVIDER_LO, htotal);
+1505   3              #endif
+1506   3      //#if IS_NT68661_SERIES || IS_NT68770_SERIES || IS_NT68850_SERIES || IS_NT68655_SERIES || IS_NT68790_SERIE
+             -S || IS_NT68150_SERIES || IS_NT68658_SERIES
+1507   3      #if IS_NT68770_SERIES_LATER
+1508   3      #if ENABLE_SR == ON
+1509   3                  SetSRHtotal(htotal);
+1510   3      #endif
+1511   3      #endif
+1512   3              }
+1513   2          } while (htotal != htotal_end);
+1514   1      }
+1515          
+1516          /**************************************************************************//**
+1517           * Check the pixel clock is out of scaler spec or not.
+1518           * @return TRUE if pixel clock is out of scaler spec else FALSE.
+1519           ******************************************************************************/
+1520          BOOL CheckADCPLLOutOfRange(USHRT htotal)
+1521          {
+1522   1          if (((ULONG)MAX_ANALONG_PIXEL_CLOCK * 10000) < ((ULONG)GetInputHFreq() * htotal)) {
+1523   2              return TRUE;
+1524   2          }
+1525   1          else {
+1526   2              return FALSE;
+1527   2          }
+1528   1      }
+
+
+C51 COMPILER V9.54   AUTOADJ                                                               01/06/2017 14:56:39 PAGE 26  
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   5490    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      4     194
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2       5
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

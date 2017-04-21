@@ -1,0 +1,42 @@
+A51 MACRO ASSEMBLER  SET_B62                                                              01/06/2017 14:56:38 PAGE     1
+
+
+MACRO ASSEMBLER A51 V8.02c
+OBJECT MODULE PLACED IN .\Bin\set_b62.obj
+ASSEMBLER INVOKED BY: D:\Keil_v5\C51\BIN\A51.EXE Lib\set_b62.a51 SET(LARGE) PRINT(.\Lst\set_b62.lst) OBJECT(.\Bin\set_b6
+                      2.obj) EP
+
+LOC  OBJ            LINE     SOURCE
+
+                       1     NAME    SETB_62
+                       2     
+                       3     ;?PR?set_b62?SET_B62    SEGMENT CODE
+                       4             PUBLIC  set_b62
+                       5     
+                       6     ;        RSEG    ?PR?set_b62?SET_B62
+                       7             
+----                   8             CSEG    AT      18H
+0018                   9     set_b62:
+0018 908B62           10             MOV     DPTR,#8B62h
+001B E0               11             MOVX    A,@DPTR   
+001C 4401             12             ORL     A,#01h
+001E F0               13             MOVX    @DPTR,A
+001F 22               14             RET
+                      15     
+                      16             END
+A51 MACRO ASSEMBLER  SET_B62                                                              01/06/2017 14:56:38 PAGE     2
+
+SYMBOL TABLE LISTING
+------ ----- -------
+
+
+N A M E             T Y P E  V A L U E   ATTRIBUTES
+
+SETB_62. . . . . .  N NUMB   -----       
+SET_B62. . . . . .  C ADDR   0018H   A   
+
+
+REGISTER BANK(S) USED: 0 
+
+
+ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)

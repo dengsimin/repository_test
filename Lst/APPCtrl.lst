@@ -1,0 +1,2238 @@
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE APPCTRL
+OBJECT MODULE PLACED IN .\Bin\APPCtrl.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE App\APPCtrl.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD;.\Ap
+                    -p\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NVT\Key
+                    -pad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_2560X1
+                    -440,FLASH_BANK=8) PRINT(.\Lst\APPCtrl.lst) TABS(2) OBJECT(.\Bin\APPCtrl.obj)
+
+line level    source
+
+   1           /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          
+  14          //******************************************************************************
+  15          // G L O B A L   D E F I N I T I O N S
+  16          //******************************************************************************
+  17          enum _APPKEYEVENT_ {
+  18              APPEVT_KEY_ONOFF,
+  19              APPEVT_KEY_ON,
+  20              APPEVT_KEY_OFF,
+  21              APPEVT_KEY_SAVING,
+  22              APPEVT_KEY_SOURCE,
+  23              APPEVT_KEY_QUICK_ONOFF,
+  24              APPEVT_KEY_FACTORY,
+  25              APPEVT_KEY_WAKEUP,
+  26              APPEVT_KEY_TIMING_SWITCH,
+  27              APPEVT_KEY_DEMO,
+  28              APPEVT_KEY_OSDLOCK,
+  29              APPEVT_NONKEY,
+  30              NUM_APP_KEY_EVENTS
+  31          } ;
+  32          
+  33          enum _APPOSDEVENT_ {
+  34              APPEVT_OSD_UPD_USR,
+  35              APPEVT_OSD_UPD_SYS,
+  36              APPEVT_OSD_UPD_TMG,
+  37              APPEVT_OSD_UPD_CAL,
+  38              APPEVT_NONOSD,
+  39              NUM_APP_OSD_EVENTS
+  40          } ;
+  41          
+  42          enum _APPDDCCIEVENT_ {
+  43              APPEVT_DDCCI_UPD_USR,
+  44              APPEVT_DDCCI_UPD_SYS,
+  45              APPEVT_DDCCI_UPD_TMG,
+  46              APPEVT_DDCCI_UPD_CAL,
+  47              APPEVT_DDCCI_PWR_ON,
+  48              APPEVT_DDCCI_PWR_OFF,
+  49              APPEVT_DDCCI_PWR_SAVING,
+  50              APPEVT_NONDDCCI,
+  51              NUM_APP_DDCCI_EVENTS
+  52          } ;
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 2   
+
+  53          
+  54          enum {
+  55              APPFLAG_UPD_TMG  = 0x0001,
+  56              APPFLAG_UPD_USR  = 0x0002,
+  57              APPFLAG_UPD_CAL  = 0x0004,
+  58              APPFLAG_UPD_SYS  = 0x0008,
+  59              APPFLAG_LOGO     = 0x0010,
+  60              APPFLAG_NOSYNC   = 0x0020,
+  61              APPFLAG_OUTRANGE = 0x0040,
+  62              APPFLAG_SYSINIT  = 0x0080,
+  63              APPFLAG_NOCABLE  = 0x0100
+  64          };
+  65          
+  66          #define IsAPPUpdTmg()   ((usAPPFlags&APPFLAG_UPD_TMG) != 0)
+  67          #define IsAPPUpdUsr()   ((usAPPFlags&APPFLAG_UPD_USR) != 0)
+  68          #define IsAPPUpdCal()   ((usAPPFlags&APPFLAG_UPD_CAL) != 0)
+  69          #define IsAPPUpdSys()   ((usAPPFlags&APPFLAG_UPD_SYS) != 0)
+  70          #define IsAPPLogo()     ((usAPPFlags&APPFLAG_LOGO) != 0)
+  71          #define IsAPPNoSync()   ((usAPPFlags&APPFLAG_NOSYNC) != 0)
+  72          #define IsAPPOutRange() ((usAPPFlags&APPFLAG_OUTRANGE) != 0)
+  73          #define IsAPPSysInit()  ((usAPPFlags&APPFLAG_SYSINIT) != 0)
+  74          #define IsAPPNoCable()  ((usAPPFlags&APPFLAG_NOCABLE) != 0)
+  75          
+  76          #define SetAPPUpdTmgFlag()   {usAPPFlags |= APPFLAG_UPD_TMG;}
+  77          #define SetAPPUpdUsrFlag()   {usAPPFlags |= APPFLAG_UPD_USR;}
+  78          #define SetAPPUpdCalFlag()   {usAPPFlags |= APPFLAG_UPD_CAL;}
+  79          #define SetAPPUpdSysFlag()   {usAPPFlags |= APPFLAG_UPD_SYS;}
+  80          #define SetAPPLogoFlag()     {usAPPFlags |= APPFLAG_LOGO;}
+  81          #define SetAPPNoSyncFlag()   {usAPPFlags |= APPFLAG_NOSYNC;}
+  82          #define SetAPPSysInitFlag()  {usAPPFlags |= APPFLAG_SYSINIT;}
+  83          #define SetAPPOutRangeFlag() {usAPPFlags |= APPFLAG_OUTRANGE;}
+  84          #define SetAPPNoCableFlag()  {usAPPFlags |= APPFLAG_NOCABLE;}
+  85          
+  86          #define ClearAPPUpdTmgFlag() {usAPPFlags &= ~APPFLAG_UPD_TMG;}
+  87          #define ClearAPPUpdUsrFlag() {usAPPFlags &= ~APPFLAG_UPD_USR;}
+  88          #define ClearAPPUpdCalFlag() {usAPPFlags &= ~APPFLAG_UPD_CAL;}
+  89          #define ClearAPPUpdSysFlag() {usAPPFlags &= ~APPFLAG_UPD_SYS;}
+  90          #define ClearAPPLogoFlag()   {usAPPFlags &= ~APPFLAG_LOGO;}
+  91          #define ClearAPPNoSyncFlag() {usAPPFlags &= ~APPFLAG_NOSYNC;}
+  92          #define ClearAPPOutRangeFlag() {usAPPFlags &= ~APPFLAG_OUTRANGE;}
+  93          #define ClearAPPSysInitFlag() {usAPPFlags &= ~APPFLAG_SYSINIT;}
+  94          #define ClearAPPNoCableFlag() {usAPPFlags &= ~APPFLAG_NOCABLE;}
+  95          
+  96          #define ClearAPPUpdFlag() { \
+  97              usAPPFlags &= ~(APPFLAG_UPD_TMG|APPFLAG_UPD_USR|APPFLAG_UPD_CAL|APPFLAG_UPD_SYS); \
+  98          }
+  99          #define ClearAPPSyncFlag() { \
+ 100              usAPPFlags &= ~(APPFLAG_NOSYNC|APPFLAG_OUTRANGE|APPFLAG_NOCABLE); \
+ 101          }
+ 102          #define ClearAPPAllFlag() {usAPPFlags = 0x00;}
+ 103          
+ 104          #if (USE_INTERNAL_EDID == 1)
+ 105              #define EDIDProtectOn() { \
+ 106                  McuSetDDCWP(MCU_DDC_0,ON); \
+ 107                  McuSetDDCWP(MCU_DDC_1,ON); \
+ 108                  McuSetDDCWP(MCU_DDC_2,ON); \
+ 109                  McuSetDDCWP(MCU_DDC_3,ON); \
+ 110                  EdidWPOn(); \
+ 111              }
+ 112              #define EDIDProtectOff() { \
+ 113                  McuSetDDCWP(MCU_DDC_0,OFF); \
+ 114                  McuSetDDCWP(MCU_DDC_1,OFF); \
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 3   
+
+ 115                  McuSetDDCWP(MCU_DDC_2,OFF); \
+ 116                  McuSetDDCWP(MCU_DDC_3,OFF); \
+ 117                  EdidWPOff(); \
+ 118              }
+ 119          #else
+                  #define EDIDProtectOn()  EdidWPOn()
+                  #define EDIDProtectOff() EdidWPOff()
+              #endif
+ 123          
+ 124          USHRT Auto_Power_off_Timer;
+ 125          
+ 126          
+ 127          //******************************************************************************
+ 128          // S T A T I C   V A R I A B L E S
+ 129          //******************************************************************************
+ 130          static code UCHAR ucKey2APPEventTable[NUM_KEY_EVENTS] = {
+ 131              APPEVT_KEY_ONOFF,           //KEYEVT_PWR
+ 132              APPEVT_NONKEY,              //KEYEVT_MENU
+ 133              APPEVT_NONKEY,              //KEYEVT_AUTO
+ 134              APPEVT_KEY_SOURCE,          //KEYEVT_INPUT,
+ 135              APPEVT_KEY_QUICK_ONOFF,     //KEYEVT_FUNC,
+ 136              APPEVT_NONKEY,              //KEYEVT_UP
+ 137              APPEVT_KEY_WAKEUP,          //KEYEVT_DOWN
+ 138              APPEVT_NONKEY,              //KEYEVT_LEFT
+ 139              APPEVT_NONKEY,              //KEYEVT_RIGHT
+ 140              APPEVT_KEY_FACTORY,         //KEYEVT_FACT
+ 141              APPEVT_NONKEY,              //KEYEVT_PWLOCK
+ 142              APPEVT_KEY_OSDLOCK,         //KEYEVT_OSDLOCK
+ 143              APPEVT_KEY_TIMING_SWITCH,   //KEYEVT_TIMING_SWITCH
+ 144              APPEVT_KEY_DEMO,         //KEYEVT_DEMO
+ 145              APPEVT_NONKEY               //KEYEVT_NONE
+ 146          };
+ 147          
+ 148          static code APPAction ucAPPKeyActionTable[NUM_APP_KEY_EVENTS] = {
+ 149              APPATN_PWR_ONOFF,       //APPEVT_KEY_ONOFF
+ 150              APPATN_PWR_ON,          //APPEVT_KEY_ON
+ 151              APPATN_PWR_OFF,         //APPEVT_KEY_OFF
+ 152              APPATN_PWR_SAVING,      //APPEVT_KEY_SAVING
+ 153              APPATN_CH_SOURCE,       //APPEVT_KEY_SOURCE
+ 154              APPATN_QUICK_ONOFF,     //APPEVT_KEY_QUICK_ONOFF
+ 155              APPATN_SET_FACTORY,     //APPEVT_KEY_FACTORY
+ 156              APPATN_WAKEUP,          //APPEVT_KEY_WAKEUP
+ 157              APPATN_TIMING_SWITCH,   //APPEVT_KEY_TIMING_SWITCH
+ 158              APPATN_SET_DEMO,        //APPEVT_KEY_DEMO
+ 159              APPATN_SET_OSDLOCK,     //APPEVT_KEY_OSDLOCK
+ 160              APP_NON_ACTION          //APPEVT_NONKEY
+ 161          };
+ 162          
+ 163          static code UCHAR ucOSD2APPEventTable[NUM_OSD_EVENTS] = {
+ 164              APPEVT_OSD_UPD_USR, //OSDEVT_UPD_USR,
+ 165              APPEVT_OSD_UPD_SYS, //OSDEVT_UPD_SYS,
+ 166              APPEVT_OSD_UPD_TMG, //OSDEVT_UPD_TMG,
+ 167              APPEVT_OSD_UPD_CAL, //OSDEVT_UPD_CAL,
+ 168              APPEVT_NONOSD       //OSD_NON_EVENT,
+ 169          };
+ 170          
+ 171          static code APPAction ucAPPOSDActionTable[NUM_APP_OSD_EVENTS] = {
+ 172              APPATN_UPD_USR,     //APPEVT_OSD_UPD_USR,
+ 173              APPATN_UPD_SYS,     //APPEVT_OSD_UPD_SYS,
+ 174              APPATN_UPD_TMG,     //APPEVT_OSD_UPD_TMG,
+ 175              APPATN_UPD_CAL,     //APPEVT_OSD_UPD_CAL,
+ 176              APP_NON_ACTION      //APPEVT_NONOSD,
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 4   
+
+ 177          };
+ 178          
+ 179          static code UCHAR ucDDCCi2APPEventTable[NUM_DDCCI_EVENTS] = {
+ 180              APPEVT_DDCCI_UPD_USR, //DDCCIEVT_UPD_USR,
+ 181              APPEVT_DDCCI_UPD_SYS, //DDCCIEVT_UPD_SYS,
+ 182              APPEVT_DDCCI_UPD_TMG, //DDCCIEVT_UPD_TMG,
+ 183              APPEVT_DDCCI_UPD_CAL, //DDCCIEVT_UPD_CAL,
+ 184              APPEVT_DDCCI_PWR_ON, //DDCCIEVT_PWR_ON,
+ 185              APPEVT_DDCCI_PWR_OFF, //DDCCIEVT_PWR_OFF,
+ 186              APPEVT_DDCCI_PWR_SAVING, //DDCCIEVT_PWR_SAVING,
+ 187              APPEVT_NONDDCCI       //DDCCIEVT_NON,
+ 188          };
+ 189          
+ 190          static code UCHAR ucAPPDDCCiActionTable[NUM_APP_DDCCI_EVENTS] = {
+ 191              APPATN_UPD_USR, //APPEVT_DDCCI_UPD_USR,
+ 192              APPATN_UPD_SYS, //APPEVT_DDCCI_UPD_SYS,
+ 193              APPATN_UPD_TMG, //APPEVT_DDCCI_UPD_TMG,
+ 194              APPATN_UPD_CAL, //APPEVT_DDCCI_UPD_CAL,
+ 195              APPATN_PWR_ON, //APPEVT_DDCCI_PWR_ON,
+ 196              APPATN_PWR_OFF, //APPEVT_DDCCI_PWR_OFF,
+ 197              APPATN_FORCE_PWR_SAVING, //APPEVT_DDCCI_PWR_SAVING,
+ 198              APP_NON_ACTION  //APPEVT_NONDDCCI,
+ 199          };
+ 200          
+ 201          static BOOL bIsAPPFirstCalled = TRUE;
+ 202          static xdata USHRT usAPPFlags = 0x0000;
+ 203          static xdata UCHAR ucCurSyncState  = 0xFF;
+ 204          static xdata UCHAR ucPOTCnt_20s = 0;
+ 205          
+ 206          #if ENABLE_INTERNAL_AUDIO_BUZZER
+              static BOOL bIsBuzzerEnable = FALSE;
+              #endif
+ 209          
+ 210          //******************************************************************************
+ 211          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+ 212          //******************************************************************************
+ 213          #if MD_ENABLE_AO_DETECT == ON
+              extern bit bWaitPowerKeyRelease;
+              extern xdata USHRT usAOTimer;
+              #endif
+ 217          #if OSDTYPE == OSD_BENQ_V1 || OSDTYPE == OSD_BENQ_V2
+ 218          extern BOOL bOSDShowAfterDisplay;
+ 219          #endif
+ 220          
+ 221          //******************************************************************************
+ 222          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+ 223          //******************************************************************************
+ 224          static void APPTimerRoutine(void);
+ 225          static void APPSetSystemPowerState(APPPwrState state);
+ 226          static UCHAR APPSyncPublisher(void);
+ 227          static void APPEnterPowerOnLogo(void);
+ 228          static void APPEscapePowerOnLogo(void);
+ 229          static void APPClosePowerOnLogo(void);
+ 230          static void APPTasksBeforeDisplay(void);
+ 231          static void APPTasksAfterDisplay(void);
+ 232          static void APPTasksAfterMute(void);
+ 233          static void APPToggleFactoryMode(void);
+ 234          static void APPToggleDemoMode(void);
+ 235          static void APPPerformBurnIn(void);
+ 236          static void APPCountRedLed(BOOL rst);
+ 237          static BOOL APPIsOutOfLimit(void);
+ 238          #if ENABLE_HW_CEC == ON
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 5   
+
+              static void APPPerformCECReq(void);
+              #endif
+ 241          #if ENABLE_SELF_AUTOCOLOR == ON
+              static void APPIntAutoColor(void);
+              #endif
+ 244          
+ 245          //******************************************************************************
+ 246          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+ 247          //******************************************************************************
+ 248          
+ 249          //******************************************************************************
+ 250          // Prototype:
+ 251          //  void APPInitSystem(void)
+ 252          // Parameters:
+ 253          //  None
+ 254          // Return:
+ 255          //  None
+ 256          // Purpose:
+ 257          //  Initial all system configuration
+ 258          // Notes:
+ 259          //  None
+ 260          //******************************************************************************
+ 261          void APPInitSystem(void)
+ 262          {
+ 263   1         UCHAR ucSCID = GetSCID(); // for some scaler type KeilC compiler uncalled.
+ 264   1         
+ 265   1      #if TPV_DP_VERSION_SELECT == ON
+ 266   1          SetDPSpeed(UserData.bDPVersion);
+ 267   1      #endif
+ 268   1          // Initial PWM of backlight control
+ 269   1      #if ENABLE_PWM_SMOOTH == ON
+ 270   1          SmoothScalerPWM(BKL_PWM_PORT, 0, 1);//NT68667, 673 and 675 no this function
+ 271   1      #endif
+ 272   1          SetBLPwmByInputVSync(FALSE);
+ 273   1          SetVSyncResetPWM(BKL_PWM_PORT, ON);
+ 274   1      
+ 275   1          // Initial PWM of volume control
+ 276   1          ConfigScalerPWM(VOLUME_PWM_PORT, VOLUME_PWM_OUTPUT_PIN, VOLUME_PWM_FREQ);
+ 277   1          SetVSyncResetPWM(VOLUME_PWM_PORT, OFF);
+ 278   1      
+ 279   1          UserSetOSDH();
+ 280   1          UserSetOSDV();
+ 281   1          UserSetTransparent();
+ 282   1          UserSetTimeout();
+ 283   1          UserSetOSDRotation();
+ 284   1          UserSetBrightness();
+ 285   1          UserSetContrast();
+ 286   1          UserSetColorTemp();
+ 287   1          // We move the LOGO to the begin of APPInitSystem to reduce the power on time.
+ 288   1      #if MD_ENABLE_AO_DETECT == ON
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                  SC_ZERO_PWR_CTRL_B69 |= BIT1;
+                  if ((SC_ZERO_PWR_CTRL_B64 & BIT2) != 0) {
+                      SC_ZERO_PWR_CTRL_B69 |= BIT0;
+                      SC_ZERO_PWR_CTRL_B69 &= ~BIT0;
+                      bWaitPowerKeyRelease = TRUE;
+                      usAOTimer = GetTimerTick();
+                      if (UserData.bPowerStatus == OFF) {
+                          UserData.bPowerStatus = ON;
+                          SetAPPUpdUsrFlag();
+                          if (CheckFactoryMode() == TRUE) {
+                              APPToggleFactoryMode();
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 6   
+
+                              SetAPPUpdSysFlag();
+                          }
+                      }
+                      else {
+                          UserData.bPowerStatus = OFF;
+                          SetAPPUpdUsrFlag();
+                      }
+                  }
+                  else {
+                      bWaitPowerKeyRelease = FALSE;
+                  }
+                  
+                  if ((UserData.bPowerStatus == ON) && ((SC_ZERO_PWR_CTRL_B67 & 0x0E) != 0)) {//0x08
+                      bIsAPPFirstCalled = FALSE;
+                  }
+                  
+                  if (SystemData.bFactory == TRUE) {
+                      if ((SC_ZERO_PWR_CTRL_B67 & 0x70) != 0) {//BIT4/5/6
+                          do {
+                              ResetWDTimer();
+                              SC_ZERO_PWR_CTRL_B69 |= BIT0;
+                              SC_ZERO_PWR_CTRL_B69 &= ~BIT0;
+                              Sleep(AO_KEY_DEBOUNCE_TIME); //wait HW debounce
+                          } while ((SC_ZERO_PWR_CTRL_B67 & 0x70) != 0);
+                          if (UserData.bPowerStatus == OFF) {
+                              UserData.bPowerStatus = ON;
+                              SetAPPUpdUsrFlag();
+                              if (CheckFactoryMode() == TRUE) {
+                                  APPToggleFactoryMode();
+                                  SetAPPUpdSysFlag();
+                              }
+                          }
+                      }
+                  }
+              
+                  SetZPDetect(ZP_CLEAR);
+                  ZPLatchData();
+              #else
+                  if ((AO_DETECT & BIT2) != 0) {
+                      AO_DETECT |= BIT2;
+                      bWaitPowerKeyRelease = TRUE;
+                      usAOTimer = GetTimerTick();
+                      if (UserData.bPowerStatus == OFF) {
+                          UserData.bPowerStatus = ON;
+                          SetAPPUpdUsrFlag();
+                          if (CheckFactoryMode() == TRUE) {
+                              APPToggleFactoryMode();
+                              SetAPPUpdSysFlag();
+                          }
+                      }
+                  }
+                  else {
+                      bWaitPowerKeyRelease = FALSE;
+                  }
+                  if (SystemData.bFactory == TRUE) {
+                      if (((AO_DETECT & 0x90) != 0) || ((AO_DETECT2 & BIT0) != 0)) {//BIT7 & BIT4
+                          do {
+                              ResetWDTimer();
+                              AO_DETECT |= 0x90;
+                              AO_DETECT2 |= BIT0;
+                              Sleep(AO_KEY_DEBOUNCE_TIME); //wait HW debounce
+                          } while (((AO_DETECT & 0x90) != 0) || ((AO_DETECT2 & BIT0) != 0));
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 7   
+
+                          if (UserData.bPowerStatus == OFF) {
+                              UserData.bPowerStatus = ON;
+                              SetAPPUpdUsrFlag();
+                              if (CheckFactoryMode() == TRUE) {
+                                  APPToggleFactoryMode();
+                                  SetAPPUpdSysFlag();
+                              }
+                          }
+                      }
+                  }
+                  AO_DETECT |= 0x90;
+                  AO_DETECT2 |= BIT0;
+              #endif
+              
+              #else
+ 378   1      #if !PWR_AUTO_INTO_FAC
+ 379   1        if(CheckFactoryMode()== TRUE)
+ 380   1          if(!SystemData.bFactory)
+ 381   1          APPToggleFactoryMode();
+ 382   1      #endif
+ 383   1      #endif
+ 384   1      
+ 385   1      //new  20151021 before logo, due to 0xF050[7]=b0 when load trim key
+ 386   1      #if ENABLE_HDCP == ON
+ 387   1      #if ENABLE_HDCP_TRIM_MODE == ON
+ 388   1              ucEFUSETrimSucess = 0xFF;
+ 389   1              if ((GetSCID() == SCID_661_B) && (GetEFUSE_SCID() == SCID_661_B)) {//NT68661
+ 390   2                  ucEFUSETrimSucess = InitHDCPTrimKey();
+ 391   2              }
+ 392   1              else if ((GetSCID() == SCID_655) && (GetEFUSE_SCID() == SCID_655)) {//NT68655
+ 393   2                  ucEFUSETrimSucess = InitHDCPTrimKey();
+ 394   2              }
+ 395   1              else if (GetSCID() == SCID_770_G) {//NT6877x Version G/...
+ 396   2                  ucEFUSETrimSucess = InitHDCPTrimKey();
+ 397   2              }
+ 398   1      //        else if ((GetSCID() == SCID_850) && (GetEFUSE_SCID() == SCID_850)) {//NT68655
+ 399   1              else if (GetSCID() == GetEFUSE_SCID()) {//NT6885x
+ 400   2                  ucEFUSETrimSucess = InitHDCPTrimKey();
+ 401   2              }
+ 402   1      #if IS_NT68790_SERIES_LATER
+ 403   1              else if (GetSCID() == GetEFUSE_SCID()) {//NT68790, NT68658
+ 404   2                  ucEFUSETrimSucess = InitHDCPTrimKey();
+ 405   2              }
+ 406   1      #endif
+ 407   1      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 408   1              else if (1) {//NT68810
+ 409   2                  ucEFUSETrimSucess = InitHDCPTrimKey();
+ 410   2              }
+ 411   1      #endif
+ 412   1      
+ 413   1              else
+ 414   1      #endif
+ 415   1              {
+ 416   2                  InitHDCP();
+ 417   2              }
+ 418   1      #endif
+ 419   1      
+ 420   1          if (UserData.bPowerStatus == ON) {
+ 421   2              LedGreenOn();
+ 422   2              if (bIsAPPFirstCalled) {
+ 423   3                  APPEnterPowerOnLogo();
+ 424   3              }
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 8   
+
+ 425   2              else {
+ 426   3                  OSDInitialize(TRUE);
+ 427   3              }
+ 428   2          }
+ 429   1      
+ 430   1          // Enable Audio Power
+ 431   1          AudioPowerOn();
+ 432   1      
+ 433   1      
+ 434   1      #if ENABLE_PRE_REV_GAMMA == ON
+ 435   1          LoadPreGamma();
+ 436   1          LoadRevGamma();
+ 437   1      #endif
+ 438   1      #if ENABLE_GAMMA == ON
+ 439   1          Standard_Gamma = 1;
+ 440   1          LoadGamma();
+ 441   1      #endif
+ 442   1      
+ 443   1          InitColor();
+ 444   1      
+ 445   1      #if ENABLE_DBC == ON
+ 446   1          InitDBC();
+ 447   1      #endif
+ 448   1      
+ 449   1      #if ENABLE_LD == ON
+                  InitLD();
+              #endif
+ 452   1      
+ 453   1      #if ENABLE_SR == ON
+ 454   1          InitSR();
+ 455   1      #endif
+ 456   1      
+ 457   1      #if ENABLE_3D_CNV == ON
+                  InitScaler3D();
+              #endif
+ 460   1      
+ 461   1      #if ENABLE_DYNAMIC_OD == ON
+                  ODAPI_SetDynamicOD();
+              #endif
+ 464   1      
+ 465   1          // Initial user data
+ 466   1          UserSetADCGainOffset();
+ 467   1      //    UserSetBrightness();
+ 468   1      //    UserSetContrast();
+ 469   1      //    UserSetColorTemp();
+ 470   1      //    UserSetOSDH();
+ 471   1      //    UserSetOSDV();
+ 472   1      //    UserSetTransparent();
+ 473   1      //    UserSetTimeout();
+ 474   1      //    UserSetOSDRotation();
+ 475   1          //UserSetAudioMute();
+ 476   1      //    UserSetVolume();
+ 477   1          //UserSetAspectRatio();
+ 478   1      
+ 479   1      #if ENABLE_AUTO_CONTROL == ON
+              #if (ENABLE_PREFRC == ON || ENABLE_DFR == ON)
+                  UserData.ucODMode = ON;
+              #elif (IS_NT68750_SERIES || IS_NT68770_SERIES || IS_NT68850_SERIES || IS_NT68790_SERIES || IS_NT68810_SERI
+             -ES || IS_NT68870_SERIES)
+                  if (CheckDRAM() == 32) {//test
+                      UserData.ucODMode = ON;
+                  }
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 9   
+
+                  else {
+                      UserData.ucODMode = OFF;
+                  }
+              #endif
+              #endif
+ 491   1      
+ 492   1      
+ 493   1          UserSetOD();
+ 494   1          //UserSetBF();    // Move UserSetBF to APPTasksBeforeDisplay to avoid wrong BF window setting
+ 495   1          //UserSetDCR();   // Move UserSetDCR to APPTasksBeforeDisplay to avoid DCR/DBC in showing logo period
+ 496   1          //UserSetGamma();
+ 497   1          UserSetInputSource();
+ 498   1          UserSetAudioChannel();
+ 499   1      #if ENABLE_3D_CNV == ON
+                  UserSet2DTo3DMode();
+                  UserSet2DTo3DAdaptive();
+                  UserSet2DTo3DDepth();
+                  UserSet2DTo3DView();
+                  UserSet3DLRSwap();
+                  UserSet3DTo2D();
+              #endif    
+ 507   1          SetSyncSource(UserData.bAutoSyncSource);
+ 508   1          
+ 509   1          // Init key configuration
+ 510   1          KeySetRepeatEvent(0xFF, OFF);
+ 511   1          if(UserData.bOSDLock == ON){
+ 512   2              KeySetHoldEvent(0xFF, ON);
+ 513   2          }
+ 514   1          else{
+ 515   2              KeySetHoldEvent(0xFF, OFF);
+ 516   2              KeySetHoldEvent(KEYEVT_FUNC, ON);        
+ 517   2          }
+ 518   1          KeySetMFuncEvent(0xFF, 0x00);
+ 519   1          KeySetHoldTime(KEY_HOLD_TIME);
+ 520   1          KeySetRepeatTime(KEY_REPEAT_TIME);
+ 521   1          KeySetLongPressTime(KEY_LONG_PRESS_TIME);
+ 522   1      
+ 523   1      #if ENABLE_HW_CEC == ON
+                  APPRequestCECAct(CECATN_SET_LANGUAGE);
+              #endif
+ 526   1          
+ 527   1          if (SystemData.bFactory) {
+ 528   2              EDIDProtectOff();
+ 529   2      #if ENABLE_SELF_AUTOCOLOR == ON
+                      APPIntAutoColor();
+              #endif
+ 532   2          }
+ 533   1        else
+ 534   1        {
+ 535   2          EDIDProtectOn();
+ 536   2        }
+ 537   1      
+ 538   1          if (UserData.bPowerStatus != ON) {
+ 539   2              SYSAPI_SetPowerOff();
+ 540   2          }
+ 541   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1)
+ 542   1      #if !(IS_NT68810_SERIES || IS_NT68870_SERIES)
+                  else {
+                  #if ENABLE_DP_HPD == ON
+                      DPHPDOn();
+                  #endif
+                  #if ENABLE_DP1_HPD == ON
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 10  
+
+                      DP1HPDOn();
+                  #endif
+                  }
+              #endif
+ 552   1      #endif
+ 553   1      #if (INPUT_INTERFACE&INPUT_MHL_MASK)// && ENABLE_HDMI_PRETEST == ON
+                  ToggleRxSense();
+              #endif
+ 556   1      
+ 557   1          bIsAPPFirstCalled = FALSE;
+ 558   1      #if ENABLE_AUTO_CONTROL == ON
+                  printf(SCALER_TEXT" V1.0\n");
+              #endif
+ 561   1      
+ 562   1      #if ENABLE_ECO_EYE_SENSOR == ON
+                  ECOEYESensorECOStateInitail();
+                  ECOEYESensorEYEProtectStateInitail();
+                  ECOEYESensorOnOff();
+              #endif
+ 567   1      #if OSDTYPE == OSD_BENQ_V1 || OSDTYPE == OSD_BENQ_V2
+ 568   1          bOSDShowAfterDisplay = FALSE;
+ 569   1      #endif
+ 570   1      
+ 571   1      
+ 572   1      
+ 573   1      }
+ 574          
+ 575          //******************************************************************************
+ 576          // Prototype:
+ 577          //  void APPActionDispatcher(UCHAR event)
+ 578          // Parameters:
+ 579          //  event   : Perform system action by global event id
+ 580          // Return:
+ 581          //  None
+ 582          // Purpose:
+ 583          //  Dispatch action to system. ex: power saving, power off etc...
+ 584          // Notes:
+ 585          //  None
+ 586          //******************************************************************************
+ 587          void APPActionDispatcher(UCHAR event)
+ 588          {
+ 589   1          APPAction act = APP_NON_ACTION;
+ 590   1      
+ 591   1          if (GetGlobalEvent(event) == KEY_RELATED_EVENT) {
+ 592   2              event = GetLocalEvent(event);
+ 593   2              event = ucKey2APPEventTable[event];
+ 594   2              if (event != APPEVT_NONKEY) {
+ 595   3                  act = ucAPPKeyActionTable[event];
+ 596   3                  //printf("APPActionDispatcher->KeyEvent(%bx) Action(%bx)\n\r", event, act);
+ 597   3              }
+ 598   2          }
+ 599   1          else if (GetGlobalEvent(event) == OSD_RELATED_EVENT) {
+ 600   2              event = GetLocalEvent(event);
+ 601   2              event = ucOSD2APPEventTable[event];
+ 602   2              if (event != APPEVT_NONOSD) {
+ 603   3                  act = ucAPPOSDActionTable[event];
+ 604   3                  //printf("APPActionDispatcher->OSDEvent(%bx) Action(%bx)\n\r", event, act);
+ 605   3              }
+ 606   2          }
+ 607   1          else if (GetGlobalEvent(event) == DDCCI_RELATED_EVENT) {
+ 608   2              event = GetLocalEvent(event);
+ 609   2              event = ucDDCCi2APPEventTable[event];
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 11  
+
+ 610   2              if (event != APPEVT_NONDDCCI) {
+ 611   3                  act = ucAPPDDCCiActionTable[event];
+ 612   3                  //printf("APPActionDispatcher->DDCCiEvent(%bx) Action(%bx)\n\r", event, act);
+ 613   3              }
+ 614   2          }
+ 615   1          else {
+ 616   2          }
+ 617   1      
+ 618   1          switch(act) {
+ 619   2              
+ 620   2          case APPATN_SET_OSDLOCK:
+ 621   2                  if(UserData.bOSDLock == OFF){
+ 622   3                      UserData.bOSDLock = ON;
+ 623   3                      OSDShowOSDLock();
+ 624   3                      KeySetHoldEvent(0xFF, ON);
+ 625   3                      SetOSDState(OSD_INFO_OSDLOCK_STATE);
+ 626   3                      SetOSDUpdUsrFlag();             
+ 627   3                      break;
+ 628   3                  }    
+ 629   2                  UserData.bOSDLock = OFF;
+ 630   2                  KeySetHoldEvent(0xFF, OFF);    
+ 631   2                  KeySetHoldEvent(KEYEVT_FUNC, ON);                    
+ 632   2                  OSDEnterOSDUnLock();
+ 633   2                  SetAPPUpdUsrFlag();
+ 634   2                  break;
+ 635   2         case APPATN_SET_DEMO:
+ 636   2                  APPToggleDemoMode();
+ 637   2                  APPSetSystemPowerState(APPSTATE_PWR_ON);
+ 638   2                  SetGlobalTimer(GLOBAL_TMR_DATA_UPDATE, GBTM_DATA_UPDATE);
+ 639   2                  SetAPPUpdSysFlag();
+ 640   2             break;
+ 641   2              case APPATN_SET_FACTORY:
+ 642   2            #if PWR_AUTO_INTO_FAC
+                    if(!UserData.bPowerStatus)
+                    {
+                      if (!SystemData.bFactory)
+                            APPToggleFactoryMode();
+                            APPSetSystemPowerState(APPSTATE_PWR_ON);
+                            SetGlobalTimer(GLOBAL_TMR_DATA_UPDATE, GBTM_DATA_UPDATE);
+                            SetAPPUpdSysFlag();
+                            SetAPPUpdUsrFlag();
+                    }
+                    #endif
+ 653   2            break;
+ 654   2              case APPATN_PWR_ONOFF:
+ 655   2              #if OSDTYPE == OSD_BENQ_V2
+ 656   2              if(Custom_System.bPowerKeyYNPowerONOFFFlag)
+ 657   2                  Custom_System.bPowerKeyYNPowerONOFFFlag = 0;
+ 658   2              else
+ 659   2              #endif
+ 660   2                  {
+ 661   3                  #if ENABLE_HW_CEC == ON
+                              APPRequestCECAct(CECATN_STANDBY); // The standby command must be prior to system standby c
+             -ommand!! // Jude 2009/03/08
+                          #endif
+ 664   3                      APPSetSystemPowerState(APPSTATE_PWR_ONOFF);
+ 665   3                      SetGlobalTimer(GLOBAL_TMR_DATA_UPDATE, GBTM_DATA_UPDATE);
+ 666   3                      SetAPPUpdUsrFlag();
+ 667   3                  }
+ 668   2                  break;
+ 669   2              case APPATN_PWR_ON:
+ 670   2                  APPSetSystemPowerState(APPSTATE_PWR_ON);
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 12  
+
+ 671   2                  SetGlobalTimer(GLOBAL_TMR_DATA_UPDATE, GBTM_DATA_UPDATE);
+ 672   2                  SetAPPUpdUsrFlag();         
+ 673   2                  break;
+ 674   2              case APPATN_PWR_OFF:
+ 675   2                  APPSetSystemPowerState(APPSTATE_PWR_OFF);
+ 676   2                  SetGlobalTimer(GLOBAL_TMR_DATA_UPDATE, GBTM_DATA_UPDATE);
+ 677   2                  SetAPPUpdUsrFlag();            
+ 678   2                  break;
+ 679   2              case APPATN_PWR_SAVING:
+ 680   2                  APPSetSystemPowerState(APPSTATE_PWR_SAVING);
+ 681   2                  break;
+ 682   2              case APPATN_FORCE_PWR_SAVING:
+ 683   2                  APPSetSystemPowerState(APPSTATE_FORCE_PWR_SAVING);
+ 684   2                  break;
+ 685   2              case APPATN_CH_SOURCE:
+ 686   2                  UserData.ucInputSource = GetInputPortName((GetInputPortIndex(UserData.ucInputSource)+1)%NUM_IN
+             -PUT_SC);
+ 687   2                  UserSetInputSource();
+ 688   2                  break;
+ 689   2              case APPATN_QUICK_ONOFF:
+ 690   2      #if ENABLE_3D_CNV == ON
+                          if (UserData.uc2DTo3DMode != THR_D_CNV_2D_TO_3D) {
+                              UserData.uc2DTo3DMode = THR_D_CNV_2D_TO_3D;
+                          }
+                          else {
+                              UserData.uc2DTo3DMode = THR_D_CNV_OFF;
+                          }
+                          UserSet2DTo3DMode();
+                          SetModeChangeFlag();
+                          SetAPPUpdUsrFlag();
+              #endif
+ 701   2                  break;
+ 702   2              case APPATN_UPD_USR:
+ 703   2                  SetGlobalTimer(GLOBAL_TMR_DATA_UPDATE, GBTM_DATA_UPDATE);
+ 704   2                  SetAPPUpdUsrFlag();
+ 705   2                  break;
+ 706   2              case APPATN_WAKEUP:
+ 707   2                  APPSetSystemPowerState(APPSTATE_WAKEUP);
+ 708   2                  break;
+ 709   2              case APPATN_UPD_SYS:
+ 710   2                  SetGlobalTimer(GLOBAL_TMR_DATA_UPDATE, GBTM_DATA_UPDATE);
+ 711   2                  SetAPPUpdSysFlag();
+ 712   2                  break;
+ 713   2              case APPATN_UPD_TMG:
+ 714   2                  SetGlobalTimer(GLOBAL_TMR_DATA_UPDATE, GBTM_DATA_UPDATE);
+ 715   2                  SetAPPUpdTmgFlag();
+ 716   2                  break;
+ 717   2              case APPATN_UPD_CAL:
+ 718   2                  SetGlobalTimer(GLOBAL_TMR_DATA_UPDATE, GBTM_DATA_UPDATE);
+ 719   2                  SetAPPUpdCalFlag();
+ 720   2                  break;
+ 721   2              case APPATN_TIMING_SWITCH:
+ 722   2                  SimilarTimingSwitch();
+ 723   2                  break;
+ 724   2              case APP_NON_ACTION:
+ 725   2              default :
+ 726   2                  break;
+ 727   2          }
+ 728   1      }
+ 729          
+ 730          //******************************************************************************
+ 731          // Prototype:
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 13  
+
+ 732          //  UCHAR APPActionDemander(void)
+ 733          // Parameters:
+ 734          //  None
+ 735          // Return:
+ 736          //  system event
+ 737          // Purpose:
+ 738          //  Return system event to other handlers.
+ 739          // Notes:
+ 740          //  None
+ 741          //******************************************************************************
+ 742          UCHAR APPActionDemander(void)
+ 743          {
+ 744   1          UCHAR evt;
+ 745   1      
+ 746   1          // acquire System status
+ 747   1          evt = APPSyncPublisher();
+ 748   1      
+ 749   1          // APPSyncPublisher must be prior to APPTimerRoutine!
+ 750   1          // Otherwise, system may go to power saving state while sync present!
+ 751   1          APPTimerRoutine();
+ 752   1      
+ 753   1          return evt;
+ 754   1      }
+ 755          
+ 756          //******************************************************************************
+ 757          // Prototype:
+ 758          //  void APPTimerRoutine(void)
+ 759          // Parameters:
+ 760          //  None
+ 761          // Return:
+ 762          //  None
+ 763          // Purpose:
+ 764          //  Periodic routine.
+ 765          // Notes:
+ 766          //  None
+ 767          //******************************************************************************
+ 768          
+ 769          void APPTimerRoutine(void)
+ 770          {
+ 771   1      #if ENABLE_SET_PWM_MAX_BUFFER == ON
+ 772   1          SetBrightnessPWMMax();
+ 773   1      #endif
+ 774   1      
+ 775   1      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 776   1          HDMIDelayAudioInit();
+ 777   1      #endif
+ 778   1          
+ 779   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1)
+ 780   1          DPHandler();
+ 781   1      #endif
+ 782   1      
+ 783   1      #if ENABLE_USB_TYPE_C == ON
+                  USBTypeCHandler();
+              #endif
+ 786   1      
+ 787   1      #if (INPUT_INTERFACE&INPUT_MHL_MASK)
+                  MHLHandler();
+              #endif
+ 790   1      
+ 791   1      #if ENABLE_EDP == ON
+                  if (IsZpMode() == FALSE) {//130822#1
+                      CheckDPTXHPD();
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 14  
+
+                  }
+              #endif
+ 796   1      
+ 797   1          // Check EDID update and write it to nvram immediately
+ 798   1      #if (USE_INTERNAL_EDID) 
+ 799   1          if (SystemData.bFactory && (McuCheckDDCUpdate() != 0)) {
+ 800   2              NvramSaveEDID();
+ 801   2          }
+ 802   1      #endif
+ 803   1      
+ 804   1      #if ENABLE_AUTO_CONTROL == ON
+                  UART_Handler();
+              #endif
+ 807   1      
+ 808   1      #if ENABLE_HW_CEC == ON
+                  APPPerformCECReq();
+              #endif
+ 811   1      
+ 812   1      #if ENABLE_INTERNAL_AUDIO_BUZZER == ON
+                  APPCountAudioBuzzer();
+              #endif
+ 815   1          
+ 816   1      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 817   1      #if (INPUT_INTERFACE&INPUT_DIG0) || (INPUT_INTERFACE&INPUT_DIG1) || (INPUT_INTERFACE&INPUT_DIG2) || (INPUT
+             -_INTERFACE&INPUT_DIG3)
+ 818   1      #if ENABLE_TMDS_EQ_SEARCH_FLOW == ON
+ 819   1      #if ENABLE_EMBEDED_TMDS_CLOCK_TRAINING == OFF
+ 820   1          TMDS_EQSet_Flow();
+ 821   1      #endif
+ 822   1      #endif
+ 823   1      #endif
+ 824   1      #endif
+ 825   1      
+ 826   1          if ((GetGlobalTimer(GLOBAL_TMR_POT_CNT) == 0)) {
+ 827   2              SetGlobalTimer(GLOBAL_TMR_POT_CNT, GBTM_POT_CNT);
+ 828   2              ucPOTCnt_20s++;
+ 829   2      
+ 830   2              if (ucPOTCnt_20s > 3) {
+ 831   3                  ucPOTCnt_20s = 1;
+ 832   3                  SystemData.ucMonitorPowerOnTimerM++;
+ 833   3                  if(IsPanelPowerOn()){
+ 834   4                  SystemData.ucPowerOnTimerM++;
+ 835   4                  }
+ 836   3      #if ENABLE_FE2P == ON
+ 837   3                  RecordTimeScale();
+ 838   3      #endif
+ 839   3                  if (SystemData.ucPowerOnTimerM > 59) {
+ 840   4                      SystemData.ucPowerOnTimerM = 0;
+ 841   4                      if (SystemData.usPowerOnTimerH != 0xffff) {
+ 842   5                          SystemData.usPowerOnTimerH++;
+ 843   5      #if ENABLE_FE2P == ON
+ 844   5                          if ((SystemData.usPowerOnTimerH % POT_SAVE_H) == 0) { // Save POT time every 5460 hour
+             - (4095*8/6)
+ 845   6                              SystemData.ucPOTimerM_FE2P = SystemData.ucPowerOnTimerM;
+ 846   6                              SystemData.usPOTimerH_FE2P = SystemData.usPowerOnTimerH;
+ 847   6                              NvramWriteSystemData(&SystemData);
+ 848   6                              FE2P_SaveToFlash();
+ 849   6                              EraseTimeScale();
+ 850   6                          }
+ 851   5      #else
+                                  SetAPPUpdSysFlag(); // Save POT time every hours
+              #endif
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 15  
+
+ 854   5                      }
+ 855   4                  }
+ 856   3                  if (SystemData.ucMonitorPowerOnTimerM > 59) {
+ 857   4                      SystemData.ucMonitorPowerOnTimerM = 0;
+ 858   4                      if (SystemData.usMonitorPowerOnTimerH != 0xffff) {
+ 859   5                          SystemData.usMonitorPowerOnTimerH++;
+ 860   5                          SetAPPUpdSysFlag(); // Save BKL time every hours
+ 861   5                      }
+ 862   4                  }
+ 863   3              }
+ 864   2          }
+ 865   1      
+ 866   1          if (GetGlobalTimer(GLOBAL_TMR_DATA_UPDATE) == 0) {
+ 867   2              SetGlobalTimer(GLOBAL_TMR_DATA_UPDATE, GBTM_DATA_UPDATE);
+ 868   2              if (IsAPPUpdTmg() &&
+ 869   2                  (GetInputSyncMode() != DIG_SYNC) &&
+ 870   2                  ((GetModeHandleState() == WAIT_DISPLAY_READY) || (GetModeHandleState() == WAIT_MODE_CHANGE))) 
+             -{
+ 871   3                  NvramWriteTimingData(&InputTiming);
+ 872   3                  //printf("APPTimerRoutine->Update Timing\n\r");
+ 873   3              }
+ 874   2              if (IsAPPUpdUsr()) {
+ 875   3                  NvramWriteUserData(&UserData);
+ 876   3                  //printf("APPTimerRoutine->Update UserData\n\r");
+ 877   3              }
+ 878   2              if (IsAPPUpdCal()) {
+ 879   3                  NvramWriteCalibData(&CalibData);
+ 880   3                  //printf("APPTimerRoutine->Update Cal\n\r");
+ 881   3              }
+ 882   2              if (IsAPPUpdSys()) {
+ 883   3                  NvramWriteSystemData(&SystemData);
+ 884   3                  //printf("APPTimerRoutine->Update System\n\r");
+ 885   3              }
+ 886   2              ClearAPPUpdFlag();
+ 887   2      
+ 888   2          #if ((ENABLE_FE2P == ON) && (ENABLE_AUTO_CONTROL == OFF))
+ 889   2              FE2P_SaveToFlash();
+ 890   2          #endif
+ 891   2          }
+ 892   1      
+ 893   1          if ((UserData.ucAutoPowerOffTime != AUTO_POWER_OFF) && ((UserData.bPowerStatus == ON)&&IsZpMode())) {/
+             -/power saving
+ 894   2               if ((GetTimerTick()-Auto_Power_off_Timer) > 6000) {
+ 895   3                   Auto_Power_off_Timer = GetTimerTick();
+ 896   3                   if (Custom_System.usAuto_poweroff_Time != 0) {
+ 897   4                       Custom_System.usAuto_poweroff_Time--;
+ 898   4                   }
+ 899   3                   if (Custom_System.usAuto_poweroff_Time == 0) {             
+ 900   4                       APPSetSystemPowerState(APPSTATE_PWR_OFF);
+ 901   4                       SetAPPUpdUsrFlag();
+ 902   4                   }
+ 903   3              }
+ 904   2          }
+ 905   1      
+ 906   1          if (IsAPPLogo()) {
+ 907   2              if (GetGlobalTimer(GLOBAL_TMR_LOGO_TIMEOUT) == 0) {
+ 908   3                  APPClosePowerOnLogo();
+ 909   3              }
+ 910   2          }
+ 911   1          else if (IsAPPNoSync()) {
+ 912   2              if (GetOSDState()==OSD_DIRSRC_STATE) {
+ 913   3                  SetGlobalTimer(GLOBAL_TMR_PWR_SAVING, GBTM_NOSYNC_PWR_SAVING);
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 16  
+
+ 914   3              }       
+ 915   2      #if ENABLE_HDMI_PRETEST == OFF && ENABLE_AUTO_CONTROL == OFF
+ 916   2      #if (INPUT_INTERFACE&INPUT_MHL_MASK)
+                      if ( IsMHL0Connect() || IsMHL1Connect() ) {
+                         // do not enter power saving if MHL cable connected
+                      }
+                      else
+              #endif
+ 922   2          if(SystemData.bBurnIn)
+ 923   2          {
+ 924   3      #if 0
+                       if (GetGlobalTimer(GLOBAL_TMR_LED_FLASH) == 0) {
+                             SetGlobalTimer(GLOBAL_TMR_LED_FLASH, GBTM_LED_FLASH);
+                            APPCountRedLed(FALSE);
+                         }
+              #endif
+ 930   3            if (GetGlobalTimer(GLOBAL_TMR_PWR_SAVING) == 0) {
+ 931   4              APPPerformBurnIn();
+ 932   4              SetGlobalTimer(GLOBAL_TMR_PWR_SAVING, GBTM_NOSYNC_PWR_SAVING);
+ 933   4            }
+ 934   3          }
+ 935   2          else
+ 936   2              if (GetGlobalTimer(GLOBAL_TMR_PWR_SAVING) == 0) {
+ 937   3                  //printf("APPTimerRoutine->Enter Power Saving State\n\r");
+ 938   3                  APPSetSystemPowerState(APPSTATE_PWR_SAVING);
+ 939   3                  ClearAPPNoSyncFlag();
+ 940   3                  SetGlobalTimer(GLOBAL_TMR_LED_FLASH, GBTM_LED_FLASH);
+ 941   3                  APPCountRedLed(TRUE);
+ 942   3              }
+ 943   2      #endif
+ 944   2          }
+ 945   1          else if (IsAPPNoCable()) {
+ 946   2              if (GetOSDState()==OSD_DIRSRC_STATE) {
+ 947   3                  SetGlobalTimer(GLOBAL_TMR_PWR_SAVING, GBTM_NOSYNC_PWR_SAVING);
+ 948   3              }  
+ 949   2              if(SystemData.bBurnIn)
+ 950   2              {
+ 951   3      #if 0
+                           if (GetGlobalTimer(GLOBAL_TMR_LED_FLASH) == 0) {
+                               SetGlobalTimer(GLOBAL_TMR_LED_FLASH, GBTM_LED_FLASH);
+                              APPCountRedLed(FALSE);
+                           }
+              #endif
+ 957   3                  if (GetGlobalTimer(GLOBAL_TMR_PWR_SAVING) == 0) {
+ 958   4                      APPPerformBurnIn();
+ 959   4                      SetGlobalTimer(GLOBAL_TMR_PWR_SAVING, GBTM_NOSYNC_PWR_SAVING);
+ 960   4                  }
+ 961   3              }
+ 962   2              else
+ 963   2              if (GetGlobalTimer(GLOBAL_TMR_PWR_SAVING) == 0) {
+ 964   3                  //printf("APPTimerRoutine->Enter Power Saving State\n\r");
+ 965   3                  OSDCloseAll();//nick20100430+ fix press source select hot key show no signal msg osd in power 
+             -saving mode
+ 966   3                  APPSetSystemPowerState(APPSTATE_PWR_SAVING);
+ 967   3                  ClearAPPNoCableFlag();
+ 968   3                  SetGlobalTimer(GLOBAL_TMR_LED_FLASH, GBTM_LED_FLASH);
+ 969   3                  APPCountRedLed(TRUE);
+ 970   3              }
+ 971   2          }
+ 972   1          else if (IsAPPOutRange()) {
+ 973   2              if (GetGlobalTimer(GLOBAL_TMR_PWR_SAVING) == 0) {
+ 974   3                  //printf("APPTimerRoutine->Enter Power Saving State\n\r");
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 17  
+
+ 975   3                  OSDCloseAll();
+ 976   3                  APPSetSystemPowerState(APPSTATE_FORCE_PWR_SAVING);
+ 977   3                  ClearAPPOutRangeFlag();
+ 978   3                  APPCountRedLed(TRUE);
+ 979   3              }
+ 980   2          }
+ 981   1          else if (GetModeHandleState() == POWER_SAVING_MODE) {
+ 982   2              if (GetGlobalTimer(GLOBAL_TMR_LED_FLASH) == 0) {
+ 983   3                  SetGlobalTimer(GLOBAL_TMR_LED_FLASH, GBTM_LED_FLASH);
+ 984   3                  APPCountRedLed(FALSE);
+ 985   3              }
+ 986   2          }
+ 987   1          else if (GetModeHandleState() == WAIT_MODE_CHANGE) {
+ 988   2          #if ENABLE_DBC == ON
+ 989   2          #if 0
+                      if ( UserData.ucDCRMode == BKL_CTRL_DBC ) {
+                          DBCBrightnessTracker();
+                      #if ENABLE_DBC_HW_DEBOUNCE == OFF
+                          AntiNoiseDBC();
+                      #endif
+                      }
+                      else {
+                          DisableDBCSmooth(FALSE);
+                          PerformDCR(0);
+                      }
+                  #else
+1001   2              if ( UserData.bDBCMode == ON ) {
+1002   3                  DBCBrightnessTracker();
+1003   3              #if ENABLE_DBC_HW_DEBOUNCE == OFF
+                          AntiNoiseDBC();
+                      #endif
+1006   3              }
+1007   2              else{
+1008   3                  if(isOSDAllowDCR()){
+1009   4                      if ( UserData.ucDynamicContrast != 0 ){
+1010   5                         PerformDCR(0); 
+1011   5                      }
+1012   4                  }
+1013   3                  DisableDBCSmooth(FALSE);
+1014   3              }
+1015   2          #endif
+1016   2          #else
+                      PerformDCR(0);
+                  #endif
+1019   2          #if ENABLE_3D_CNV == ON
+                      PerformAdaptive2DTO3D();
+                  #endif
+1022   2      
+1023   2        #if (ENABLE_LD == ON)  && (ENABLE_DYNAMIC_LD == ON) 
+                  if(UserData.ucBFMode != LD_OFF) {
+                    PerformDynamicLD();
+                  }
+                #endif
+1028   2          }
+1029   1      }
+1030          
+1031          //******************************************************************************
+1032          // Prototype:
+1033          //  void APPSetSystemPowerState(APPPwrState state)
+1034          // Parameters:
+1035          //  state   : system power state
+1036          // Return:
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 18  
+
+1037          //  None
+1038          // Purpose:
+1039          //  Set system power state
+1040          // Notes:
+1041          //  None
+1042          //******************************************************************************
+1043          void APPSetSystemPowerState(APPPwrState state)
+1044          {
+1045   1          switch(state) {
+1046   2              case APPSTATE_PWR_ONOFF:
+1047   2                  if (GetModeHandleState() != SOFT_POWER_OFF) {
+1048   3                      if (IsAPPLogo()) {
+1049   4                          APPEscapePowerOnLogo();
+1050   4                      }
+1051   3              if(SystemData.bBurnIn)
+1052   3                SystemData.bBurnIn = ~SystemData.bBurnIn; 
+1053   3              if (SystemData.bFactory)
+1054   3                    APPToggleFactoryMode();
+1055   3                      UserData.bPowerStatus = OFF;
+1056   3                      if (GetProductModeFlag()) {   // DFM  : Recall need exit BurnIn and clear POT Timer  //v05
+             -_120608_1430_OSD#6
+1057   4                          ClrProductModeFlag();
+1058   4                          SystemData.ucPowerOnTimerM = 0x00;
+1059   4                          SystemData.usPowerOnTimerH = 0x00;
+1060   4                          SystemData.ucMonitorPowerOnTimerM = 0x00;
+1061   4                          SystemData.usMonitorPowerOnTimerH = 0x0000;        
+1062   4                          SystemData.usPOTimerH_FE2P = 0x00;
+1063   4                          SystemData.ucPOTimerM_FE2P = 0x00;
+1064   4      #if ENABLE_FE2P == ON
+1065   4                          EraseTimeScale();
+1066   4      #endif
+1067   4                          NvramWriteSystemData(&SystemData);
+1068   4                      }
+1069   3                      SYSAPI_SetPowerOff();
+1070   3                  }
+1071   2                  else {
+1072   3                      UserData.bPowerStatus = ON;
+1073   3                      DCR_BenQ_Reset();
+1074   3                      SYSAPI_SetPowerOn();
+1075   3                      UserSetInputSource();
+1076   3                      APPEnterPowerOnLogo();
+1077   3                  }
+1078   2                  break;
+1079   2              case APPSTATE_PWR_OFF:
+1080   2                  if (IsAPPLogo()) {
+1081   3                      APPEscapePowerOnLogo();
+1082   3                  }
+1083   2                  UserData.bPowerStatus = OFF;
+1084   2                  SYSAPI_SetPowerOff();
+1085   2                  break;
+1086   2              case APPSTATE_PWR_ON:
+1087   2                  UserData.bPowerStatus = ON;
+1088   2                  SYSAPI_SetPowerOn();
+1089   2                  UserSetInputSource();
+1090   2                  APPEnterPowerOnLogo();
+1091   2                  break;
+1092   2              case APPSTATE_PWR_SAVING:
+1093   2                  SYSAPI_PowerSaving();
+1094   2                  break;
+1095   2              case APPSTATE_FORCE_PWR_SAVING:
+1096   2                  SYSAPI_ForcePowerSaving();
+1097   2                  break;
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 19  
+
+1098   2              case APPSTATE_WAKEUP:
+1099   2                  if (GetModeHandleState() == POWER_SAVING_MODE) {
+1100   3                      SYSAPI_SetPowerOn();
+1101   3                      UserSetInputSource();
+1102   3                  }
+1103   2                  break;
+1104   2              default :
+1105   2                  break;
+1106   2          }
+1107   1      }
+1108          //******************************************************************************
+1109          // Prototype:
+1110          //  void APPResendAppSync(void)
+1111          // Parameters:
+1112          //  None
+1113          // Return:
+1114          //  None
+1115          // Purpose:
+1116          //  Re-send APP-level sync state.
+1117          // Notes:
+1118          //  This function is called externally by OSD
+1119          //******************************************************************************
+1120          void APPResendAppSync(void)
+1121          {
+1122   1          ucCurSyncState  = 0xFF;
+1123   1      }
+1124          
+1125          //******************************************************************************
+1126          // Prototype:
+1127          //  static void APPTasksBeforeDisplay(void)
+1128          // Parameters:
+1129          //  None
+1130          // Return:
+1131          //  None
+1132          // Purpose:
+1133          //  Perform user-specific tasks before showing images.
+1134          // Notes:
+1135          //  This function is called externally by ModeHandler
+1136          //******************************************************************************
+1137          static void APPTasksBeforeDisplay(void)
+1138          {
+1139   1          // Add any user specific function here.
+1140   1          
+1141   1          UserSetAudioChannel();
+1142   1          SetBLPwmByInputVSync(TRUE);
+1143   1          UserSetBF();
+1144   1          UserSetDCR();         
+1145   1      //    UserSetVolume();
+1146   1      #if ENABLE_PICTURE_DUAL_MODE == ON
+1147   1          if(UserData.bSensEyeDemo== PICTURE_DUALMODE_ON){
+1148   2              UserSetDualView(UserData.bSensEyeDemo,UserData.ucDualViewMode);
+1149   2          }
+1150   1      #endif
+1151   1      
+1152   1      //#if IS_NT68661_SERIES || IS_NT68770_SERIES || IS_NT68850_SERIES || IS_NT68655_SERIES || IS_NT68790_SERIE
+             -S || IS_NT68150_SERIES || IS_NT68658_SERIES
+1153   1      #if IS_NT68770_SERIES_LATER//SR function
+1154   1      #if ENABLE_SR == ON    
+1155   1           SetSRBlockOnOff(ON);
+1156   1      #endif    
+1157   1      #endif
+1158   1      #if ENABLE_FREESYNC_HDMI_FUNC == ON
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 20  
+
+                  if (IsHDMIFreesync() == TRUE && IsInterlaced() == TRUE) {
+                      //FreeSync Function do not support interlace timing.
+                      SetModeChangeFlag();
+                  }
+              #endif   
+1164   1      #if ENABLE_OD == ON
+1165   1          UserSetOD();
+1166   1      #endif
+1167   1      
+1168   1      }
+1169          
+1170          //******************************************************************************
+1171          // Prototype:
+1172          //  static void APPTasksAfterDisplay(void)
+1173          // Parameters:
+1174          //  None
+1175          // Return:
+1176          //  None
+1177          // Purpose:
+1178          //  Perform user-specific tasks before showing images.
+1179          // Notes:
+1180          //  This function is called externally by ModeHandler
+1181          //******************************************************************************
+1182          static void APPTasksAfterDisplay(void)
+1183          {
+1184   1          // Add any user specific function here.
+1185   1          //UserSetAudioMute();
+1186   1          //UserSetVolume();
+1187   1         
+1188   1          UserSetVolumeAndMute();
+1189   1          //UserSetDCR();
+1190   1      #if ENABLE_LD == ON
+                  UserSetLD();
+              #endif
+1193   1      #if ENABLE_SR == ON
+1194   1          UserSetSR();
+1195   1      #endif
+1196   1      #if IS_NT68870_SERIES && ENABLE_OD == ON
+1197   1      ///////////////////////check MMU BW
+1198   1          if ((InputTiming.usModeHActive >= 1920) && (InputTiming.usModeVActive >= 1080) && (FRCIsFRCEnabled() =
+             -= TRUE)) {
+1199   2              ODAPI_DisableOD();
+1200   2          }
+1201   1      ///////////////////////////////
+1202   1      #endif
+1203   1          RecordCurrentSource(FALSE);
+1204   1      #if OSDTYPE == OSD_BENQ_V1 || OSDTYPE == OSD_BENQ_V2  
+1205   1          bOSDShowAfterDisplay = TRUE;
+1206   1      #endif
+1207   1      #if ENABLE_ECO_EYE_SENSOR ==ON
+                  ECOEYESensorECOStateInitail();
+                  ECOEYESensorEYEProtectStateInitail();
+              #endif
+1211   1      
+1212   1      
+1213   1      }
+1214          
+1215          //******************************************************************************
+1216          // Prototype:
+1217          //  static void APPTasksAfterMute(void)
+1218          // Parameters:
+1219          //  None
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 21  
+
+1220          // Return:
+1221          //  None
+1222          // Purpose:
+1223          //  Perform user-specific tasks After muting images.
+1224          // Notes:
+1225          //  This function is called internally by APPSyncPublisher
+1226          //******************************************************************************
+1227          static void APPTasksAfterMute(void)
+1228          {
+1229   1      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+1230   1          SC_DP_AUDIO_FIFO_CTRL |= BIT6;  // 0x1050
+1231   1          SC_HDMI_MUTE |= BIT1;  // 0x737
+1232   1          usAudioMuteDelay = DP_AUDIODELAY;
+1233   1      #endif
+1234   1      #if IS_NT68870_SERIES
+1235   1      #if ENABLE_AUTOFRAMEDOWN == ON
+                  DisableFRC_AutoFrameDown();
+              #endif
+1238   1      #if ENABLE_DFR == ON
+                  DisableFRCConfigDFR();
+              #endif
+1241   1      #if ENABLE_POSTFRC == ON
+                  DisableFRCConfigPostFRC();
+              #endif
+1244   1      #if ENABLE_CENTER_MODE == ON
+                  DisableCenterMode();
+              #endif
+1247   1      #else
+              #if ENABLE_PREFRC == ON || ENABLE_DFR == ON
+                  SC_FRC_CTRL = 0x00; //FRC/DFR OFF
+              #endif
+              #endif
+1252   1      #if ENABLE_ECO_EYE_SENSOR == ON
+                  ECOEYESensorECOStateInitail();
+                  ECOEYESensorEYEProtectStateInitail();
+              #endif
+1256   1      
+1257   1      #if ENABLE_LOW_PWR_MODE == ON
+1258   1          if (IsZpMode()) {
+1259   2              PowerUpRegisterAccess();
+1260   2          }
+1261   1      #endif
+1262   1      #if ENABLE_LD == ON
+                  LDAPI_SetLDMode(LD_OFF);
+              #endif
+1265   1      #if ENABLE_SR == ON
+1266   1          SetSRMode(SR_MODE_OFF);
+1267   1      //#if IS_NT68661_SERIES || IS_NT68770_SERIES || IS_NT68850_SERIES || IS_NT68655_SERIES || IS_NT68790_SERIE
+             -S || IS_NT68150_SERIES || IS_NT68658_SERIES
+1268   1      #if IS_NT68770_SERIES_LATER//SR function
+1269   1          SetSRBlockOnOff(OFF);
+1270   1      #endif
+1271   1      #endif
+1272   1      #if ENABLE_SCALER_3D == ON
+                  SC3DAPI_TurnOff3DMode();
+              #endif
+1275   1          // Add any user specific function here.
+1276   1          AudioMuteOn();
+1277   1          SetBLPwmByInputVSync(FALSE);
+1278   1          // Disable BF effect and DCR/DBC during no sync state
+1279   1      #if ENABLE_DBC == ON
+1280   1          DisableDBC();
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 22  
+
+1281   1      #else
+                  DisableDCR();
+              #endif
+1284   1          BFAPI_DisableWindow(BF_WINDOW_1);
+1285   1          BFAPI_DisableWindow(BF_WINDOW_2);
+1286   1      
+1287   1      
+1288   1      
+1289   1      #if ENABLE_LOW_PWR_MODE == ON
+1290   1          if (IsZpMode()) {
+1291   2              PowerDownRegisterAccess();
+1292   2          }
+1293   1      #endif
+1294   1      #if OSDTYPE == OSD_BENQ_V1 || OSDTYPE == OSD_BENQ_V2
+1295   1          bOSDShowAfterDisplay = FALSE;
+1296   1      #endif
+1297   1      
+1298   1      }
+1299          
+1300          //******************************************************************************
+1301          // Prototype:
+1302          //  static APPEvent APPSyncPublisher(void)
+1303          // Parameters:
+1304          //  None
+1305          // Return:
+1306          //  Return sync event
+1307          // Purpose:
+1308          //  Periodically check sync state and publish event if any state changed.
+1309          // Notes:
+1310          //  None
+1311          //******************************************************************************
+1312          static UCHAR APPSyncPublisher(void)
+1313          {
+1314   1          static UCHAR nosync_evt = APPEVT_NONE;
+1315   1          UCHAR evt, state, mode;
+1316   1      
+1317   1          if (IsAPPLogo()) {
+1318   2              return APPEVT_NONE;
+1319   2          }
+1320   1          
+1321   1          evt = APPEVT_NONE;
+1322   1          state = GetModeHandleState();
+1323   1          mode = (state << 4) | GetInputSyncMode();
+1324   1      
+1325   1          if (ucCurSyncState != mode) {
+1326   2              nosync_evt = APPEVT_NONE;
+1327   2              ucCurSyncState = mode;
+1328   2              mode = GetInputSyncMode();
+1329   2      
+1330   2              switch (state) {
+1331   3                  case WAIT_MODE_CHANGE:
+1332   3                      if (mode == NO_SYNC) {
+1333   4                          evt = APPEVT_NO_SYNC;
+1334   4                      }
+1335   3                      else if (mode == NO_CABLE) {
+1336   4                          evt = APPEVT_NO_CABLE;
+1337   4                      }
+1338   3                      else if (mode == OUT_SYNC) {
+1339   4                          evt = APPEVT_OOR;
+1340   4                      }
+1341   3                      else {
+1342   4                          evt = APPEVT_NML;
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 23  
+
+1343   4                      }
+1344   3                      break;
+1345   3                  case WAIT_SYNC_STABLE:
+1346   3                      if (mode == NO_SYNC) {
+1347   4                          evt = APPEVT_NO_SYNC;
+1348   4                      }
+1349   3                      else if (mode == NO_CABLE) {
+1350   4                          evt = APPEVT_NO_CABLE;
+1351   4                      }
+1352   3                      else {
+1353   4                          evt = APPEVT_UNSTABLE;
+1354   4                      }
+1355   3                      break;
+1356   3                  case WAIT_DISPLAY_READY:
+1357   3                      evt = APPEVT_PRE;
+1358   3                      break;
+1359   3                  case SYNC_IS_STABLE:
+1360   3                      //evt = APPEVT_NML;
+1361   3                      break;
+1362   3                  case POWER_SAVING_MODE:
+1363   3                      evt = APPEVT_PW_SAVING;
+1364   3                      break;
+1365   3                  case SOFT_POWER_ON:
+1366   3                      evt = APPEVT_PW_ON;
+1367   3                      break;
+1368   3                  case SOFT_POWER_OFF:
+1369   3                      evt = APPEVT_PW_OFF;
+1370   3                      break;
+1371   3                  default:
+1372   3                      break;
+1373   3              }
+1374   2      
+1375   2              if (evt != APPEVT_NONE) {
+1376   3                  ClearAPPSyncFlag();
+1377   3      
+1378   3                  if (evt == APPEVT_PRE) {
+1379   4                      // Perform routines before display
+1380   4                      APPTasksBeforeDisplay();
+1381   4                  }
+1382   3      //            else if (evt != APPEVT_NML) {
+1383   3                  else if ((evt != APPEVT_NML) && (evt != APPEVT_PW_OFF) && (evt != APPEVT_PW_SAVING)) {
+1384   4                      // Turn off panel power and perform routines when display is absent
+1385   4      #if ENABLE_AUTO_CONTROL == OFF                
+1386   4                      PanelPowerOffSequence();
+1387   4      #endif
+1388   4                      APPTasksAfterMute();
+1389   4                  }
+1390   3                  else if (evt == APPEVT_NML) {
+1391   4                      APPTasksAfterDisplay();
+1392   4                      if (APPIsOutOfLimit()){
+1393   5                          evt = APPEVT_OOL;
+1394   5                      }
+1395   4                  }
+1396   3              }
+1397   2              //printf("APPSyncPublisher->SyncState(%bx) Event(%bx)\n\r", ucCurSyncState, evt);
+1398   2          }
+1399   1      
+1400   1          // Publish nosync state after GBTM_APPSYNC_STABLE(ms)
+1401   1          if ((evt == APPEVT_NO_SYNC) || (evt == APPEVT_NO_CABLE)) {
+1402   2              nosync_evt = evt;
+1403   2              SetGlobalTimer(GLOBAL_TMR_APPSYNC_STABLE, GBTM_APPSYNC_STABLE);
+1404   2              evt = APPEVT_UNSTABLE;
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 24  
+
+1405   2          }
+1406   1      
+1407   1          // Publish nosync state after 2000ms
+1408   1          if (nosync_evt != APPEVT_NONE) {
+1409   2              if (GetGlobalTimer(GLOBAL_TMR_APPSYNC_STABLE) == 0) {
+1410   3                  evt = nosync_evt;
+1411   3                  nosync_evt = APPEVT_NONE;
+1412   3                  SetGlobalTimer(GLOBAL_TMR_PWR_SAVING, GBTM_NOSYNC_PWR_SAVING);
+1413   3              }
+1414   2          }
+1415   1      
+1416   1          if (evt == APPEVT_NO_SYNC) {
+1417   2              SetAPPNoSyncFlag();
+1418   2          }
+1419   1          else if (evt == APPEVT_NO_CABLE) {
+1420   2              SetAPPNoCableFlag();
+1421   2          }
+1422   1          else if (evt == APPEVT_OOR) {
+1423   2              SetGlobalTimer(GLOBAL_TMR_PWR_SAVING, GBTM_OOR_PWR_SAVING);
+1424   2              SetAPPOutRangeFlag();
+1425   2          }   
+1426   1      
+1427   1          return evt;
+1428   1      }
+1429          
+1430          //******************************************************************************
+1431          // Prototype: 
+1432          //  static void APPEnterPowerOnLogo(void)
+1433          // Parameters:
+1434          //  None
+1435          // Return:
+1436          //  None
+1437          // Purpose:
+1438          //  Show power-on logo
+1439          // Notes:
+1440          //  None
+1441          //******************************************************************************
+1442          static void APPEnterPowerOnLogo(void)
+1443          {
+1444   1      #if ENABLE_AUTO_CONTROL == OFF     
+1445   1          if (SystemData.bShowLogo) {
+1446   2              ShowLogo();
+1447   2              KeySetLockEvent(0xFF, ON);
+1448   2              KeySetLockEvent(KEYEVT_PWR, OFF);
+1449   2              SetAPPLogoFlag();
+1450   2              HoldModeDisplay();
+1451   2              SetGlobalTimer(GLOBAL_TMR_LOGO_TIMEOUT, GBTM_LOGO_TIMEOUT);
+1452   2          }
+1453   1      #else
+                  PanelPowerOnSequence(TRUE);
+              #endif    
+1456   1      }
+1457          
+1458          //******************************************************************************
+1459          // Prototype:
+1460          //  static void APPEscapePowerOnLogo(void)
+1461          // Parameters:
+1462          //  None
+1463          // Return:
+1464          //  None
+1465          // Purpose:
+1466          //  Leave logo state
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 25  
+
+1467          // Notes:
+1468          //  None
+1469          //******************************************************************************
+1470          static void APPEscapePowerOnLogo(void)
+1471          {
+1472   1          KeySetLockEvent(0xFF, OFF);
+1473   1          ClearAPPLogoFlag();
+1474   1          ContinueModeDisplay();
+1475   1      }
+1476          
+1477          //******************************************************************************
+1478          // Prototype: 
+1479          //  static void APPClosePowerOnLogo(void)
+1480          // Parameters:
+1481          //  None
+1482          // Return:
+1483          //  None
+1484          // Purpose:
+1485          //  Leave logo state with OSD initialization
+1486          // Notes:
+1487          //  None
+1488          //******************************************************************************
+1489          static void APPClosePowerOnLogo(void)
+1490          {
+1491   1          CloseLogo();
+1492   1          APPEscapePowerOnLogo();
+1493   1      }
+1494          
+1495          //******************************************************************************
+1496          // Prototype:
+1497          //  static void APPToggleFactoryMode(void)
+1498          // Parameters:
+1499          //  None
+1500          // Return:
+1501          //  None
+1502          // Purpose:
+1503          //  Enter Factory Mode
+1504          // Notes:
+1505          //  None
+1506          //******************************************************************************
+1507          static void APPToggleFactoryMode(void)
+1508          {
+1509   1          SystemData.bFactory = ~SystemData.bFactory;
+1510   1      
+1511   1          if (SystemData.bFactory) {
+1512   2              EDIDProtectOff();
+1513   2          }
+1514   1          else {
+1515   2              EDIDProtectOn();
+1516   2          }
+1517   1      }
+1518          //******************************************************************************
+1519          // Prototype:
+1520          //  static void APPToggleDemoMode(void)
+1521          // Parameters:
+1522          //  None
+1523          // Return:
+1524          //  None
+1525          // Purpose:
+1526          //  Enter Factory Mode
+1527          // Notes:
+1528          //  None
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 26  
+
+1529          //******************************************************************************
+1530          static void APPToggleDemoMode(void)
+1531          {
+1532   1          SystemData.bDemo = ~SystemData.bDemo;
+1533   1      }
+1534          //******************************************************************************
+1535          // Prototype:
+1536          //  static void APPPerformBurnIn(void)
+1537          // Parameters:
+1538          //  None
+1539          // Return:
+1540          //  None
+1541          // Purpose:
+1542          //  Display Burn In Pattern
+1543          // Notes:
+1544          //  None
+1545          //******************************************************************************
+1546          static void APPPerformBurnIn(void)
+1547          {
+1548   1          code UCHAR ucBurnInPatterns[] = {
+1549   1              0xFF,0xFF,0xFF,
+1550   1              0x00,0x00,0x00,
+1551   1              0xFF,0x00,0x00,
+1552   1              0x00,0xFF,0x00,
+1553   1              0x00,0x00,0xFF,
+1554   1              0xFF,0xFF,0x00,
+1555   1              0xFF,0x00,0xFF,
+1556   1              0x00,0xFF,0xFF,
+1557   1          };
+1558   1          static UCHAR ucBurnInPtnID = 0x00;
+1559   1      
+1560   1          SetPostBGColor(ucBurnInPatterns[ucBurnInPtnID*3],
+1561   1                         ucBurnInPatterns[ucBurnInPtnID*3+1],
+1562   1                         ucBurnInPatterns[ucBurnInPtnID*3+2]);
+1563   1      
+1564   1          ucBurnInPtnID = (ucBurnInPtnID+1) % (sizeof(ucBurnInPatterns)/sizeof(char)/3);
+1565   1      }
+1566          
+1567          //******************************************************************************
+1568          // Prototype: 
+1569          //  static void APPCountRedLed(BOOL rst)
+1570          // Parameters:
+1571          //  rst : Reset internal counter
+1572          // Return:
+1573          //  None
+1574          // Purpose:
+1575          //  For flashing LED under power saving mode
+1576          // Notes:
+1577          //  None
+1578          //******************************************************************************
+1579          static void APPCountRedLed(BOOL rst)
+1580          {
+1581   1          static UCHAR ucLedCnt = 0;
+1582   1      
+1583   1          if ((ucLedCnt>10) || rst) {
+1584   2              if (LED_RED_PORT == MCU_PORT_NULL) {
+1585   3                  LedGreenOn();
+1586   3              }
+1587   2              else {
+1588   3                  LedRedOn();
+1589   3              }
+1590   2              ucLedCnt = 0;
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 27  
+
+1591   2          }
+1592   1          else {
+1593   2              if (LED_RED_PORT == MCU_PORT_NULL) {
+1594   3                  LedGreenOff();
+1595   3              }
+1596   2              else {
+1597   3                  LedRedOff();
+1598   3              }
+1599   2              ucLedCnt++;
+1600   2          }
+1601   1      }
+1602          
+1603          //******************************************************************************
+1604          // Prototype:
+1605          //  static BOOL APPIsOutOfLimit(void)
+1606          // Parameters:
+1607          //  None
+1608          // Return:
+1609          //  If input timing is OOL, return TRUE. Otherwise, FALSE.
+1610          // Purpose:
+1611          //  Check the input timing is out of limit or not.
+1612          // Notes:
+1613          //  None
+1614          //******************************************************************************
+1615          BOOL APPIsOutOfLimit(void)
+1616          {
+1617   1      #if ENABLE_SCALER_3D == ON
+                  if (SC3DAPI_IsHDMI3DMode()) {
+                      return FALSE;
+                  }
+              #endif
+1622   1          //if (InputTiming.usVSyncFreq < MIN_V_FREQ_LMT) {
+1623   1          //    return TRUE;
+1624   1          //}
+1625   1          if (InputTiming.usVSyncFreq > MAX_V_FREQ_LMT) {
+1626   2              return TRUE;
+1627   2          }
+1628   1          return FALSE;
+1629   1      }
+1630          
+1631          #if ENABLE_HW_CEC == ON
+              //******************************************************************************
+              // Prototype: 
+              //  static void APPPerformCECReq(void)
+              // Parameters:
+              //  None
+              // Return:
+              //  None
+              // Purpose:
+              //  Perform CEC function
+              // Notes:
+              //  None
+              //******************************************************************************
+              static void APPPerformCECReq(void)
+              {
+              #if ENABLE_LOW_PWR_MODE == ON
+                  // Turn on scaler register R/W power before access CEC function
+                  if (IsZpMode()) {
+                      PowerUpRegisterAccess();
+                  }    
+              #endif
+              
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 28  
+
+                  switch(CECHandler()) {
+                      case CECREQ_POWERUP:
+                          APPSetSystemPowerState(APPSTATE_PWR_ON);
+                          break;
+                      case CECREQ_POWERDOWN:
+                          APPSetSystemPowerState(APPSTATE_PWR_OFF);
+                          break;
+                      case CECREQ_ACTIVATE_SC:
+                          APPSetSystemPowerState(APPSTATE_PWR_ON);
+                          // We only have one HDMI interface, so we do not have to 
+                          // decide which interface to be activated by ID
+                          // Jude 2009/03/04
+                          //if (CECGetActiveSC() == 0) 
+                          UserData.ucInputSource = INPUT_SC_HDMI;
+                          UserSetInputSource();
+                          break;
+                      case CECREQ_DEVCTRL:
+                          if (CECGetDeviceCtlCode() == CEC_USER_CTRL_POWER) {
+                              APPSetSystemPowerState(APPSTATE_PWR_ONOFF);
+                          }
+                          break;
+                      case CECREQ_NONE:
+                      default:
+                          break;
+                  }
+              
+              #if ENABLE_LOW_PWR_MODE == ON
+                  // Turn off scaler register R/W power after access CEC function
+                  if (IsZpMode()) {
+                      PowerDownRegisterAccess();
+                  }    
+              #endif
+              }
+              
+              //******************************************************************************
+              // Prototype: 
+              //  void APPRequestCECAct(UCHAR act)
+              // Parameters:
+              //  act : CEC action
+              // Return:
+              //  None
+              // Purpose:
+              //  Demand CEC action to other device
+              // Notes:
+              //  None
+              //******************************************************************************
+              void APPRequestCECAct(UCHAR act)
+              {
+                  code UCHAR ucCECLanguageMap[NUM_OSDLANGS]= {
+                      CECLANG_ENGLISH,    //OSDLANG_ENGLISH,
+                      CECLANG_SPANISH,    //OSDLANG_SPANISH,
+                      CECLANG_FRENCH,     //OSDLANG_FRENCH,
+                      CECLANG_GERMAN,     //OSDLANG_GERMAN,
+                      CECLANG_ITALIAN,    //OSDLANG_ITALIAN,
+                      CECLANG_PORTUGUESE, //OSDLANG_PORTUGUESE,
+                      CECLANG_RUSSIAN,    //OSDLANG_RUSSIAN,
+                      CECLANG_SCHINESE,   //OSDLANG_SCHINESE,
+                  };
+                  
+              #if ENABLE_LOW_PWR_MODE == ON
+                  // Turn on scaler register R/W power before access CEC function
+                  if (IsZpMode()) {
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 29  
+
+                      PowerUpRegisterAccess();
+                  }    
+              #endif
+                  
+                  switch(act) {
+                      case CECATN_STANDBY:
+                          if (GetModeHandleState() != SOFT_POWER_OFF) {
+                              CECSetStandby();
+                          }
+                          break;
+                      case CECATN_SET_LANGUAGE:
+                          CECSetOSDLanguage(ucCECLanguageMap[UserData.ucLanguage]);
+                          break;
+                      case CECATN_NONE:
+                      default:
+                          break;
+                  }
+              
+              #if ENABLE_LOW_PWR_MODE == ON
+                  // Turn off scaler register R/W power after access CEC function
+                  if (IsZpMode()) {
+                      PowerDownRegisterAccess();
+                  }    
+              #endif
+              
+              }
+              #endif
+1742          
+1743          #if ENABLE_INTERNAL_AUDIO_BUZZER == ON
+              //******************************************************************************
+              // Prototype:
+              //  void APPSetAudioBuzzer(USHRT time)
+              // Parameters:
+              //  time : time in ms
+              // Return:
+              //  None
+              // Purpose:
+              //  Audio buzzer in the period of time.
+              // Notes:
+              //  None
+              //******************************************************************************
+              void APPSetAudioBuzzer(USHRT time)
+              {
+                  EnableVCSAudioBuzzer(1000);
+                  bIsBuzzerEnable = TRUE;
+                  SetGlobalTimer(GLOBAL_TMR_BUZZER_TIME, time);
+              }
+              
+              //******************************************************************************
+              // Prototype:
+              //  void APPCountAudioBuzzer(void)
+              // Parameters:
+              //  None
+              // Return:
+              //  None
+              // Purpose:
+              //  Turn off audio buzzer if time out.
+              // Notes:
+              //  None
+              //******************************************************************************
+              void APPCountAudioBuzzer(void)
+              {
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 30  
+
+                  if (bIsBuzzerEnable == TRUE) {
+                      if (GetGlobalTimer(GLOBAL_TMR_BUZZER_TIME) == 0) {
+                          bIsBuzzerEnable = FALSE;
+                          DisableVCSAudioBuzzer();
+                      }
+                  }
+              }
+              #endif
+1785          
+1786          //******************************************************************************
+1787          // Prototype:
+1788          //  static void APPIntAutoColor(void)
+1789          // Parameters:
+1790          //  None
+1791          // Return:
+1792          //  None
+1793          // Purpose:
+1794          //  Perform internal auto color when system startup
+1795          // Notes:
+1796          //  None
+1797          //******************************************************************************
+1798          #if ENABLE_SELF_AUTOCOLOR == ON
+              static void APPIntAutoColor(void)
+              {
+                  if (bIsAPPFirstCalled && InternalAutoColor()) {
+                      CalibData.ucADCRGain = GetADCRGain();
+                      CalibData.ucADCGGain = GetADCGGain();
+                      CalibData.ucADCBGain = GetADCBGain();
+                      CalibData.ucADCROffset = GetADCROffset();
+                      CalibData.ucADCGOffset = GetADCGOffset();
+                      CalibData.ucADCBOffset = GetADCBOffset();
+                      SetAPPUpdCalFlag();
+                  }
+              }
+              #endif
+1812          
+1813          //******************************************************************************
+1814          // Prototype:
+1815          // static void CheckTotalPortNum(void)
+1816          // Parameters:
+1817          //  None
+1818          // Return:
+1819          //  total source number
+1820          // Purpose:
+1821          //  check input source number
+1822          // Notes:
+1823          //  None
+1824          //******************************************************************************
+1825          UCHAR CheckTotalPortNum(void)
+1826          {
+1827   1          UCHAR PortNum = 0;
+1828   1      
+1829   1      #if 0 // 0 lrd add 
+              #if ((INPUT_INTERFACE & INPUT_VGA0) == INPUT_VGA0)  
+                         PortNum++;
+              #endif
+              #if ((INPUT_INTERFACE & INPUT_VGA1) == INPUT_VGA1)  
+                         PortNum++;
+              #endif
+              #if ((INPUT_INTERFACE & INPUT_DIG0) == INPUT_DIG0) 
+                         PortNum++;
+              #endif
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 31  
+
+              #if ((INPUT_INTERFACE & INPUT_DIG1) == INPUT_DIG1) 
+                         PortNum++;
+              #endif
+              #if ((INPUT_INTERFACE & INPUT_DIG2) == INPUT_DIG2) 
+                         PortNum++;
+              #endif
+              #if ((INPUT_INTERFACE & INPUT_DIG3) == INPUT_DIG3) 
+                         PortNum++;
+              #endif
+              #if ((INPUT_INTERFACE & INPUT_DP) == INPUT_DP) 
+                         PortNum++;
+              #endif
+              #if ((INPUT_INTERFACE & INPUT_DP1) == INPUT_DP1) 
+                         PortNum++;
+              #endif
+              #if ((INPUT_INTERFACE & INPUT_DP2) == INPUT_DP2) 
+                         PortNum++;
+              #endif
+              #if ((INPUT_INTERFACE & INPUT_DP3) == INPUT_DP3) 
+                         PortNum++;
+              #endif
+              #if ((INPUT_INTERFACE & INPUT_YPbPr0) == INPUT_YPbPr0) 
+                         PortNum++;
+              #endif
+              #if ((INPUT_INTERFACE & INPUT_YPbPr1) == INPUT_YPbPr1) 
+                         PortNum++;
+              #endif
+              #else
+1867   1      
+1868   1      
+1869   1      #if (MODEL_INPUT_VGA0 !=  INPUT_SC_NULL)  
+                    PortNum++;
+              #endif
+1872   1      #if (MODEL_INPUT_VGA1 !=  INPUT_SC_NULL)  
+                    PortNum++;
+              #endif
+1875   1      #if (MODEL_INPUT_DIG0 !=  INPUT_SC_NULL)  
+                    PortNum++;
+              #endif
+1878   1      #if (MODEL_INPUT_DIG1 !=  INPUT_SC_NULL)  
+1879   1            PortNum++;
+1880   1      #endif
+1881   1      #if (MODEL_INPUT_DIG2 !=  INPUT_SC_NULL)  
+1882   1            PortNum++;
+1883   1      #endif
+1884   1      #if (MODEL_INPUT_DIG3 !=  INPUT_SC_NULL)  
+                    PortNum++;
+              #endif
+1887   1      #if (MODEL_INPUT_DIG4 !=  INPUT_SC_NULL)  
+                    PortNum++;
+              #endif
+1890   1      #if (MODEL_INPUT_DIG5 !=  INPUT_SC_NULL)  
+                    PortNum++;
+              #endif
+1893   1      #if (MODEL_INPUT_DIG6 !=  INPUT_SC_NULL)  
+                    PortNum++;
+              #endif
+1896   1      #if (MODEL_INPUT_DIG7 !=  INPUT_SC_NULL)  
+1897   1            PortNum++;
+1898   1      #endif
+1899   1      
+1900   1      #if (MODEL_INPUT_YPbPr0 !=  INPUT_SC_NULL)  
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 32  
+
+                    PortNum++;
+              #endif
+1903   1      #if (MODEL_INPUT_YPbPr1 !=  INPUT_SC_NULL)  
+                    PortNum++;
+              #endif
+1906   1      
+1907   1      
+1908   1      #endif
+1909   1      
+1910   1          return PortNum;
+1911   1      }
+1912          
+1913          
+1914          
+1915          BOOL IsNoSyncState(void)
+1916          {
+1917   1          return IsAPPNoSync();
+1918   1      }
+1919          
+1920          BOOL IsNoCableState(void)
+1921          {
+1922   1          return IsAPPNoCable();
+1923   1      }
+1924          BOOL IsOutRangeState(void)
+1925          {
+1926   1          return IsAPPOutRange();
+1927   1      }
+1928          
+1929          void Custom_System_Init(void)
+1930          {
+1931   1      //== for ?CO?XXX or uncall lib compiler pass ==== 
+1932   1              UCHAR temp = 0;
+1933   1      {
+1934   2              UCHAR array[3],tmp = 1;
+1935   2              if(tmp == 0){//fix uncalled warning  
+1936   3                Write3ByteScaler(array, 0xFFFFFF);  
+1937   3                WriteScalerIndexPort(0xFF, 0, 3, array);
+1938   3           //     OSDEnterDir3();
+1939   3              }
+1940   2      }
+1941   1      
+1942   1      {
+1943   2              extern void ForDemoHDCPCompilerCodePass(void);  
+1944   2              ForDemoHDCPCompilerCodePass();
+1945   2      }
+1946   1      
+1947   1      {
+1948   2              extern void ForODCompilerCodePass(void);
+1949   2              ForODCompilerCodePass();
+1950   2      }
+1951   1      
+1952   1      #if ENABLE_FE2P == OFF
+              {
+                      extern void ForFE2PCompilerCodePass();
+                      ForFE2PCompilerCodePass();
+              }
+              #endif
+1958   1      
+1959   1      #if ENABLE_DBC == OFF
+              {
+                      extern void ForDBCCompilerCodePass(void);
+                      ForDBCCompilerCodePass();
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 33  
+
+              }
+              #endif
+1965   1      
+1966   1      #if IS_NT68770_SERIES_LATER//SR function
+1967   1      #if ENABLE_LD == OFF
+1968   1             { 
+1969   2               extern void ForLDCompilerCodePass(void);
+1970   2               ForLDCompilerCodePass();
+1971   2             }
+1972   1      #endif
+1973   1      #if ENABLE_SR == OFF
+                     {
+                       extern void ForSRCompilerCodePass(void);  
+                       ForSRCompilerCodePass();
+                     }
+              #endif
+1979   1      //#if IS_NT68655_SERIES || IS_NT68850_SERIES || IS_NT68770_SERIES || IS_NT68790_SERIES || IS_NT68810_SERIE
+             -S
+1980   1      #if IS_NT68655_SERIES || IS_NT68770_SERIES
+              #if (INPUT_INTERFACE&INPUT_DP) != INPUT_DP
+                    {
+                       extern void ForDPCompilerCodePass(void);
+                       ForDPCompilerCodePass();
+                    }
+              #endif
+              #endif//IS_NT68850_SERIES
+1988   1      #endif
+1989   1          if(temp)
+1990   1          {
+1991   2              {
+1992   3              extern void ForUSBTypeCCompilerCodePass2(void);
+1993   3              ForUSBTypeCCompilerCodePass2();
+1994   3              }
+1995   2              {
+1996   3              extern void ForUSBTypeCCompilerCodePass1(void);
+1997   3              ForUSBTypeCCompilerCodePass1();
+1998   3              }
+1999   2              {
+2000   3              extern void ForMHLCompilerCodePass(void);
+2001   3              ForMHLCompilerCodePass();
+2002   3              }
+2003   2              {
+2004   3              extern void ODAPI_SetSeparateODTestPatternEnable(UCHAR tmp);
+2005   3              ODAPI_SetSeparateODTestPatternEnable(0xff);
+2006   3              }
+2007   2          }
+2008   1      //=========================
+2009   1      
+2010   1      //Custom parameter
+2011   1          Custom_System.bDualviewAdjust = FALSE;
+2012   1          Custom_System.bForceLanguage = FALSE;
+2013   1          Custom_System.bYesNoTemp = FALSE;
+2014   1          Custom_System.OSDUpUsr = FALSE;
+2015   1          Custom_System.OSDUpTmg = FALSE;
+2016   1          Custom_System.OTSFactoryHotKey = TRUE;
+2017   1          Custom_System.bDDCCICmdIMenu  = FALSE;
+2018   1          Custom_System.bZPUseCurrentModeDetect = TRUE;
+2019   1      #if ENABLE_BRIGHTNESS_HOTKEYFUNC == ON //v03_120411_1646_OSD#1
+                  Custom_System.bHotKeySource = FALS E;
+              #else
+2022   1          if (CheckTotalPortNum()==_1_Port) {
+2023   2              Custom_System.bHotKeySource = FALSE;
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 34  
+
+2024   2          }
+2025   1          else{
+2026   2              Custom_System.bHotKeySource = TRUE;
+2027   2          }
+2028   1      #endif
+2029   1          Custom_System.bDDCCIPreSetClock = FALSE;
+2030   1      #if DDCCI_RETURNCMD == ON
+                  Custom_System.bDDCIcmdACK = FALSE;
+              #endif
+2033   1          Custom_System.bFactory = FALSE;
+2034   1          Custom_System.bPreShowSourceNoSync = FALSE;
+2035   1          Custom_System.bPreShowMsgSource = TRUE;
+2036   1      #if ShowMsgEnergystarLogo        
+                  Custom_System.bPreShowMsgEnergystar  = TRUE;
+              #else
+2039   1          Custom_System.bPreShowMsgEnergystar  = FALSE;
+2040   1      #endif
+2041   1      #if ENABLE_SHOW_OSD_LOCK_MSG_FIRST_HOTKEY_ON            
+                  Custom_System.bPreShowOSDLockFirstOn = FALSE;
+              #endif
+2044   1          Custom_System.bAutoTuneFinish = FALSE;
+2045   1          Custom_System.bDcrCutoffFlag = FALSE;
+2046   1      #if E_SAVE_FUNC    
+                  Custom_System.bESave_Enable = FALSE;
+              #endif
+2049   1          //Custom_System.ucNewDynBk = 0;
+2050   1          //Custom_System.iCurDynBk = 0;
+2051   1          //Custom_System.ucDCRStableCount = 0;
+2052   1          //Custom_System.Last_Press_Buttons = 0;
+2053   1          Custom_System.ucPerformReset = 0;
+2054   1      
+2055   1          Custom_System.ucBrightness = 0;
+2056   1          Custom_System.ucContrast = 0;
+2057   1      #if E_SAVE_FUNC    
+                  Custom_System.usESave_Timer_1s = 0;
+              #endif
+2060   1          Custom_System.usCRC = 0;
+2061   1          Custom_System.ucOSDColorIconID = 0;
+2062   1          //Custom_System.usDDCCIRECOVERLoop = 0;
+2063   1          Custom_System.bDCRTemp = 0;
+2064   1          Custom_System.ucMainMenuCursor = 0;
+2065   1          Custom_System.ucCurrentInputSource = UserData.ucInputSource;
+2066   1          Custom_System.bPowerKeyYNPowerONOFFFlag = 0;
+2067   1      
+2068   1          Custom_System.bisModechaged = FALSE;
+2069   1          Custom_System.bIsShowLogo = TRUE;
+2070   1          Custom_System.ucVs_wid = 0;
+2071   1          Custom_System.ucVs_wid_diff_cnt = 0;
+2072   1      
+2073   1          Custom_System.bLogoONState = 0;
+2074   1          Custom_System.bDoReset = FALSE;
+2075   1      
+2076   1          Custom_System.ucFactoryHp = 50;
+2077   1          Custom_System.ucFactoryVp = 50;
+2078   1          Custom_System.bIsManualEDIDWP = FALSE;
+2079   1          Custom_System.bAutoColorFinish = FALSE;
+2080   1          Custom_System.bPIPSwap = 0;
+2081   1      
+2082   1          UserData.bSeviceMenu = FALSE;
+2083   1      
+2084   1          Custom_System.bEDIDFinish = FALSE;
+2085   1      
+C51 COMPILER V9.54   APPCTRL                                                               01/06/2017 14:56:55 PAGE 35  
+
+2086   1          Custom_System.bNormalStates = FALSE;
+2087   1          Custom_System.bPIPSourceChange = FALSE;
+2088   1          Custom_System.bSOUCESWITCH = 0; 
+2089   1      
+2090   1          Custom_System.ucOSD_preview_temp = 0;
+2091   1          Custom_System.bisColorFormatRGB = FALSE;
+2092   1      
+2093   1          Custom_System.bPressKeyWakeUp = FALSE;
+2094   1      
+2095   1          Custom_System.bIsTimingChanged = FALSE;
+2096   1      
+2097   1      }
+2098          
+2099          
+2100          //******************************************************************************
+2101          // Prototype:
+2102          //  static BOOL APPIsOutOfLimit(void)
+2103          // Parameters:
+2104          //  None
+2105          // Return:
+2106          //  If input timing is OOL, return TRUE. Otherwise, FALSE.
+2107          // Purpose:
+2108          //  Check the input timing is out of limit or not.
+2109          // Notes:
+2110          //  None
+2111          //******************************************************************************
+2112          #if !lrd_dis_benq
+              BOOL APPIsOutOfLimit(void)
+              {
+              #if ENABLE_SCALER_3D == ON
+                  if (SC3DAPI_IsHDMI3DMode()) {
+                      return FALSE;
+                  }
+              #endif
+                 if ((pInputTiming->usVSyncFreq > MIN_V_FREQ_LMT) && (pInputTiming->usVSyncFreq <= MAX_V_FREQ_LMT)) {
+                      return TRUE;
+                 }
+                 if (pInputTiming->usModeIndex == _1024x768_43HZ_I) {
+                     return TRUE;
+                 }
+                  return FALSE;
+              }
+              #endif
+*** WARNING C294 IN LINE 416 OF App\APPCtrl.c: unreachable code
+*** WARNING C294 IN LINE 1585 OF App\APPCtrl.c: unreachable code
+*** WARNING C294 IN LINE 1594 OF App\APPCtrl.c: unreachable code
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2998    ----
+   CONSTANT SIZE    =     77    ----
+   XDATA SIZE       =      9       9
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  3 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,455 @@
+C51 COMPILER V9.54   SCALER_MMU                                                            01/06/2017 14:56:49 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE SCALER_MMU
+OBJECT MODULE PLACED IN .\Bin\Scaler_MMU.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Lib\NT68810 Series\Scaler_MMU.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\
+                    -App;.\App\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Componen
+                    -t;.\Phy\SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_M
+                    -ODULE,LVIEW_2560X1440,FLASH_BANK=8) PRINT(.\Lst\Scaler_MMU.lst) TABS(2) OBJECT(.\Bin\Scaler_MMU.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          #include "ScalerProfile.h"
+  14          
+  15          #if ENABLE_MMU == ON
+  16          //******************************************************************************
+  17          // M A C R O   D E F I N I T I O N S
+  18          //******************************************************************************
+  19          #define MMUDRAMIF_NUM     11
+  20          #define MMUDQSDelay_NUM   11 
+  21          #define MMUPLL_NUM        16
+  22          #define MMUPLLSKEW_NUN    4
+  23          #define MMUPLLFREQ_NUM    4
+  24          
+  25          //******************************************************************************
+  26          // G L O B A L   V A R I A B L E S
+  27          //******************************************************************************
+  28          
+  29          //******************************************************************************
+  30          // S T A T I C   V A R I A B L E S
+  31          //******************************************************************************
+  32          
+  33          //******************************************************************************
+  34          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  35          //******************************************************************************
+  36          
+  37          //******************************************************************************
+  38          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  39          //******************************************************************************
+  40          static void MMUCalculateBW(USHRT frchtot);
+  41          
+  42          //******************************************************************************
+  43          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  44          //******************************************************************************
+  45          void MMUConfigFIFO();
+  46          //******************************************************************************
+  47          // F U N C T I O N   B O D Y S
+  48          //******************************************************************************
+  49          
+  50          /**************************************************************************//**
+  51           * Get MMU DRAM I/F Control Setting
+  52           ******************************************************************************/
+C51 COMPILER V9.54   SCALER_MMU                                                            01/06/2017 14:56:49 PAGE 2   
+
+  53          UCHAR GetMMUDRAMIF(UCHAR point)
+  54          {
+  55   1      //    UCHAR ucSCID = GetSCID();
+  56   1          code UCHAR MMUDRAMIF[][MMUDRAMIF_NUM]={
+  57   1             //=======[ 810 ]========     
+  58   1             SCREG_580,
+  59   1             SCREG_581,
+  60   1             SCREG_582,
+  61   1             SCREG_583,
+  62   1             SCREG_584,
+  63   1             SCREG_585,
+  64   1             SCREG_586,
+  65   1             SCREG_587,
+  66   1             SCREG_588,
+  67   1             SCREG_589,
+  68   1             SCREG_58A, 
+  69   1           }; 
+  70   1      
+  71   1           return MMUDRAMIF[0][point];   
+  72   1      }
+  73                  
+  74          /**************************************************************************//**
+  75           * Get MMU DQS Delay Control Setting
+  76           ******************************************************************************/
+  77          UCHAR GetMMUDQSDelay(UCHAR point)
+  78          {
+  79   1       //   UCHAR ucSCID = GetSCID();
+  80   1          code UCHAR MMUDQSDelay[][MMUDQSDelay_NUM]={
+  81   1           //=======[ 810 ]========     
+  82   1             SCREG_5F0,
+  83   1             SCREG_5F1,
+  84   1             SCREG_5F2,
+  85   1             SCREG_5F3,
+  86   1             SCREG_5F4,
+  87   1             SCREG_5F5,
+  88   1             SCREG_5F6,
+  89   1             SCREG_5F7,
+  90   1             SCREG_5F8,
+  91   1             SCREG_5F9,
+  92   1             SCREG_5FA, 
+  93   1           }; 
+  94   1              
+  95   1               
+  96   1           return MMUDQSDelay[0][point];   
+  97   1      }
+  98          
+  99          /**************************************************************************//**
+ 100           * Get MMU PLL Control Setting
+ 101           ******************************************************************************/
+ 102          UCHAR GetMMUPLL(UCHAR point)
+ 103          {
+ 104   1      //    UCHAR ucSCID = GetSCID();
+ 105   1          code UCHAR MMUPLL[][MMUPLL_NUM]={
+ 106   1           //=======[ 810 ]========     
+ 107   1             SCREG_B80,
+ 108   1             SCREG_B81,
+ 109   1             SCREG_B82,
+ 110   1             SCREG_B83,
+ 111   1             SCREG_B84,
+ 112   1             SCREG_B85,
+ 113   1             SCREG_B86,
+ 114   1             SCREG_B87,
+C51 COMPILER V9.54   SCALER_MMU                                                            01/06/2017 14:56:49 PAGE 3   
+
+ 115   1             SCREG_B88,
+ 116   1             SCREG_B89,
+ 117   1             SCREG_B8A,
+ 118   1             SCREG_B8B,
+ 119   1             SCREG_B8C,
+ 120   1             SCREG_B8D,
+ 121   1             SCREG_B8E,
+ 122   1             SCREG_B8F, 
+ 123   1           };   
+ 124   1      
+ 125   1           return MMUPLL[0][point];   
+ 126   1      }
+ 127          
+ 128          /**************************************************************************//**
+ 129           * Get MMU PLL SKEW Setting
+ 130           ******************************************************************************/
+ 131          UCHAR GetMMUPLLSKEW(UCHAR point)
+ 132          {
+ 133   1      //    UCHAR ucSCID = GetSCID();
+ 134   1          code UCHAR MMUPLLSKEW[][MMUPLLSKEW_NUN]={
+ 135   1           //=======[ 810 ]========     
+ 136   1             SCREG_B90,
+ 137   1             SCREG_B91,
+ 138   1             SCREG_B92,
+ 139   1             SCREG_B93,
+ 140   1           };   
+ 141   1      
+ 142   1          return MMUPLLSKEW[0][point];   
+ 143   1      }
+ 144          
+ 145          /**************************************************************************//**
+ 146           * Get Memory PLL Frequency Control Setting
+ 147           ******************************************************************************/
+ 148          UCHAR GetMMUPLLFREQ(UCHAR point)
+ 149          {
+ 150   1      //    UCHAR ucSCID = GetSCID();
+ 151   1          code UCHAR MMUPLLFREQ[][MMUPLLFREQ_NUM]={
+ 152   1           //=======[ 810 ]========     
+ 153   1             SCREG_B31,
+ 154   1             SCREG_B32,
+ 155   1             SCREG_B33,
+ 156   1             SCREG_B34,
+ 157   1           };  
+ 158   1      
+ 159   1          return MMUPLLFREQ[0][point];   
+ 160   1      }
+ 161                  
+ 162          /**************************************************************************//**
+ 163           * Initialize MMU-related registers.
+ 164           ******************************************************************************/
+ 165          void MMUInitialize(void)
+ 166          {
+ 167   1      UCHAR volatile xdata *ptr;
+ 168   1      UCHAR i;
+ 169   1          ptr = 0x8B31;
+ 170   1          for (i=0; i<MMUPLLFREQ_NUM; i++) {
+ 171   2              *ptr = GetMMUPLLFREQ(i);
+ 172   2              ptr++;
+ 173   2          }
+ 174   1      
+ 175   1          ptr = &SC_DRAM_INTERFACE_LO;//0x8580;
+ 176   1          for (i=0; i<MMUDRAMIF_NUM; i++) {
+C51 COMPILER V9.54   SCALER_MMU                                                            01/06/2017 14:56:49 PAGE 4   
+
+ 177   2              *ptr = GetMMUDRAMIF(i);
+ 178   2              ptr++;
+ 179   2          }
+ 180   1              
+ 181   1              
+ 182   1          ptr = &SC_MMU_DLL_CTRL;//0x8B80;
+ 183   1          for (i=0; i<MMUPLL_NUM; i++) {
+ 184   2              *ptr = GetMMUPLL(i);
+ 185   2              ptr++;
+ 186   2          }
+ 187   1              
+ 188   1          ptr = &SC_DRAM_CLOCK_CTRL; //0x85F0;
+ 189   1          for (i=0; i<MMUDQSDelay_NUM; i++) {
+ 190   2              *ptr = GetMMUDQSDelay(i);
+ 191   2              ptr++;
+ 192   2          }
+ 193   1      
+ 194   1          ptr = &SC_MMU_PLL_SKEW5;//0x8B90;
+ 195   1          for (i=0; i<MMUPLLSKEW_NUN; i++) {
+ 196   2              *ptr = GetMMUPLLSKEW(i);
+ 197   2              ptr++;
+ 198   2          }
+ 199   1          
+ 200   1      
+ 201   1      
+ 202   1      #if IS_NT68870_SERIES
+ 203   1          SC_MMU_B85 |= BIT7;
+ 204   1          SC_MMU_B85 &= ~BIT7;
+ 205   1          SC_MMU_B4E = 0x80;
+ 206   1      #endif
+ 207   1      
+ 208   1          SC_DVI2_ZERO_POWER_DETECT = SCREG_B5E;
+ 209   1      //    SC_DRAM_INTERFACE_LO &= BIT0;
+ 210   1      //    SC_DRAM_INTERFACE_LO |= BIT0;
+ 211   1      
+ 212   1          
+ 213   1          MMUPowerOn();
+ 214   1          
+ 215   1          MMUConfigFIFO();
+ 216   1      #if IS_NT68810_SERIES
+                  Write3ByteScaler(&SC_FRAME_BUFFER1_BASE_ADDR_POSTFRC_LO, 0x00000000);
+                  Write3ByteScaler(&SC_FRAME_BUFFER2_BASE_ADDR_POSTFRC_LO, 0x00040000);
+                  Write3ByteScaler(&SC_FRAME_BUFFER_BASE_ADDR_OD_LO, 0x00060000);
+              #else
+ 221   1          Write3ByteScaler(&SC_FRAME_BUFFER1_BASE_ADDR_POSTFRC_LO, 0x00020000);
+ 222   1          Write3ByteScaler(&SC_FRAME_BUFFER1_BASE_ADDR_PREFRC_LO, 0x00020000);
+ 223   1          Write3ByteScaler(&SC_FRAME_BUFFER2_BASE_ADDR_POSTFRC_LO, 0x00080000);
+ 224   1          Write3ByteScaler(&SC_FRAME_BUFFER2_BASE_ADDR_PREFRC_LO, 0x00080000);
+ 225   1          Write3ByteScaler(&SC_FRAME_BUFFER_BASE_ADDR_OD_LO, 0x00000000);
+ 226   1      #endif
+ 227   1      }
+ 228          
+ 229          /**************************************************************************//**
+ 230           * Set MMU FIFO.
+ 231           ******************************************************************************/
+ 232          void MMUConfigFIFO()
+ 233          {
+ 234   1          code UCHAR ucFIFOAddr[] = {
+ 235   1              0x56, 0x57, 0x58, 0x59,
+ 236   1      
+ 237   1              0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9C, 0x9D, 0x9E,
+ 238   1              0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB,
+C51 COMPILER V9.54   SCALER_MMU                                                            01/06/2017 14:56:49 PAGE 5   
+
+ 239   1              0xBC, 0xBD, 0xBE, 0xBF, 0xC0, 0xC1, 0xC2, 0xC3, 0xC4,
+ 240   1          };
+ 241   1      #if IS_NT68810_SERIES
+                  code UCHAR ucFIFOValue[] = {
+                      0xDF,    //0x8556
+                      0x03,    //0x8557
+                      0xDF,    //0x8558
+                      0x03,    //0x8559
+              
+                      0x3F,    //0x8595
+                      0xEF,    //0x8596
+                      0xAF,    //0x8597
+                      0x17,    //0x8598
+                      0x9F,    //0x8599
+                      0x17,    //0x859A
+                      0x00,    //0x859C
+                      0x00,    //0x859D
+                      0x00,    //0x859E
+              
+                      0x00,    //0x85A3
+                      0x00,    //0x85A4
+                      0xD0,    //0x85A5
+                      0x00,    //0x85A6
+                      0x00,    //0x85A7
+                      0xAF,    //0x85A8
+                      0x00,    //0x85A9
+                      0x00,    //0x85AA
+                      0x00,    //0x85AB
+              
+                      0x01,    //0x85BC
+                      0x00,    //0x85BD
+                      0xD0,    //0x85BE
+                      0x00,    //0x85BF
+                      0x00,    //0x85C0
+                      0xAF,    //0x85C1
+                      0x00,    //0x85C2
+                      0x00,    //0x85C3
+                      0x00,    //0x85C4
+                  };
+              #else
+ 279   1          code UCHAR ucFIFOValue[] = {
+ 280   1              0xDF,    //0x8556
+ 281   1              0x03,    //0x8557
+ 282   1              0xDF,    //0x8558
+ 283   1              0x03,    //0x8559
+ 284   1      
+ 285   1              0x4F,    //0x8595
+ 286   1              0xBF,    //0x8596
+ 287   1              0x9F,    //0x8597
+ 288   1              0x3F,    //0x8598
+ 289   1              0xBF,    //0x8599
+ 290   1              0x47,    //0x859A
+ 291   1              0x4F,    //0x859C
+ 292   1              0xBF,    //0x859D
+ 293   1              0x9F,    //0x859E
+ 294   1      
+ 295   1              0x13,    //0x85A3
+ 296   1              0x40,    //0x85A4
+ 297   1              0xBF,    //0x85A5
+ 298   1              0x01,    //0x85A6
+ 299   1              0x00,    //0x85A7
+ 300   1              0x3F,    //0x85A8
+C51 COMPILER V9.54   SCALER_MMU                                                            01/06/2017 14:56:49 PAGE 6   
+
+ 301   1              0x13,    //0x85A9
+ 302   1              0x40,    //0x85AA
+ 303   1              0xBF,    //0x85AB
+ 304   1      
+ 305   1              0x13,    //0x85BC
+ 306   1              0x40,    //0x85BD
+ 307   1              0xBF,    //0x85BE
+ 308   1              0x01,    //0x85BF
+ 309   1              0x00,    //0x85C0
+ 310   1              0x3F,    //0x85C1
+ 311   1              0x13,    //0x85C2
+ 312   1              0x40,    //0x85C3
+ 313   1              0xBF,    //0x85C4
+ 314   1          };
+ 315   1      #endif
+ 316   1          UCHAR i;
+ 317   1          UCHAR xdata * ptr;
+ 318   1      
+ 319   1          ptr = 0x8500;
+ 320   1      
+ 321   1          for (i = 0; i < sizeof(ucFIFOAddr); i++) {
+ 322   2              ptr = (UCHAR xdata *)(0x8500 + ucFIFOAddr[i]);
+ 323   2              *ptr = ucFIFOValue[i];
+ 324   2          }
+ 325   1      }
+ 326          
+ 327          /**************************************************************************//**
+ 328           * Turn on MMU power.
+ 329           ******************************************************************************/
+ 330          void MMUPowerOn(void)
+ 331          {
+ 332   1          SC_DRAM_MMU_REQUEST_W = 0x00;
+ 333   1          SC_DRAM_MMU_REQUEST_R = 0x00;
+ 334   1          SC_POWER_CTRL2 |= BIT2;
+ 335   1          SC_MCLK_RATIO_HI = GetMMUPLLFREQ(2);//SCREG_B33_G;
+ 336   1          SC_MMU_DLL_CTRL = GetMMUPLL(0);//SCREG_B80;
+ 337   1          SC_MMU_B84 = GetMMUPLL(4);//SCREG_B84;
+ 338   1          SC_DRAM_INTERFACE_LO = GetMMUDRAMIF(0);//SCREG_580;
+ 339   1          SC_DRAM_INTERFACE_HI = GetMMUDRAMIF(1);//SCREG_581;
+ 340   1      
+ 341   1          SC_MMU_CFG2 = 0x01;
+ 342   1      
+ 343   1      }
+ 344          
+ 345          /**************************************************************************//**
+ 346           * Turn off MMU power.
+ 347           ******************************************************************************/
+ 348          void MMUPowerOff(void)
+ 349          {
+ 350   1          UCHAR ucSCID=GetSCID();
+ 351   1          SC_OD_CONFIGURATION = 0x00;
+ 352   1          SC_FRC_CTRL = 0x00;
+ 353   1          SC_MMU_CFG2 = 0x00;
+ 354   1          SC_AUTO_REFLESH_CTRL = 0x00;
+ 355   1          SC_DRAM_MMU_REQUEST_W = 0xFF;
+ 356   1          SC_DRAM_MMU_REQUEST_R = 0xFF;
+ 357   1          SC_DRAM_MMU_MODE_2 = 0x01;
+ 358   1          if ((ucSCID >= SCID_850_D && ucSCID <= SCID_850_FINAL) || \
+ 359   2              (ucSCID >= SCID_770_H && ucSCID <= SCID_770_FINAL)) {
+ 360   2              SC_DRAM_INTERFACE_HI = 0x13 | BIT6;
+ 361   2          }
+ 362   1          else {
+C51 COMPILER V9.54   SCALER_MMU                                                            01/06/2017 14:56:49 PAGE 7   
+
+ 363   2              SC_DRAM_INTERFACE_HI = 0x13;
+ 364   2          }
+ 365   1          SC_DRAM_INTERFACE_LO &= ~BIT0;//= (SCREG_580&~BIT0);
+ 366   1          SC_MMU_DLL_CTRL = 0x00;
+ 367   1          SC_MMU_B84 = 0x00;
+ 368   1          SC_POWER_CTRL2 &= ~BIT2;
+ 369   1          SC_MCLK_RATIO_HI = 0x00;
+ 370   1      }
+ 371          
+ 372          
+ 373          #if ENABLE_AUTO_CONTROL == ON
+              #if (IS_NT68770_SERIES || IS_NT68850_SERIES || IS_NT68790_SERIES || IS_NT68810_SERIES || IS_NT68870_SERIES
+             -)
+              //return 32 if CheckDRAM pass.
+              UCHAR CheckDRAM(void)
+              {
+                  UCHAR i, k;
+                  SC_OD_CONFIGURATION &= ~BIT0;//disable OD
+                  Write3ByteScaler(&SC_LINE_BUFFER_BASE_ADDR_LO, 0);
+                  WriteShortScaler(&SC_LINE_WRITE_SRAM_CTRL_LO, 0);
+                  WriteShortScaler(&SC_LINE_READ_SRAM_CTRL_LO, 0);
+              
+                  SC_DRAM_LINE_BUFFER_BASE_QUANTITY = 0x03;//96 bit x 3 / 8 = 36 byte
+                  SC_DRAM_LINE_BUFFER_CTRL = 0x80;
+              //    while (SC_DRAM_LINE_BUFFER_CTRL != 0x00) {};//ready
+                  i = 100;
+                  while ((SC_DRAM_LINE_BUFFER_CTRL != 0x00) && (i != 0)) {//ready
+                      Sleep(1);
+                      i--;
+                  }
+                  SC_DRAM_LINE_BUFFER_CTRL = 0x01;//Line write mode use FIFO write
+                  for (i=0; i<36; i++) {
+                      SC_DRAM_LINE_BUFFER_DATA_PORT = i;
+                  }
+              //    while (SC_DRAM_LINE_BUFFER_CTRL != 0x00) {};//ready
+                  i = 100;
+                  while ((SC_DRAM_LINE_BUFFER_CTRL != 0x00) && (i != 0)) {//ready
+                      Sleep(1);
+                      i--;
+                  }
+                  SC_DRAM_LINE_BUFFER_CTRL = 0x42;//Line read mode use FIFO read
+                  k = 0;
+                  for (i=0; i<32; i++) {
+                      if (SC_DRAM_LINE_BUFFER_DATA_PORT == i) {
+                          k++;
+                      }
+                  }
+                  return k;
+              }
+              #endif
+              #endif
+ 413          
+ 414          #endif //ENABLE_MMU == ON
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    472    ----
+   CONSTANT SIZE    =    108    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+C51 COMPILER V9.54   SCALER_MMU                                                            01/06/2017 14:56:49 PAGE 8   
+
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

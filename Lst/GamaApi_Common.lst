@@ -1,0 +1,64 @@
+C51 COMPILER V9.54   GAMAAPI_COMMON                                                        01/06/2017 14:56:38 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE GAMAAPI_COMMON
+OBJECT MODULE PLACED IN .\Bin\GamaApi_Common.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE App\GamaApi_Common.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\O
+                    -SD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\
+                    -NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW
+                    -_2560X1440,FLASH_BANK=8) PRINT(.\Lst\GamaApi_Common.lst) TABS(2) OBJECT(.\Bin\GamaApi_Common.obj)
+
+line level    source
+
+   1          #include "Include.h"
+   2          
+   3          
+   4          #if ENABLE_GAMMA == ON
+   5          /*!
+   6           * Write red gamma through index port.
+   7           */
+   8          #define GMAPI_LoadRGM320(p) WriteScalerIndexPort(GAMMA_TBL_RED|BIT2, 0, 320, p)
+   9          /*!
+  10           * Write green gamma through index port.
+  11           */
+  12          #define GMAPI_LoadGGM320(p) WriteScalerIndexPort(GAMMA_TBL_GREEN|BIT2, 0, 320, p)
+  13          /*!
+  14           * Write blue gamma through index port.
+  15           */
+  16          #define GMAPI_LoadBGM320(p) WriteScalerIndexPort(GAMMA_TBL_BLUE|BIT2, 0, 320, p)
+  17          
+  18          /**************************************************************************//**
+  19           * Write R/G/B 320-bytes gamma tables to scaler.
+  20           * @param pgamma Pointer to the R/G/B 320-bytes gamma table.
+  21           ******************************************************************************/
+  22          void GMAPI_LoadGamma320(Gamma320 *pgamma)
+  23          {
+  24   1          GMAPI_DisableGamma();
+  25   1          Sleep(50); // 24Hz is around 41ms
+  26   1      #if ENABLE_10TO12_GAMMA == ON
+              #elif ENABLE_10TO10_GAMMA == ON
+                  GMAPI_LoadSingleTable320To1280(pgamma->ucRGamma, GAMMA_TBL_RED);
+                  GMAPI_LoadSingleTable320To1280(pgamma->ucGGamma, GAMMA_TBL_GREEN);
+                  GMAPI_LoadSingleTable320To1280(pgamma->ucBGamma, GAMMA_TBL_BLUE);
+              #else
+  32   1          GMAPI_LoadRGM320(pgamma->ucRGamma);
+  33   1          GMAPI_LoadGGM320(pgamma->ucGGamma);
+  34   1          GMAPI_LoadBGM320(pgamma->ucBGamma);
+  35   1      #endif
+  36   1      }
+  37          
+  38          #endif
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    102    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----       3
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

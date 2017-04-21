@@ -1,0 +1,609 @@
+C51 COMPILER V9.54   SCALER_ADC                                                            01/06/2017 14:57:09 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE SCALER_ADC
+OBJECT MODULE PLACED IN .\Bin\Scaler_ADC.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Lib\NT68810 Series\Scaler_ADC.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\
+                    -App;.\App\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Componen
+                    -t;.\Phy\SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_M
+                    -ODULE,LVIEW_2560X1440,FLASH_BANK=8) PRINT(.\Lst\Scaler_ADC.lst) TABS(2) OBJECT(.\Bin\Scaler_ADC.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          #include "ScalerProfile.h"
+  14          
+  15          //******************************************************************************
+  16          // M A C R O   D E F I N I T I O N S
+  17          //******************************************************************************
+  18          
+  19          //******************************************************************************
+  20          // G L O B A L   V A R I A B L E S
+  21          //******************************************************************************
+  22          /*!
+  23           * Values for the counter of HSync frequency.
+  24           * This value is from the HSync counter, of sync processor, multiplying by 8192.
+  25           * Not from HPLL directly.
+  26           */
+  27          xdata ULONG ulHFreqCounter;
+  28          
+  29          //******************************************************************************
+  30          // S T A T I C   V A R I A B L E S
+  31          //******************************************************************************
+  32          
+  33          //******************************************************************************
+  34          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  35          //******************************************************************************
+  36          
+  37          //******************************************************************************
+  38          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  39          //******************************************************************************
+  40          
+  41          //******************************************************************************
+  42          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  43          //******************************************************************************
+  44          
+  45          //******************************************************************************
+  46          // F U N C T I O N   B O D Y S
+  47          //******************************************************************************
+  48          
+  49          /**************************************************************************//**
+  50           * Initialize ADC-related registers.
+  51           ******************************************************************************/
+  52          void ADCInit(void)
+C51 COMPILER V9.54   SCALER_ADC                                                            01/06/2017 14:57:09 PAGE 2   
+
+  53          {
+  54   1          SC_ADC_IP_CTRL_1D80[_ADC_BW_SEL_BP] = 0x00;//Analog bandwidth select ( B+ input capacitor select ) 
+  55   1          SC_ADC_IP_CTRL_1D80[_ADC_BW_SEL_BN] = 0x00;//Analog bandwidth select ( B- input capacitor select )
+  56   1          SC_ADC_IP_CTRL_1D80[_ADC_BW_SEL_GP] = 0x00;//Analog bandwidth select ( G+ input capacitor select )
+  57   1          SC_ADC_IP_CTRL_1D80[_ADC_BW_SEL_GN] = 0x00;//Analog bandwidth select ( G- input capacitor select )
+  58   1          SC_ADC_IP_CTRL_1D80[_ADC_BW_SEL_RP] = 0x00;//Analog bandwidth select ( R+ input capacitor select )
+  59   1          SC_ADC_IP_CTRL_1D80[_ADC_BW_SEL_RN] = 0x00;//Analog bandwidth select ( R- input capacitor select )
+  60   1          SC_ADC_IP_CTRL_1D80[_ADC_P_CLAMP_EN] = 0xE0; // 0x1d8f
+  61   1      #if 1 //NT68810
+  62   1      #if IS_NT68810_SERIES
+                  SC_ADC_IP_CTRL_1D80[_ADC_VICM_BIAS] = 0xC0;//0x80;//ADC_VICM_BIAS  0x1d90
+                  SC_ADC_IP_CTRL_1D80[_ADC_VREF_BIAS] = 0x40;//0x80;//ADC_VREF_BIAS 0x1d92
+                  SC_ADC_IP_CTRL_1D80[_ADC_BIAS_CTRL2] = 0x6C;//0x88;//ADC_BIAS 0x1d95
+              #else //NT68870
+  67   1          SC_ADC_IP_CTRL_1D80[_ADC_VICM_BIAS] = 0x70;//0x80;//ADC_VICM_BIAS
+  68   1          SC_ADC_IP_CTRL_1D80[_ADC_VREF_BIAS] = 0x00;//0x80;//ADC_VREF_BIAS
+  69   1          SC_ADC_IP_CTRL_1D80[_ADC_BIAS_CTRL2] = 0x64;//0x88;//ADC_BIAS
+  70   1      #endif
+  71   1          SC_ADC_IP_CTRL_1D80[_ADC_CLAMP_SPEED] = 0x10;//CLAMP_SPEED 0x1d93
+  72   1          SC_ADC_IP_CTRL_1D80[_ADC_BIAS_CTRL1] = 0x55;//0x53;//0x46;//0x88;//ADC_BIAS 0x1d94
+  73   1          SC_ADC_IP_CTRL_1D80[_ADC_CDS] = 0x40;//0x30; 0x1d98
+  74   1          SC_ADC_IP_CTRL_1D80[_ADC_COMP_BIAS] = 0x60;//0x88;//0x40;//0x80;//ADC_COMP_BIAS 0x1d99
+  75   1      #if IS_NT68810_SERIES
+                  SC_ADC_IP_CTRL_1D80[_ADC_SGND_BIAS] = 0x40;//0x80;//ADC_SGND_BIAS 0x1d9a
+              #else
+  78   1          SC_ADC_IP_CTRL_1D80[_ADC_SGND_BIAS] = 0x20;//0x80;//ADC_SGND_BIAS 0x1d9a
+  79   1          SC_ADC_IP_CTRL_1D80[_ADC_SRC_FOLLOWER_CURRENT] = 0x40;// 0x1d9e
+  80   1      #endif
+  81   1          SC_ADC_IP_CTRL_1D80[_ADC_COMMON_MODE_SEL] = 0x20;    // 0x1da3
+  82   1          SC_ADC_IP_CTRL_1D80[_ADC_SOG_DISCUR] = 0xC0;//SOG_DISCUR // 0x1db0
+  83   1          SC_ADC_IP_CTRL_1D80[_ADC_SOG_THRESHOLD] = 0xE0;//0xC0;//0xE0;//SOGTH   // 0x1db1
+  84   1          SC_ADC_IP_CTRL_1D80[_ADC_SOG_CLAMP_CURRENT] = 0x02;//0xA0;//SOG_CLP_SW // 0x1db2
+  85   1      #else //TC68810
+                  SC_ADC_IP_CTRL_1D80[_ADC_VICM_BIAS] = 0x80;//0xC0;//0x80;//ADC_VICM_BIAS
+                  SC_ADC_IP_CTRL_1D80[_ADC_VMID_CTRL] = 0x00;
+                  SC_ADC_IP_CTRL_1D80[_ADC_VREF_BIAS] = 0x80;//ADC_VREF_BIAS
+                  SC_ADC_IP_CTRL_1D80[_ADC_CLAMP_SPEED] = 0xF0;//CLAMP_SPEED
+                  SC_ADC_IP_CTRL_1D80[_ADC_BIAS_CTRL1] = 0xE0;//ADC_BIAS
+                  SC_ADC_IP_CTRL_1D80[_ADC_BIAS_CTRL2] = 0x88 | BIT0;//ADC_BIAS
+                  SC_ADC_IP_CTRL_1D80[_ADC_SF_BIAS] = 0x80;
+                  SC_ADC_IP_CTRL_1D80[_ADC_COMP_BIAS] = 0x80;//ADC_COMP_BIAS
+                  SC_ADC_IP_CTRL_1D80[_ADC_SGND_BIAS] = 0x40;//0x20;//ADC_SGND_BIAS
+                  SC_ADC_IP_CTRL_1D80[_ADC_GAIN_OFFSET_BIAS] = 0x40;//0xC0;
+                  SC_ADC_IP_CTRL_1D80[_ADC_SRC_FOLLOWER_CURRENT] &= ~BIT7;//|= BIT7;
+                  SC_ADC_IP_CTRL_1D80[_ADC_SRC_FOLLOWER_CURRENT] |= BIT6;//&= ~BIT6;  
+                  SC_ADC_IP_CTRL_1D80[_ADC_BANDGAP_SET] |= BIT7;
+                  SC_ADC_IP_CTRL_1D80[_ADC_SOG_DISCUR] = 0xC0;//SOG_DISCUR
+                  SC_ADC_IP_CTRL_1D80[_ADC_SOG_THRESHOLD] = 0x10;//0x80;//SOGTH
+                  SC_ADC_IP_CTRL_1D80[_ADC_SOG_CLAMP_CURRENT] = 0x02;//0xA0;//SOG_CLP_SW
+              #endif
+ 103   1          SC_ADC_CTRL_OPTION1 = 0x30;// 0xb78
+ 104   1          SC_ADC_CTRL_OPTION2 = 0x04;
+ 105   1          SC_ADC_CTRL_OPTION3 = 0x90;
+ 106   1      
+ 107   1          VGA_PowerOn();
+ 108   1      
+ 109   1          SC_CLAMP_BEGIN = 0x81;//0x0C;// 0x021
+ 110   1          SC_CLAMP_WIDTH = 0x81;//  0x22
+ 111   1      
+ 112   1          WriteShortScaler(&SC_HSDDS_DIVIDER_LO, 0x800);//default value (ADC work)
+ 113   1          SC_HPLL_CTRL1 = SCREG_0D0;  // 0xd0
+ 114   1          SC_HPLL_CTRL2 = 0xC0; // 0xd6
+C51 COMPILER V9.54   SCALER_ADC                                                            01/06/2017 14:57:09 PAGE 3   
+
+ 115   1          SC_HPLL_CTRL3 = 0x00; // 0xdc
+ 116   1          SC_HPLL_FREQ_CTRL = SCREG_0D1;// 0xd1
+ 117   1          SC_HPLL_PHASE_CTRL = 0x18;  /// 0xd5
+ 118   1      
+ 119   1          SchmittTriggerPowerOn();
+ 120   1          SetADCInput(ADC_INPUT_EXT_RGB);
+ 121   1      }
+ 122          
+ 123          /**************************************************************************//**
+ 124           * Get the input htotal of analog input.
+ 125           * @return Input htotal of analog input.
+ 126           ******************************************************************************/
+ 127          USHRT GetAngInputHTotal(void)
+ 128          {
+ 129   1      #if defined(ENABLE_FPGA_MODE)
+                  return AD9884_GetHTotal();
+              #else
+ 132   1          return ReadShortScaler(&SC_HSDDS_DIVIDER_LO);
+ 133   1      #endif
+ 134   1      }
+ 135          
+ 136          /**************************************************************************//**
+ 137           * Get the ADCPLL phase setting.
+ 138           * @return ADCPLL phase setting.
+ 139           ******************************************************************************/
+ 140          UCHAR GetAngInputPhase(void)
+ 141          {
+ 142   1      #if defined(ENABLE_FPGA_MODE)
+                  return AD9884_GetPhase();
+              #else
+ 145   1          return SC_HPLL_PHASE_CTRL1;
+ 146   1      #endif
+ 147   1      }
+ 148          
+ 149          /**************************************************************************//**
+ 150           * Set ADC bandwidth.
+ 151           * @param bw ADC bandwidth. If bw is ADC_BW_AUTO, the bandwidth is auto-configured.
+ 152           ******************************************************************************/
+ 153          void SetADCBandWidth(ADCBandW bw)
+ 154          {
+ 155   1          ULONG pix_clk;
+ 156   1          UCHAR i;
+ 157   1      
+ 158   1          if (bw == ADC_BW_AUTO) {
+ 159   2              /*
+ 160   2              Analog bandwidth select ( RGB input capacitor select )
+ 161   2              111 :  MHz
+ 162   2              110 :  MHz
+ 163   2              101 :  MHz
+ 164   2              100 :  MHz
+ 165   2              011 :  MHz
+ 166   2              010 :  MHz
+ 167   2              001 :  MHz
+ 168   2              000 :  MHz
+ 169   2              */
+ 170   2      #if defined(ENABLE_FPGA_MODE)
+                      pix_clk = AD9884_GetHTotal();
+              #else
+ 173   2              pix_clk = ReadShortScaler(&SC_HSDDS_DIVIDER_LO);// 0xd7
+ 174   2      #endif
+ 175   2              pix_clk = pix_clk * usHSyncFreq;
+ 176   2      
+C51 COMPILER V9.54   SCALER_ADC                                                            01/06/2017 14:57:09 PAGE 4   
+
+ 177   2              if (pix_clk < 370000) {// < 800x600/60Hz
+ 178   3                  bw = ADC_BW_75MHz;
+ 179   3              }
+ 180   2              else if (pix_clk < 550000) { // < 1024x760/60Hz
+ 181   3                  bw = ADC_BW_150MHz;
+ 182   3              }
+ 183   2              else if (pix_clk < 800000) {// < 1152x8
+ 184   3                  bw = ADC_BW_250MHz;
+ 185   3              }
+ 186   2              else if (pix_clk < 900000) {
+ 187   3                  bw = ADC_BW_300MHz;
+ 188   3              }
+ 189   2              else if (pix_clk < 1100000) {
+ 190   3                  bw = ADC_BW_350MHz;
+ 191   3              }
+ 192   2              else if (pix_clk < 1400000) {
+ 193   3                  bw = ADC_BW_400MHz;
+ 194   3              }
+ 195   2              else if (pix_clk < 1800000) {
+ 196   3                  bw = ADC_BW_450MHz;
+ 197   3              }
+ 198   2              else {
+ 199   3                  bw = ADC_BW_500MHz;
+ 200   3              }
+ 201   2          }
+ 202   1          i = bw << 4;
+ 203   1          SC_ADC_IP_CTRL_1D80[_ADC_BW_SEL_BP] = i;//Analog bandwidth select ( B+ input capacitor select )  // 0x
+             -1d89
+ 204   1          SC_ADC_IP_CTRL_1D80[_ADC_BW_SEL_GP] = i;//Analog bandwidth select ( G+ input capacitor select )// 0x1d
+             -8b
+ 205   1          SC_ADC_IP_CTRL_1D80[_ADC_BW_SEL_RP] = i;//Analog bandwidth select ( R+ input capacitor select )// 0x1d
+             -8d
+ 206   1      }
+ 207          
+ 208          /**************************************************************************//**
+ 209           * Configure ADCPLL (capture clock).
+ 210           * @param htotal Htotal of analog input.
+ 211           ******************************************************************************/
+ 212          void SetADCPLL(USHRT htotal)
+ 213          {
+ 214   1      #define HSYNC_BAND_LOW  ((float)REF_CLK/12000000*250)
+ 215   1      #define HSYNC_BAND_MID  ((float)REF_CLK/12000000*500)
+ 216   1      
+ 217   1          ULONG pixel_rate;
+ 218   1      
+ 219   1          if (usHSyncFreq < HSYNC_BAND_LOW) {
+ 220   2              SC_HPLL_LINE_CNT = 0x0A; //1024 Lines
+ 221   2          }
+ 222   1          else if (usHSyncFreq < HSYNC_BAND_MID) {
+ 223   2              SC_HPLL_LINE_CNT = 0x0B; //2048 Lines
+ 224   2          }
+ 225   1          else {
+ 226   2              SC_HPLL_LINE_CNT = 0x0C; //4096 Lines
+ 227   2          }
+ 228   1          SC_HPLL_FREQ_CTRL &= ~BIT6; //Enable updating HS_CNT// 0xd1
+ 229   1          pixel_rate = ReadShortScaler(&SC_GI_HCNT_LO) & 0x1FFF;
+ 230   1          if ((pixel_rate == 0x1FFF) || (pixel_rate == 0)) {
+ 231   2              ulHFreqCounter = 0xFFFFFFFF;
+ 232   2          }
+ 233   1          else {
+ 234   2              ulHFreqCounter = (ULONG)pixel_rate * 8192;
+ 235   2          }
+C51 COMPILER V9.54   SCALER_ADC                                                            01/06/2017 14:57:09 PAGE 5   
+
+ 236   1          WriteShortScaler(&SC_HSDDS_DIVIDER_LO, htotal);
+ 237   1      #if defined(ENABLE_FPGA_MODE)
+                  AD9884_SetHTotal(htotal);
+              #endif
+ 240   1      
+ 241   1          pixel_rate = htotal;
+ 242   1          pixel_rate = pixel_rate * usHSyncFreq;
+ 243   1      
+ 244   1      #undef HSYNC_BAND_LOW
+ 245   1      #undef HSYNC_BAND_MID
+ 246   1      }
+ 247          
+ 248          /**************************************************************************//**
+ 249           * Set ADCPLL phase.
+ 250           * @param phase ADCPLL phase.
+ 251           ******************************************************************************/
+ 252          void SetADCPhase(UCHAR phase)
+ 253          {
+ 254   1          SC_HPLL_PHASE_CTRL1 = phase;
+ 255   1          ucADCPhase100 = ((USHRT)phase * 100 + (MAXIMUM_PHASE>>1)) / MAXIMUM_PHASE;
+ 256   1      
+ 257   1      #if defined(ENABLE_FPGA_MODE)
+                  AD9884_SetPhase(phase);
+              #endif    
+ 260   1      }
+ 261          
+ 262          /**************************************************************************//**
+ 263           * Wait until HPLL stable.
+ 264           * The maximum waiting time is 300ms.
+ 265           * The minimum waiting time is 30ms.
+ 266           * This function can not be performed prior to SetADCPLL.
+ 267           ******************************************************************************/
+ 268          void WaitHPLLstable(void)
+ 269          {
+ 270   1          ULONG hcounter;
+ 271   1          USHRT localtimer;
+ 272   1      
+ 273   1          localtimer = GetTimerTick();
+ 274   1          do {
+ 275   2              hcounter = Read3ByteScaler(&SC_HS_CNT_RESULT_LO);
+ 276   2              if (SC_HPLL_LINE_CNT == 0x0A) {//1024 line
+ 277   3                  hcounter <<= 2;
+ 278   3              }
+ 279   2              else if (SC_HPLL_LINE_CNT == 0x0B) {//2048 line
+ 280   3                  hcounter <<= 1;
+ 281   3              }
+ 282   2              if (labs(hcounter - ulHFreqCounter ) < 8192) {
+ 283   3                  if ((GetTimerTick()-localtimer) > 30) {//minimum 30ms
+ 284   4                      break;
+ 285   4                  }
+ 286   3              }
+ 287   2          } while ((GetTimerTick()-localtimer) < 300);//maximum 300ms
+ 288   1      }
+ 289          
+ 290          /**************************************************************************//**
+ 291           * Set the ADC gain of red channel.
+ 292           * @param gain Gain value.
+ 293           ******************************************************************************/
+ 294          void SetADCRGain(UCHAR gain)
+ 295          {
+ 296   1      #if defined(ENABLE_FPGA_MODE)
+                  AD9884_SetGain(0, gain);
+C51 COMPILER V9.54   SCALER_ADC                                                            01/06/2017 14:57:09 PAGE 6   
+
+              #else
+ 299   1          SC_ADC_IP_CTRL_1D80[_ADC_GAIN_R] = gain;
+ 300   1      #endif
+ 301   1      }
+ 302          
+ 303          /**************************************************************************//**
+ 304           * Set the ADC gain of green channel.
+ 305           * @param gain Gain value.
+ 306           ******************************************************************************/
+ 307          void SetADCGGain(UCHAR gain)
+ 308          {
+ 309   1      #if defined(ENABLE_FPGA_MODE)
+                  AD9884_SetGain(1, gain);
+              #else
+ 312   1          SC_ADC_IP_CTRL_1D80[_ADC_GAIN_G] = gain;
+ 313   1      #endif
+ 314   1      }
+ 315          
+ 316          /**************************************************************************//**
+ 317           * Set the ADC gain of blue channel.
+ 318           * @param gain Gain value.
+ 319           ******************************************************************************/
+ 320          void SetADCBGain(UCHAR gain)
+ 321          {
+ 322   1      #if defined(ENABLE_FPGA_MODE)
+                  AD9884_SetGain(2, gain);
+              #else
+ 325   1          SC_ADC_IP_CTRL_1D80[_ADC_GAIN_B] = gain;
+ 326   1      #endif
+ 327   1      }
+ 328          
+ 329          /**************************************************************************//**
+ 330           * Set the ADC offset of red channel.
+ 331           * @param offset Offset value.
+ 332           ******************************************************************************/
+ 333          void SetADCROffset(UCHAR offset)
+ 334          {
+ 335   1      #if defined(ENABLE_FPGA_MODE)
+                  AD9884_SetOffset(0, offset);
+              #else
+ 338   1          SC_ADC_IP_CTRL_1D80[_ADC_OFFSET_R] = offset;
+ 339   1      #endif
+ 340   1      }
+ 341          
+ 342          /**************************************************************************//**
+ 343           * Set the ADC offset of green channel.
+ 344           * @param offset Offset value.
+ 345           ******************************************************************************/
+ 346          void SetADCGOffset(UCHAR offset)
+ 347          {
+ 348   1      #if defined(ENABLE_FPGA_MODE)
+                  AD9884_SetOffset(1, offset);
+              #else
+ 351   1          SC_ADC_IP_CTRL_1D80[_ADC_OFFSET_G] = offset;
+ 352   1      #endif
+ 353   1      }
+ 354          
+ 355          /**************************************************************************//**
+ 356           * Set the ADC offset of blue channel.
+ 357           * @param offset Offset value.
+ 358           ******************************************************************************/
+ 359          void SetADCBOffset(UCHAR offset)
+C51 COMPILER V9.54   SCALER_ADC                                                            01/06/2017 14:57:09 PAGE 7   
+
+ 360          {
+ 361   1      #if defined(ENABLE_FPGA_MODE)
+                  AD9884_SetOffset(2, offset);
+              #else
+ 364   1          SC_ADC_IP_CTRL_1D80[_ADC_OFFSET_B] = offset;
+ 365   1      #endif
+ 366   1      }
+ 367          
+ 368          /**************************************************************************//**
+ 369           * Get the ADC gain of red channel.
+ 370           * @return Gain value.
+ 371           ******************************************************************************/
+ 372          UCHAR GetADCRGain(void)
+ 373          {
+ 374   1      #if defined(ENABLE_FPGA_MODE)
+                  return AD9884_GetGain(0);
+              #else
+ 377   1          return SC_ADC_IP_CTRL_1D80[_ADC_GAIN_R];
+ 378   1      #endif
+ 379   1      }
+ 380          
+ 381          /**************************************************************************//**
+ 382           * Get the ADC gain of green channel.
+ 383           * @return Gain value.
+ 384           ******************************************************************************/
+ 385          UCHAR GetADCGGain(void)
+ 386          {
+ 387   1      #if defined(ENABLE_FPGA_MODE)
+                  return AD9884_GetGain(1);
+              #else
+ 390   1          return SC_ADC_IP_CTRL_1D80[_ADC_GAIN_G];
+ 391   1      #endif
+ 392   1      }
+ 393          
+ 394          /**************************************************************************//**
+ 395           * Get the ADC gain of blue channel.
+ 396           * @return Gain value.
+ 397           ******************************************************************************/
+ 398          UCHAR GetADCBGain(void)
+ 399          {
+ 400   1      #if defined(ENABLE_FPGA_MODE)
+                  return AD9884_GetGain(2);
+              #else
+ 403   1          return SC_ADC_IP_CTRL_1D80[_ADC_GAIN_B];
+ 404   1      #endif
+ 405   1      }
+ 406          
+ 407          /**************************************************************************//**
+ 408           * Get the ADC offset of red channel.
+ 409           * @return Offset value.
+ 410           ******************************************************************************/
+ 411          UCHAR GetADCROffset(void)
+ 412          {
+ 413   1      #if defined(ENABLE_FPGA_MODE)
+                  return AD9884_GetOffset(0);
+              #else
+ 416   1          return SC_ADC_IP_CTRL_1D80[_ADC_OFFSET_R];
+ 417   1      #endif
+ 418   1      }
+ 419          
+ 420          /**************************************************************************//**
+ 421           * Get the ADC offset of green channel.
+C51 COMPILER V9.54   SCALER_ADC                                                            01/06/2017 14:57:09 PAGE 8   
+
+ 422           * @return Offset value.
+ 423           ******************************************************************************/
+ 424          UCHAR GetADCGOffset(void)
+ 425          {
+ 426   1      #if defined(ENABLE_FPGA_MODE)
+                  return AD9884_GetOffset(1);
+              #else
+ 429   1          return SC_ADC_IP_CTRL_1D80[_ADC_OFFSET_G];
+ 430   1      #endif
+ 431   1      }
+ 432          
+ 433          /**************************************************************************//**
+ 434           * Get the ADC offset of blue channel.
+ 435           * @return Offset value.
+ 436           ******************************************************************************/
+ 437          UCHAR GetADCBOffset(void)
+ 438          {
+ 439   1      #if defined(ENABLE_FPGA_MODE)
+                  return AD9884_GetOffset(2);
+              #else
+ 442   1          return SC_ADC_IP_CTRL_1D80[_ADC_OFFSET_B];
+ 443   1      #endif
+ 444   1      }
+ 445          
+ 446          /**************************************************************************//**
+ 447           * Enable or disable ADC ground sampling.
+ 448           * @param enable TRUE to enable ADC ground sampling else FALSE.
+ 449           ******************************************************************************/
+ 450          void EnableADCGndSampling(UCHAR enable)
+ 451          {
+ 452   1          if (enable) {
+ 453   2              SC_ADC_CTRL &= ~BIT0;
+ 454   2          }
+ 455   1          else {
+ 456   2              SC_ADC_CTRL |= BIT0;
+ 457   2          }
+ 458   1      }
+ 459          
+ 460          /**************************************************************************//**
+ 461           * Turn on ADCPLL and ADC power.
+ 462           ******************************************************************************/
+ 463          void VGA_PowerOn(void)
+ 464          {
+ 465   1          SC_POWER_CTRL2 |= (BIT6 | BIT3);
+ 466   1          SC_ADC_IP_CTRL_1D80[_ADC_POWER_CTRL] = 0xF0;// 0x1db5
+ 467   1      }
+ 468          
+ 469          /**************************************************************************//**
+ 470           * Turn off ADCPLL and ADC power.
+ 471           ******************************************************************************/
+ 472          void VGA_PowerOff(void)
+ 473          {
+ 474   1          SC_POWER_CTRL2 &= ~(BIT6 | BIT3);
+ 475   1          SC_ADC_IP_CTRL_1D80[_ADC_POWER_CTRL] = 0x00;// 0x1db5
+ 476   1          SC_ADC_IP_CTRL_1D80[_ADC_MISC_CTRL_33] = 0x00;// 0x1db3
+ 477   1      }
+ 478          
+ 479          /**************************************************************************//**
+ 480           * Check the ADC power is on or not.
+ 481           * @return TRUE if ADC power is on else FALSE.
+ 482           ******************************************************************************/
+ 483          /* 
+C51 COMPILER V9.54   SCALER_ADC                                                            01/06/2017 14:57:09 PAGE 9   
+
+ 484          BOOL IsADCPowerOn(void)
+ 485          {
+ 486              return ((SC_ADC_IP_CTRL_1D80[_ADC_POWER_CTRL] & 0xE0) != 0x00);
+ 487          }
+ 488          */
+ 489          
+ 490          /**************************************************************************//**
+ 491           * Turn on HSync and VSync schmitt Trigger circuits.
+ 492           ******************************************************************************/
+ 493          void SchmittTriggerPowerOn(void)
+ 494          {
+ 495   1          SC_HS_TRIG_LEVEL = 0x37;
+ 496   1          SC_VS_TRIG_LEVEL = 0x37;
+ 497   1      }
+ 498          
+ 499          /**************************************************************************//**
+ 500           * Turn off HSync and VSync schmitt Trigger circuits.
+ 501           ******************************************************************************/
+ 502          void SchmittTriggerPowerOff(void)
+ 503          {
+ 504   1          SC_HS_TRIG_LEVEL = 0x88;
+ 505   1          SC_VS_TRIG_LEVEL = 0x88;
+ 506   1      }
+ 507          
+ 508          /**************************************************************************//**
+ 509           * Set ADC input source.
+ 510           * The input can be one of
+ 511           *     ADC_INPUT_INT_GND,
+ 512           *     ADC_INPUT_RST_RGB,
+ 513           *     ADC_INPUT_INT_WHITE and
+ 514           *     ADC_INPUT_EXT_RGB
+ 515           * @param input ADC input source.
+ 516           ******************************************************************************/
+ 517          void SetADCInput(ADCInput input)
+ 518          {
+ 519   1          if (input >= ADC_NUM_INPUT) {
+ 520   2              input = ADC_INPUT_EXT_RGB;
+ 521   2          }
+ 522   1      
+ 523   1          if (input == ADC_INPUT_INT_WHITE) {
+ 524   2              //SC_ADC_IP_CTRL_1D80[_ADC_TRIM_VALUE] = 0x80;
+ 525   2              SC_ADC_IP_CTRL_1D80[_ADC_MISC_CTRL_1B] &= ~(BIT7|BIT6|BIT5);// 0x1d93
+ 526   2              SC_ADC_LDO &= ~BIT3;  // 0xb63
+ 527   2              SC_ADC_IP_CTRL_1D80[_ADC_TRIMMING_SEL] |= BIT7;//0xC0;  0x1da0
+ 528   2      //for hw auto gain
+ 529   2          #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 530   2              SC_ADC_IP_CTRL_1D80[_ADC_P_CLAMP_EN] = 0x00;//clamp off  0x1d8f
+ 531   2          #if IS_NT68870_SERIES
+ 532   2              SC_ADC_IP_CTRL_1D80[_ADC_VMID_CTRL] |= BIT7;  // 0x1d91
+ 533   2          #endif
+ 534   2          #endif
+ 535   2          }
+ 536   1          else if (input == ADC_INPUT_INT_GND) {
+ 537   2              //SC_ADC_IP_CTRL_1D80[_ADC_TRIM_VALUE] = 0x80;
+ 538   2              SC_ADC_IP_CTRL_1D80[_ADC_MISC_CTRL_1B] &= ~(BIT7|BIT6|BIT5);
+ 539   2              SC_ADC_IP_CTRL_1D80[_ADC_TRIMMING_SEL] &= ~BIT7;//0x40;
+ 540   2              SC_ADC_LDO |= BIT3;
+ 541   2      //for hw auto offset
+ 542   2          #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 543   2              SC_ADC_IP_CTRL_1D80[_ADC_P_CLAMP_EN] = 0x00;//clamp off
+ 544   2          #if IS_NT68870_SERIES
+ 545   2              SC_ADC_IP_CTRL_1D80[_ADC_VMID_CTRL] |= BIT7;
+C51 COMPILER V9.54   SCALER_ADC                                                            01/06/2017 14:57:09 PAGE 10  
+
+ 546   2          #endif
+ 547   2          #endif
+ 548   2          }
+ 549   1          else {//ADC_INPUT_EXT_RGB
+ 550   2              //SC_ADC_IP_CTRL_1D80[_ADC_TRIM_VALUE] = 0xFF;
+ 551   2              SC_ADC_IP_CTRL_1D80[_ADC_TRIMMING_SEL] &= ~BIT7;//0x40;
+ 552   2              SC_ADC_LDO &= ~BIT3;
+ 553   2              SC_ADC_IP_CTRL_1D80[_ADC_MISC_CTRL_1B] |= (BIT7|BIT6|BIT5);
+ 554   2      //for normal
+ 555   2          #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 556   2              SC_ADC_IP_CTRL_1D80[_ADC_P_CLAMP_EN] = 0xE0;//clamp on
+ 557   2          #if IS_NT68870_SERIES
+ 558   2              SC_ADC_IP_CTRL_1D80[_ADC_VMID_CTRL] &= ~BIT7;
+ 559   2          #endif
+ 560   2          #endif
+ 561   2          }
+ 562   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1075    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      4      17
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

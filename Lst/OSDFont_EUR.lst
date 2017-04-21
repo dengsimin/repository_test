@@ -1,0 +1,15 @@
+C51 COMPILER V9.54   OSDFONT_EUR                                                           12/19/2016 09:46:41 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE OSDFONT_EUR
+OBJECT MODULE PLACED IN .\Bin\OSDFont_EUR.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE App\OSD\OSDFont_EUR.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\
+                    -OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI
+                    -\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,NVT_
+                    -1920X1080,FLASH_BANK=4) PRINT(.\Lst\OSDFont_EUR.lst) TABS(2) OBJECT(.\Bin\OSDFont_EUR.obj)
+
+line level    source
+
+*** ERROR C318 OF App\OSD\OSDFont_EUR.c: can't open file 'App\OSD\OSDFont_EUR.c'
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  1 ERROR(S)

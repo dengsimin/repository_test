@@ -1,0 +1,865 @@
+C51 COMPILER V9.54   FE2P_API                                                              01/06/2017 14:56:50 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE FE2P_API
+NO OBJECT MODULE REQUESTED
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Lib\NT68810 Series\Fe2p_API.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\Ap
+                    -p;.\App\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;
+                    -.\Phy\SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MOD
+                    -ULE,LVIEW_2560X1440,FLASH_BANK=8) PRINT(.\Lst\Fe2p_API.lst) TABS(2) SRC(.\Bin\Fe2p_API.SRC)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          
+  14          #if ENABLE_FE2P == ON
+  15          
+  16          //******************************************************************************
+  17          // M A C R O   D E F I N I T I O N S
+  18          //******************************************************************************
+  19          #define FE2P_BUFFER_ADDR FE2P_SRAM_ADDR  /*!< The base address of FE2P buffer in the sram. */
+  20          #define VALID_FLAG_ADDR  0x7FF           /*!< Mask for the address */
+  21          #define BLOCK0           0x0000          /*!< The address of block 0 */
+  22          #define BLOCK1           0x1800          /*!< The address of block 1 */
+  23          #define BLOCK2           0x0800          /*!< The address of block 2 */
+  24          #define BLOCK3           0x2000          /*!< The address of block 3 */
+  25          #define BLOCK4           0x1000          /*!< The address of block 4 */
+  26          #define BLOCK5           0x2800          /*!< The address of block 5 */
+  27          #define BLOCK6           0x3000          /*!< The address of block 6 */
+  28          #define BLOCK7           0x3800          /*!< The address of block 7 */
+  29          #define FE2P_SAVE_TIME   100             /*!< Delay time to save data from sram to flash. Current setting 
+             -is 1s(100x10ms). */
+  30          #define MAXBLOCK         5               /*!<
+  31                                                    *   The max number of valid blocks.
+  32                                                    *   If flash is 2banks, the number is 1.
+  33                                                    *   If flash is 4banks, the number is 5.
+  34                                                    *   The block 6 and block 7 are used for POT when flash is 4bank
+             -s.
+  35                                                    */
+  36          #define TIMEBLOCK        BLOCK6          /*!< POT block. The block can be 0/2/4/6. So far, we use 6 as def
+             -ault. */
+  37          #define TIME_FLAG_ADDR   0x0FFF          /*!< The valid tag for POT block */
+  38          
+  39          //******************************************************************************
+  40          // G L O B A L   V A R I A B L E S
+  41          //******************************************************************************
+  42          
+  43          //******************************************************************************
+  44          // S T A T I C   V A R I A B L E S
+  45          //******************************************************************************
+  46          static BOOL  bFE2P_Save;                 /*!<
+  47                                                    * The flag of "save the data from sram to flash".
+  48                                                    * The flag will be raised after system perform FE2P_NvramWrite.
+  49                                                    * The flag will be cleared after system perform FE2P_SaveToFlash
+C51 COMPILER V9.54   FE2P_API                                                              01/06/2017 14:56:50 PAGE 2   
+
+             -.
+  50                                                    */
+  51          static xdata UCHAR ucFE2P_Valid_Block;   /*!<
+  52                                                    * This is the id of current valid block.
+  53                                                    * After FE2P_SaveToFlash, the id will be assigned as the id of n
+             -ext valid block.
+  54                                                    */
+  55          static xdata UCHAR ucFE2P_Buffer[2048] _at_ FE2P_BUFFER_ADDR; /*!< The FE2P buffer in the sram. The buffer
+             - is located at FE2P_BUFFER_ADDR */
+  56          static xdata UCHAR ucFlashID = UNKNOWN_FLASH; /*!< Flash ID after system performs Fe2p_Init. */
+  57          
+  58          /*!
+  59           * The start address of a block which we choose under directly FE2P mode. The unit is 4KB.
+  60           */
+  61          #define DAOF (FE2P_DIRECTMODE_OFFSET/4096)
+  62          #define DLEN (FE2P_DIRECTMODE_LEN/4)
+  63          
+  64          #if ENABLE_DIRECT_FE2P == ON
+              /*!
+               * The key words for FE2P mode identification.
+               * EasyWrite will search the key words in the HEX code(or binary code) and turn on/off direct FE2P protect
+             -ion.
+               */
+              static code UCHAR ucFE2PDirectModeOffset[] = {0x55, 0xaa, 0x66, 0x99, 'D', 'A', 'O', 'F', DAOF, 0x54};
+              #endif
+  71          /*!
+  72           * Fe2p information for easyWrite tool auto detect function.
+  73           */
+  74          static code UCHAR ucFE2PAutoDetectInfo[] = {0x55, 0xaa, 0x66, 0x99, 'D', 'L', 'E', 'N', DLEN,'W','P',FLASH
+             -_WP_PORT,FLASH_WP_BIT,FLASH_WP_ACTIVE};
+  75          
+  76          //******************************************************************************
+  77          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  78          //******************************************************************************
+  79          
+  80          //******************************************************************************
+  81          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  82          //******************************************************************************
+  83          static UCHAR FE2P_CheckValidBlock(void);
+  84          static void FLASH_WP_ON(void);
+  85          static void FLASH_WP_OFF(void);
+  86          static void FLASH_InitProtection(void);
+  87          static void FLASH_ProtectOff(USHRT offset);
+  88          static void FLASH_ProtectOn(void);
+  89          
+  90          //******************************************************************************
+  91          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  92          //******************************************************************************
+  93          
+  94          //******************************************************************************
+  95          // F U N C T I O N   B O D Y S
+  96          //******************************************************************************
+  97          
+  98          /**************************************************************************//**
+  99           * Initialize the Flash protection (set status register and address).
+ 100           ******************************************************************************/
+ 101          static void FLASH_InitProtection(void)
+ 102          {
+ 103   1          // Use the follow coding way to avoid compile warning when ENABLE_DIRECT_FE2P is OFF
+ 104   1          UCHAR opt = ENABLE_DIRECT_FE2P;
+ 105   1      
+ 106   1          if (opt == ON) {
+C51 COMPILER V9.54   FE2P_API                                                              01/06/2017 14:56:50 PAGE 3   
+
+ 107   2              Fe2p_SetOffset(FE2P_DIRECTMODE_OFFSET);
+ 108   2          }
+ 109   1      
+ 110   1          FLASH_ProtectOn();
+ 111   1      }
+ 112          
+ 113          /**************************************************************************//**
+ 114           * Turn off Flash protection.
+ 115           * Pull low the protection control pin and disable SR protection.
+ 116           * @param offset The offset of blocks to be protected off.
+ 117           ******************************************************************************/
+ 118          static void FLASH_ProtectOff(USHRT offset)
+ 119          {
+ 120   1          UCHAR ucFe2p_RDSR = Fe2p_RDSR();
+ 121   1      
+ 122   1          switch (ucFlashID) {
+ 123   2              case PMC_LD1M:
+ 124   2              case PMC_LD2M:
+ 125   2                  PMC_Sector_Lock();
+ 126   2                  PMC_Sector_Unlock(offset & 0xF000);
+ 127   2                  break;
+ 128   2      #if ENABLE_DIRECT_FE2P == ON
+                      case AMIC_2M:
+                          if ((ucFe2p_RDSR & BIT7) != 0x00) {
+                              FLASH_WP_OFF();
+                          }
+              
+                          Fe2p_SetProtect(0x64);
+                          break;
+              #endif
+ 137   2              case MXIC_2M_2026:
+ 138   2                  //if ((Fe2p_RDSR() & BIT7) != 0x00) {//v03_120317_1358_SYS#1
+ 139   2                      FLASH_WP_OFF();
+ 140   2                 // }
+ 141   2                  break;
+ 142   2              case WINB_4M_W25X41CL:
+ 143   2                  if ((ucFe2p_RDSR & BIT7) != 0x00) {
+ 144   3                      FLASH_WP_OFF();
+ 145   3                  }
+ 146   2                  ucFe2p_RDSR &= ~(BIT4|BIT3|BIT2); 
+ 147   2                  Fe2p_SetProtect(ucFe2p_RDSR);          
+ 148   2                  break;           
+ 149   2              default:
+ 150   2                  if ((ucFe2p_RDSR & BIT7) != 0x00) {
+ 151   3                      FLASH_WP_OFF();
+ 152   3                  }
+ 153   2      
+ 154   2                  Fe2p_SetProtect(0x00); //Samuel-2010-03-29: For flash data protection
+ 155   2                  break;
+ 156   2          }
+ 157   1      }
+ 158          
+ 159          /**************************************************************************//**
+ 160           * Turn on the Flash protection.
+ 161           * Pull up the protection control pin and enable SR protection.
+ 162           ******************************************************************************/
+ 163          static void FLASH_ProtectOn(void)
+ 164          {
+ 165   1          switch (ucFlashID) {
+ 166   2              case PMC_LD1M:
+ 167   2              case PMC_LD2M:
+ 168   2                  PMC_Sector_Lock();
+C51 COMPILER V9.54   FE2P_API                                                              01/06/2017 14:56:50 PAGE 4   
+
+ 169   2                  break;
+ 170   2              case MXIC_2M_2026:
+ 171   2                  break;
+ 172   2              case WINB_4M_W25X41CL:
+ 173   2                  if ((Fe2p_RDSR() & BIT7) != 0x00) {
+ 174   3                      FLASH_WP_OFF();
+ 175   3                  }
+ 176   2                  Fe2p_SetProtect(0xFC);
+ 177   2                  break;
+ 178   2              case AMIC_2M:
+ 179   2              default:
+ 180   2                  if ((Fe2p_RDSR() & BIT7) != 0x00) {
+ 181   3                      FLASH_WP_OFF();
+ 182   3                  }
+ 183   2                  Fe2p_SetProtect(0x9C); //Samuel-2010-03-29: For flash data protection
+ 184   2                  break;
+ 185   2          }
+ 186   1          FLASH_WP_ON(); //Samuel-2008-08-14: Enable Flash Write Protection After FE2P Write
+ 187   1      }
+ 188          
+ 189          /**************************************************************************//**
+ 190           * Initialize FE2P variables and load whole configurations from flash to sram.
+ 191           ******************************************************************************/
+ 192          void FE2P_RamInitialize(void)
+ 193          {
+ 194   1          USHRT i;
+ 195   1          //Fe2p Initial value
+ 196   1          bFE2P_Save = FALSE;
+ 197   1          ucFE2P_Valid_Block = 0;
+ 198   1          for (i = 0; i < 2048; i++) {
+ 199   2              ucFE2P_Buffer[i] = 0xFF;
+ 200   2          }
+ 201   1      
+ 202   1          ResetWDTimer();
+ 203   1          Fe2p_Set_SPI_CMD_buffer_addr(FE2P_CMD_BUFFER_ADDR);
+ 204   1      
+ 205   1          ucFlashID = Fe2p_Init(2);
+ 206   1          if (ucFlashID == UNKNOWN_FLASH) { //Samuel-2010-03-29: For flash data protection
+ 207   2              //If we found an unknown flash, force WDT happened.
+ 208   2              while (bFE2P_Save == 0) {};
+ 209   2          }
+ 210   1      
+ 211   1          FLASH_InitProtection();
+ 212   1          Fe2p_Get_Lib_Ver();
+ 213   1      
+ 214   1          ucFE2P_Valid_Block = FE2P_CheckValidBlock();
+ 215   1          if (ucFE2P_Valid_Block > MAXBLOCK) {
+ 216   2              ucFE2P_Valid_Block = 0;
+ 217   2              NvramInitialize(NVRAM_UPDATE_ALL);
+ 218   2          }
+ 219   1          else {
+ 220   2              if (ucFE2P_Valid_Block == 0) {
+ 221   3                  Fe2p_PageRead(BLOCK0, ucFE2P_Buffer, 2048); //block0 first 2k
+ 222   3              }
+ 223   2              else if (ucFE2P_Valid_Block == 1) {
+ 224   3                  Fe2p_PageRead(BLOCK1, ucFE2P_Buffer, 2048); //block1 first 2k
+ 225   3              }
+ 226   2              else if (ucFE2P_Valid_Block == 2) {
+ 227   3                  Fe2p_PageRead(BLOCK2, ucFE2P_Buffer, 2048); //block0 second 2k
+ 228   3              }
+ 229   2              else if (ucFE2P_Valid_Block == 3) {
+ 230   3                  Fe2p_PageRead(BLOCK3, ucFE2P_Buffer, 2048); //block0 second 2k
+C51 COMPILER V9.54   FE2P_API                                                              01/06/2017 14:56:50 PAGE 5   
+
+ 231   3              }
+ 232   2              else if (ucFE2P_Valid_Block == 4) {
+ 233   3                  Fe2p_PageRead(BLOCK4, ucFE2P_Buffer, 2048); //block0 second 2k
+ 234   3              }
+ 235   2              else if (ucFE2P_Valid_Block == 5) {
+ 236   3                  Fe2p_PageRead(BLOCK5, ucFE2P_Buffer, 2048); //block0 second 2k
+ 237   3              }
+ 238   2              else if (ucFE2P_Valid_Block == 6) {
+ 239   3                  Fe2p_PageRead(BLOCK6, ucFE2P_Buffer, 2048); //block0 second 2k
+ 240   3              }
+ 241   2              else {
+ 242   3                  Fe2p_PageRead(BLOCK7, ucFE2P_Buffer, 2048); //block1 second 2k
+ 243   3              }
+ 244   2          }
+ 245   1      }
+ 246          
+ 247          #if ENABLE_FE2P == ON && USE_INTERNAL_EDID == 1
+ 248          #if MD_ENABLE_AO_DETECT == ON
+              void FE2P_LoadDDC(void)
+              {
+              //    USHRT i;
+                  //Fe2p Initial value
+                  bFE2P_Save = FALSE;
+                  ucFE2P_Valid_Block = 0;
+              //    for (i = 0; i < 768; i++) {
+              //        ucFE2P_Buffer[i] = 0xFF;
+              //    }
+              
+                  ResetWDTimer();
+                  Fe2p_Set_SPI_CMD_buffer_addr(FE2P_CMD_BUFFER_ADDR);
+              
+                  ucFlashID = PMC_2M;//Fe2p_Init(2);
+              /*
+                  if (ucFlashID == UNKNOWN_FLASH) { //Samuel-2010-03-29: For flash data protection
+                      //If we found an unknown flash, force WDT happened.
+                      while (bFE2P_Save == 0) {};
+                  }
+              */
+                  //FLASH_InitProtection();
+              #if ENABLE_DIRECT_FE2P == ON
+                  Fe2p_SetOffset(FE2P_DIRECTMODE_OFFSET);
+              #endif
+                  Fe2p_Get_Lib_Ver();
+              
+                  ucFE2P_Valid_Block = FE2P_CheckValidBlock();
+              //    ucFE2P_Valid_Block = 0;
+                  if (ucFE2P_Valid_Block > MAXBLOCK) {
+                      ucFE2P_Valid_Block = 0;
+                      NvramInitialize(NVRAM_UPDATE_ALL);
+                  }
+                  else {
+              //        McuSetIOBit(MCU_PORT_C, BIT6, LOW);
+                      if (ucFE2P_Valid_Block == 0) {
+              //            Fe2p_PageRead(BLOCK0+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VG
+             -A
+              //            Fe2p_PageRead(BLOCK0+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DV
+             -I
+              //            Fe2p_PageRead(BLOCK0+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 
+             -HDMI
+                          Fe2p_CustomCmdRead(BLOCK0+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0
+             - VGA
+                          Fe2p_CustomCmdRead(BLOCK0+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0
+C51 COMPILER V9.54   FE2P_API                                                              01/06/2017 14:56:50 PAGE 6   
+
+             - DVI
+                          Fe2p_CustomCmdRead(BLOCK0+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //bloc
+             -k0 HDMI
+                      }
+                      else if (ucFE2P_Valid_Block == 1) {
+              //            Fe2p_PageRead(BLOCK1+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VG
+             -A
+              //            Fe2p_PageRead(BLOCK1+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DV
+             -I
+              //            Fe2p_PageRead(BLOCK1+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 
+             -HDMI
+                          Fe2p_CustomCmdRead(BLOCK1+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0
+             - VGA
+                          Fe2p_CustomCmdRead(BLOCK1+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0
+             - DVI
+                          Fe2p_CustomCmdRead(BLOCK1+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //bloc
+             -k0 HDMI
+                      }
+                      else if (ucFE2P_Valid_Block == 2) {
+              //            Fe2p_PageRead(BLOCK2+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VG
+             -A
+              //            Fe2p_PageRead(BLOCK2+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DV
+             -I
+              //            Fe2p_PageRead(BLOCK2+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 
+             -HDMI
+                          Fe2p_CustomCmdRead(BLOCK2+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0
+             - VGA
+                          Fe2p_CustomCmdRead(BLOCK2+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0
+             - DVI
+                          Fe2p_CustomCmdRead(BLOCK2+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //bloc
+             -k0 HDMI
+                      }
+                      else if (ucFE2P_Valid_Block == 3) {
+              //            Fe2p_PageRead(BLOCK3+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VG
+             -A
+              //            Fe2p_PageRead(BLOCK3+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DV
+             -I
+              //            Fe2p_PageRead(BLOCK3+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 
+             -HDMI
+                          Fe2p_CustomCmdRead(BLOCK3+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0
+             - VGA
+                          Fe2p_CustomCmdRead(BLOCK3+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0
+             - DVI
+                          Fe2p_CustomCmdRead(BLOCK3+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //bloc
+             -k0 HDMI
+                      }
+                      else if (ucFE2P_Valid_Block == 4) {
+              //            Fe2p_PageRead(BLOCK4+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VG
+             -A
+              //            Fe2p_PageRead(BLOCK4+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DV
+             -I
+              //            Fe2p_PageRead(BLOCK4+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 
+             -HDMI
+                          Fe2p_CustomCmdRead(BLOCK4+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0
+             - VGA
+                          Fe2p_CustomCmdRead(BLOCK4+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0
+             - DVI
+                          Fe2p_CustomCmdRead(BLOCK4+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //bloc
+             -k0 HDMI
+                      }
+                      else if (ucFE2P_Valid_Block == 5) {
+              //            Fe2p_PageRead(BLOCK5+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VG
+C51 COMPILER V9.54   FE2P_API                                                              01/06/2017 14:56:50 PAGE 7   
+
+             -A
+              //            Fe2p_PageRead(BLOCK5+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DV
+             -I
+              //            Fe2p_PageRead(BLOCK5+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 
+             -HDMI
+                          Fe2p_CustomCmdRead(BLOCK5+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0
+             - VGA
+                          Fe2p_CustomCmdRead(BLOCK5+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0
+             - DVI
+                          Fe2p_CustomCmdRead(BLOCK5+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //bloc
+             -k0 HDMI
+                      }
+                      else if (ucFE2P_Valid_Block == 6) {
+              //            Fe2p_PageRead(BLOCK6+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VG
+             -A
+              //            Fe2p_PageRead(BLOCK6+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DV
+             -I
+              //            Fe2p_PageRead(BLOCK6+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 
+             -HDMI
+                          Fe2p_CustomCmdRead(BLOCK6+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0
+             - VGA
+                          Fe2p_CustomCmdRead(BLOCK6+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0
+             - DVI
+                          Fe2p_CustomCmdRead(BLOCK6+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //bloc
+             -k0 HDMI
+                      }
+                      else {
+              //            Fe2p_PageRead(BLOCK7+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VG
+             -A
+              //            Fe2p_PageRead(BLOCK7+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DV
+             -I
+              //            Fe2p_PageRead(BLOCK7+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 
+             -HDMI
+                          Fe2p_CustomCmdRead(BLOCK7+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0
+             - VGA
+                          Fe2p_CustomCmdRead(BLOCK7+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0
+             - DVI
+                          Fe2p_CustomCmdRead(BLOCK7+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //bloc
+             -k0 HDMI
+                      }
+              //        McuSetIOBit(MCU_PORT_C, BIT6, HIGH);
+                  }
+              }
+              #endif
+ 351          #endif
+ 352          /**************************************************************************//**
+ 353           * Check FE2P blocks is valid or not.
+ 354           * @return The first valid block (The value is one of 0 to 7). If there is no valid block, the value will 
+             -be 0xFF.
+ 355           ******************************************************************************/
+ 356          UCHAR FE2P_CheckValidBlock(void)
+ 357          {
+ 358   1          UCHAR Dat;
+ 359   1          Fe2p_ByteRead(VALID_FLAG_ADDR, &Dat);
+ 360   1          if (Dat == 0x55) {
+ 361   2              return 0;
+ 362   2          }
+ 363   1      
+ 364   1          Fe2p_ByteRead(VALID_FLAG_ADDR + BLOCK1, &Dat);
+ 365   1          if (Dat == 0x55) {
+ 366   2              return 1;
+ 367   2          }
+C51 COMPILER V9.54   FE2P_API                                                              01/06/2017 14:56:50 PAGE 8   
+
+ 368   1      
+ 369   1          Fe2p_ByteRead(VALID_FLAG_ADDR + BLOCK2, &Dat);
+ 370   1          if (Dat == 0x55) {
+ 371   2              return 2;
+ 372   2          }
+ 373   1      
+ 374   1          Fe2p_ByteRead(VALID_FLAG_ADDR + BLOCK3, &Dat);
+ 375   1          if (Dat == 0x55) {
+ 376   2              return 3;
+ 377   2          }
+ 378   1      
+ 379   1          Fe2p_ByteRead(VALID_FLAG_ADDR + BLOCK4, &Dat);
+ 380   1          if (Dat == 0x55) {
+ 381   2              return 4;
+ 382   2          }
+ 383   1      
+ 384   1          Fe2p_ByteRead(VALID_FLAG_ADDR + BLOCK5, &Dat);
+ 385   1          if (Dat == 0x55) {
+ 386   2              return 5;
+ 387   2          }
+ 388   1      
+ 389   1          Fe2p_ByteRead(VALID_FLAG_ADDR + BLOCK6, &Dat);
+ 390   1          if (Dat == 0x55) {
+ 391   2              return 6;
+ 392   2          }
+ 393   1      
+ 394   1          Fe2p_ByteRead(VALID_FLAG_ADDR + BLOCK7, &Dat);
+ 395   1          if (Dat == 0x55) {
+ 396   2              return 7;
+ 397   2          }
+ 398   1          return 0xFF; //FE2P block damage
+ 399   1      }
+ 400          
+ 401          /**************************************************************************//**
+ 402           * Write data to FE2P sram
+ 403           * @param Addr   The address where the data is stored.
+ 404           * @param Length Number of data to be written.
+ 405           * @param Ptr    The pointer to data
+ 406           ******************************************************************************/
+ 407          void FE2P_NvramWrite(USHRT Addr, USHRT Length, UCHAR *Ptr)
+ 408          {
+ 409   1          USHRT i;
+ 410   1          for (i = 0; i < Length; i++) {
+ 411   2              ucFE2P_Buffer[Addr + i] = *Ptr;
+ 412   2              Ptr++;
+ 413   2          }
+ 414   1          bFE2P_Save = 1;
+ 415   1      }
+ 416          
+ 417          /**************************************************************************//**
+ 418           * Read data from FE2P sram
+ 419           * @param Addr     The address where the data is stored.
+ 420           * @param Length   Number of data to be read.
+ 421           * @param[out] Ptr The pointer to buffer
+ 422           ******************************************************************************/
+ 423          void FE2P_NvramRead(USHRT Addr, USHRT Length, UCHAR *Ptr)
+ 424          {
+ 425   1          USHRT i;
+ 426   1          for (i = 0; i < Length; i++) {
+ 427   2              *Ptr = ucFE2P_Buffer[Addr + i];
+ 428   2              Ptr++;
+ 429   2          }
+C51 COMPILER V9.54   FE2P_API                                                              01/06/2017 14:56:50 PAGE 9   
+
+ 430   1      }
+ 431          
+ 432          /**************************************************************************//**
+ 433           * Dump all the user configurations from sram to flash.
+ 434           ******************************************************************************/
+ 435          void FE2P_SaveToFlash(void)
+ 436          {
+ 437   1          USHRT offset, old_offset, i;
+ 438   1      
+ 439   1          if (bFE2P_Save == 0) {
+ 440   2              return;
+ 441   2          }
+ 442   1          bFE2P_Save = 0;
+ 443   1      #if MD_ENABLE_STRESS_TEST_KEY == ON
+                  return;
+              #endif
+ 446   1          if (ucFE2P_Valid_Block > MAXBLOCK) {
+ 447   2              ucFE2P_Valid_Block = MAXBLOCK;
+ 448   2          }
+ 449   1          if (ucFE2P_Valid_Block == 0) {
+ 450   2              offset = BLOCK1; //Save to block 1
+ 451   2              old_offset = BLOCK0;
+ 452   2          }
+ 453   1          else if (ucFE2P_Valid_Block == 1) {
+ 454   2              offset = BLOCK2; //Save to block 2
+ 455   2              old_offset = BLOCK1;
+ 456   2          }
+ 457   1          else if (ucFE2P_Valid_Block == 2) {
+ 458   2              offset = BLOCK3; //Save to block 3
+ 459   2              old_offset = BLOCK2;
+ 460   2          }
+ 461   1          else if (ucFE2P_Valid_Block == 3) {
+ 462   2              offset = BLOCK4; //Save to block 4
+ 463   2              old_offset = BLOCK3;
+ 464   2          }
+ 465   1          else if (ucFE2P_Valid_Block == 4) {
+ 466   2              offset = BLOCK5; //Save to block 5
+ 467   2              old_offset = BLOCK4;
+ 468   2          }
+ 469   1          else if (ucFE2P_Valid_Block == 5) {
+ 470   2              offset = BLOCK6; //Save to block 6
+ 471   2              old_offset = BLOCK5;
+ 472   2          }
+ 473   1          else if (ucFE2P_Valid_Block == 6) {
+ 474   2              offset = BLOCK7; //Save to block 7
+ 475   2              old_offset = BLOCK6;
+ 476   2          }
+ 477   1          else {
+ 478   2              offset = BLOCK0; //Save to block 0
+ 479   2              old_offset = BLOCK7;
+ 480   2          }
+ 481   1      
+ 482   1          if (ucFE2P_Valid_Block == MAXBLOCK) {
+ 483   2              offset = BLOCK0; //Save to block 0
+ 484   2          }
+ 485   1      
+ 486   1          ResetWDTimer();
+ 487   1      
+ 488   1          FLASH_ProtectOff(offset);
+ 489   1      
+ 490   1          if ((offset & 0x0FFF) == 0x0000) {
+ 491   2              Fe2p_WriteEnable();
+C51 COMPILER V9.54   FE2P_API                                                              01/06/2017 14:56:50 PAGE 10  
+
+ 492   2              Fe2p_SectorErase(offset, 0); //100~150ms
+ 493   2          }
+ 494   1          for (i = 0; i < 2048; i += 0x100) {
+ 495   2              ResetWDTimer();
+ 496   2              Fe2p_WriteEnable();
+ 497   2              Fe2p_PageWrite(i + offset, FE2P_BUFFER_ADDR + i, 0x100, 0); //256bytes 3~4.5ms
+ 498   2          }
+ 499   1          Fe2p_WriteEnable();
+ 500   1          Fe2p_ByteWrite(VALID_FLAG_ADDR + offset, 0x55, 0); //Set new valid flag
+ 501   1      
+ 502   1          FLASH_ProtectOff(old_offset);
+ 503   1      
+ 504   1          Fe2p_WriteEnable();
+ 505   1          Fe2p_ByteWrite(VALID_FLAG_ADDR + old_offset, 0x00, 0); //Clear old valid flag
+ 506   1          //ucFE2P_Valid_Block = (ucFE2P_Valid_Block+1) % 4;
+ 507   1          if (ucFE2P_Valid_Block++ >= MAXBLOCK) {
+ 508   2              ucFE2P_Valid_Block = 0;
+ 509   2          }
+ 510   1      
+ 511   1          FLASH_ProtectOn();
+ 512   1      
+ 513   1          ResetWDTimer();
+ 514   1      }
+ 515          
+ 516          /**************************************************************************//**
+ 517           * Activate the write protection.
+ 518           * Control the Flash protection I/O pin.
+ 519           ******************************************************************************/
+ 520          static void FLASH_WP_ON(void)
+ 521          {
+ 522   1          McuSetIOBit(FLASH_WP_PORT, FLASH_WP_BIT, FLASH_WP_ACTIVE);
+ 523   1      }
+ 524          
+ 525          /**************************************************************************//**
+ 526           * Inactivate the write protection.
+ 527           * Control the Flash protection I/O pin.
+ 528           ******************************************************************************/
+ 529          static void FLASH_WP_OFF(void)
+ 530          {
+ 531   1          McuSetIOBit(FLASH_WP_PORT, FLASH_WP_BIT, ~FLASH_WP_ACTIVE);
+ 532   1      }
+ 533          
+ 534          /**************************************************************************//**
+ 535           * Save POT counter in the Flash. (Write to flash directly.)
+ 536           ******************************************************************************/
+ 537          void RecordTimeScale(void)
+ 538          {
+ 539   1          code UCHAR scaleTab[] = {0xFE, 0xFC, 0xF8, 0xF0, 0xE0, 0xC0, 0x80, 0x00};
+ 540   1          USHRT offset;
+ 541   1          UCHAR scale, ch;
+ 542   1          ULONG temp;
+ 543   1      
+ 544   1          if ((SystemData.ucPowerOnTimerM % POT_SAVE_COUNT) != 0) {//record time scale every 10 min
+ 545   2              return;
+ 546   2          }
+ 547   1      
+ 548   1          //Erase if first write
+ 549   1          if ((SystemData.ucPowerOnTimerM == POT_SAVE_COUNT) && (SystemData.usPowerOnTimerH == 0)) {
+ 550   2              EraseTimeScale();
+ 551   2          }
+ 552   1      
+ 553   1          //Erase again if erase fail
+C51 COMPILER V9.54   FE2P_API                                                              01/06/2017 14:56:50 PAGE 11  
+
+ 554   1          Fe2p_ByteRead(TIME_FLAG_ADDR + TIMEBLOCK, &ch);
+ 555   1          if (ch != 0xFF) {
+ 556   2              EraseTimeScale();
+ 557   2          }
+ 558   1      
+ 559   1          //write enable
+ 560   1          FLASH_ProtectOff(TIMEBLOCK);
+ 561   1      
+ 562   1          //write
+ 563   1          temp = (ULONG)(SystemData.usPowerOnTimerH - SystemData.usPOTimerH_FE2P) * 60 + SystemData.ucPowerOnTim
+             -erM - SystemData.ucPOTimerM_FE2P;
+ 564   1          if (temp != 0) {
+ 565   2              temp = temp - 1;
+ 566   2          }
+ 567   1          temp = temp / POT_SAVE_COUNT;
+ 568   1          offset = temp / 8;
+ 569   1          offset &= 0x0FFF;
+ 570   1          scale = temp % 8;
+ 571   1          ch = scaleTab[scale];
+ 572   1          Fe2p_WriteEnable();
+ 573   1          Fe2p_ByteWrite(TIMEBLOCK + offset, ch, 0); //Set new valid flag
+ 574   1      
+ 575   1          //write protect
+ 576   1          FLASH_ProtectOn();
+ 577   1      }
+ 578          
+ 579          /**************************************************************************//**
+ 580           * Erase the POT block. (Erase the flash block directly)
+ 581           ******************************************************************************/
+ 582          void EraseTimeScale(void)
+ 583          {
+ 584   1          if (FE2P_CheckValidBlock() == 0xFF) {
+ 585   2              SystemData.ucPowerOnTimerM = 0;
+ 586   2              SystemData.usPowerOnTimerH = 0;
+ 587   2              return;
+ 588   2          }
+ 589   1      
+ 590   1          ResetWDTimer();
+ 591   1      
+ 592   1          //write enable
+ 593   1          FLASH_ProtectOff(TIMEBLOCK);
+ 594   1      
+ 595   1          Fe2p_WriteEnable();
+ 596   1          Fe2p_ByteWrite(TIMEBLOCK + TIME_FLAG_ADDR, 0x00, 0); //Set new valid flag
+ 597   1      
+ 598   1          //erase
+ 599   1          Fe2p_WriteEnable();
+ 600   1          Fe2p_SectorErase(TIMEBLOCK, 0); //100~150ms
+ 601   1      
+ 602   1          //write protect
+ 603   1          FLASH_ProtectOn();
+ 604   1      
+ 605   1          ResetWDTimer();
+ 606   1      }
+ 607          
+ 608          /**************************************************************************//**
+ 609           * Decode the POT from flash.
+ 610           ******************************************************************************/
+ 611          void DecodeTimeScale(void)
+ 612          {
+ 613   1          ULONG temp;
+ 614   1          USHRT offset;
+C51 COMPILER V9.54   FE2P_API                                                              01/06/2017 14:56:50 PAGE 12  
+
+ 615   1          UCHAR ch;
+ 616   1      
+ 617   1          temp = ((ULONG)SystemData.usPOTimerH_FE2P * 60 + SystemData.ucPOTimerM_FE2P) / POT_SAVE_COUNT;
+ 618   1          for (offset = 0; offset < 4095; offset++) {
+ 619   2              Fe2p_ByteRead(offset + TIMEBLOCK, &ch);
+ 620   2              if (ch != 0) {
+ 621   3                  break;
+ 622   3              }
+ 623   2          }
+ 624   1          temp += (offset * 8);
+ 625   1          if (ch == 0xFE) {
+ 626   2              temp += 1;
+ 627   2          }
+ 628   1          else if (ch == 0xFC) {
+ 629   2              temp += 2;
+ 630   2          }
+ 631   1          else if (ch == 0xF8) {
+ 632   2              temp += 3;
+ 633   2          }
+ 634   1          else if (ch == 0xF0) {
+ 635   2              temp += 4;
+ 636   2          }
+ 637   1          else if (ch == 0xE0) {
+ 638   2              temp += 5;
+ 639   2          }
+ 640   1          else if (ch == 0xC0) {
+ 641   2              temp += 6;
+ 642   2          }
+ 643   1          else if (ch == 0x80) {
+ 644   2              temp += 7;
+ 645   2          }
+ 646   1          temp = temp * POT_SAVE_COUNT;
+ 647   1          SystemData.usPowerOnTimerH = temp / 60;
+ 648   1          SystemData.ucPowerOnTimerM = temp % 60;
+ 649   1      }
+ 650          
+ 651          #if MD_ENABLE_AO_DETECT == ON
+              #if ENABLE_FE2P == ON && USE_INTERNAL_EDID == 1
+              void Fe2p_CustomCmdRead(unsigned long Ptr,unsigned char *p, unsigned short Length)
+              {//new ISP mode: FE2P to SRAM (0xA000~0xAFFF)
+              #define ISP_555             0x555
+              #define ISP_2AA             0x2AA
+                  bit temp;
+                  ULONG index1, index2;
+                  UCHAR volatile xdata *Addr;
+                  UCHAR len;
+                  
+              #if ENABLE_DIRECT_FE2P == ON
+                  index1 = FE2P_DIRECTMODE_OFFSET + (Ptr & 0xFFFF);
+              #else
+                  index1 = (Ptr << 4) & 0x0F0000;
+                  index1 += (Ptr & 0x0FFF) + 0xF000;
+              #endif
+                   index2 = p;
+                 
+                  temp = EA;
+                  EA = 0;
+              //    Addr = 0x0555; *Addr = 0xaa;//0x0555 = 0xaa;
+              //    Addr = 0x02AA; *Addr = 0x55;//0x02AA = 0x55
+              //    Addr = 0x0555; *Addr = 0x06;//0x0555 = 0x06
+              #pragma asm
+                  MOV     DPTR, #ISP_555
+C51 COMPILER V9.54   FE2P_API                                                              01/06/2017 14:56:50 PAGE 13  
+
+                  MOV     A, #0xAA
+                  MOVX    @DPTR, A
+                  
+                  MOV     DPTR, #ISP_2AA
+                  MOV     A, #0x55
+                  MOVX    @DPTR, A
+                  
+                  MOV     DPTR, #ISP_555
+                  MOV     A, #0x06
+                  MOVX    @DPTR, A
+              #pragma endasm
+                  do {
+                      if (Length > 255) {
+                          len = 255;
+                      }
+                      else {
+                          len = Length;
+                      }
+                      
+                      Addr = FE2P_SRAM_ADDR; *Addr = 0x05;//0xA000 = 0x04        //write legnth
+                      Addr = FE2P_SRAM_ADDR+1; *Addr = len;//0xA001 = 0x10        //read length
+                      Addr = FE2P_SRAM_ADDR+2; *Addr = 0x0B;//0xA010 = 0x03        //write data 0 (cmd)
+                      Addr = FE2P_SRAM_ADDR+3; *Addr = (UCHAR)(index1>>16);//0xA011 = 0x00        //write data 1 (addr [
+             -23:16])
+                      Addr = FE2P_SRAM_ADDR+4; *Addr = (UCHAR)(index1>>8);//0xA012 = 0x00        //write data 2 (addr [1
+             -5:8]
+                      Addr = FE2P_SRAM_ADDR+5; *Addr = (UCHAR)index1;//0xA013 = 0x02        //write data 3(addr [7:0])
+              
+                      SPI_CE_ADDR_HI = (UCHAR)(FE2P_SRAM_ADDR >> 8);
+                      SPI_CE_ADDR_LO = (UCHAR)FE2P_SRAM_ADDR;
+                      SPI_W_ADDR_HI = (UCHAR)((FE2P_SRAM_ADDR+2) >> 8);
+                      SPI_W_ADDR_LO = (UCHAR)(FE2P_SRAM_ADDR+2);
+                      SPI_R_ADDR_HI = (UCHAR)(index2 >> 8);
+                      SPI_R_ADDR_LO = (UCHAR)index2;
+                      SPI_CE = 0x15;//((WRCntLen/2)<<4) | 0x01;
+              
+                  //fe2p write enable
+                      
+              //        Addr = 0x0555; *Addr = 0xaa;//0x0555 = 0xAA
+              //        Addr = 0x02AA; *Addr = 0x55;//0x02AA = 0x55
+              //        Addr = 0x0555; *Addr = 0x73;//0x0555 = 0x73
+              #pragma asm
+                  MOV     DPTR, #ISP_555
+                  MOV     A, #0xAA
+                  MOVX    @DPTR, A
+                  
+                  MOV     DPTR, #ISP_2AA
+                  MOV     A, #0x55
+                  MOVX    @DPTR, A
+                  
+                  MOV     DPTR, #ISP_555
+                  MOV     A, #0x73
+                  MOVX    @DPTR, A
+              #pragma endasm
+                      
+                      index1 += len;
+                      index2 += len;
+                      Length -= len;
+                      ResetWDTimer();
+                  } while (Length != 0);
+                  
+                  EA = temp;
+C51 COMPILER V9.54   FE2P_API                                                              01/06/2017 14:56:50 PAGE 14  
+
+              }
+              #endif
+              #endif
+ 740          #else // None Fe2p
+              static code UCHAR ucFE2PDirectModeOffset[] = {0x55, 0xaa, 0x66, 0x99, 'D', 'A', 'O', 'F', 0x00000, 0x54};
+              /*!
+               * Fe2p information for easyWrite tool auto detect function.
+               */
+              static code UCHAR ucFE2PAutoDetectInfo[] = {0x55, 0xaa, 0x66, 0x99, 'D', 'L', 'E', 'N', 0,'W','P',FLASH_WP
+             -_PORT,FLASH_WP_BIT,FLASH_WP_ACTIVE};
+              void ForFE2PCompilerCodePass(void)
+              {
+                  UCHAR i,j;
+                  i = ucFE2PDirectModeOffset[0];
+                  j = ucFE2PAutoDetectInfo[0];
+              }
+              #endif //ENABLE_FE2P == ON
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1826    ----
+   CONSTANT SIZE    =     22    ----
+   XDATA SIZE       =      2      39
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

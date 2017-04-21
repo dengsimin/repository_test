@@ -1,0 +1,103 @@
+C51 COMPILER V9.54   RAM                                                                   01/06/2017 14:56:46 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE RAM
+OBJECT MODULE PLACED IN .\Bin\Ram.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Sys\Ram.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD;.\App\Us
+                    -er;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NVT\Keypad;
+                    -.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_2560X1440,
+                    -FLASH_BANK=8) PRINT(.\Lst\Ram.lst) TABS(2) OBJECT(.\Bin\Ram.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          
+  14          //******************************************************************************
+  15          // M A C R O   D E F I N I T I O N S
+  16          //******************************************************************************
+  17          
+  18          //******************************************************************************
+  19          // G L O B A L   V A R I A B L E S
+  20          //******************************************************************************
+  21          xdata InputTimingFormat InputTiming; /*!< Variable of input timing information. */
+  22          xdata NvramUserData UserData; /*!< Variable of user data. */
+  23          xdata NvramCalibData CalibData; /*!< Variable of calibration data. */
+  24          xdata NvramSystemData SystemData; /*!< Variable of system data. */
+  25          xdata PanelData UserPanelData; /*!< Variable of panel timing information. */
+  26          xdata UCHAR ucADCPhase100; /*!< Variable of ADC phase normalized to 100. */
+  27          xdata UCHAR ucVstart100; /*!< Variable of Vstart normalized to 100. */
+  28          
+  29          xdata tCUSTOM_SYS Custom_System;
+  30          #if ENABLE_HDCP_TRIM_MODE == ON || ENABLE_EDID_TRIM_MODE == ON
+  31          xdata UCHAR ucEFUSE_ID;
+  32          xdata UCHAR ucEFUSETrimSucess;
+  33          xdata UCHAR ucLEDTRIM_LO;
+  34          xdata UCHAR ucLEDTRIM_HI;
+  35          xdata UCHAR ucADCTRIM;
+  36          xdata UCHAR ucADCTRIM_SEL;
+  37          #endif
+  38          xdata USHRT usAudioMuteDelay = 0;
+  39          xdata USHRT usTimerANAMute;
+  40          #if ENABLE_FREESYNC_DEMO == ON
+              bit bFreeSyncMode;
+              #endif
+  43          xdata UCHAR glob_FontBuff[GLOB_FONTBUF_LEN];
+  44          bit bSelectTable = OSDFontTble1;
+  45          
+  46          //******************************************************************************
+  47          // S T A T I C   V A R I A B L E S
+  48          //******************************************************************************
+  49          
+  50          //******************************************************************************
+  51          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  52          //******************************************************************************
+C51 COMPILER V9.54   RAM                                                                   01/06/2017 14:56:46 PAGE 2   
+
+  53          
+  54          //******************************************************************************
+  55          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  56          //******************************************************************************
+  57          
+  58          //******************************************************************************
+  59          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  60          //******************************************************************************
+  61          
+  62          //******************************************************************************
+  63          // F U N C T I O N   B O D Y S
+  64          //******************************************************************************
+  65          
+  66          /**************************************************************************//**
+  67           * Initialize all global variables.
+  68           ******************************************************************************/
+  69          void RamInitialize(void)
+  70          {
+  71   1          UserData = UserDataDefault;
+  72   1          CalibData = CalibDataDefault;
+  73   1          SystemData = SystemDataDefault;
+  74   1          UserPanelData = PanelDataDefault;
+  75   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     73    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =    445    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

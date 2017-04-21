@@ -1,0 +1,589 @@
+C51 COMPILER V9.54   DBC                                                                   01/06/2017 14:56:55 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DBC
+OBJECT MODULE PLACED IN .\Bin\DBC.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE App\DBC.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD;.\App\Us
+                    -er;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NVT\Keypad;
+                    -.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_2560X1440,
+                    -FLASH_BANK=8) PRINT(.\Lst\DBC.lst) TABS(2) OBJECT(.\Bin\DBC.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          
+  14          #if ENABLE_DBC == ON
+  15          
+  16          #include "DBCData.c"
+  17          
+  18          //******************************************************************************
+  19          // M A C R O   D E F I N I T I O N S
+  20          //******************************************************************************
+  21          #define DEFAULT_LIMIT 0x60
+  22          
+  23          //******************************************************************************
+  24          // S T A T I C   V A R I A B L E S
+  25          //******************************************************************************
+  26          static xdata UCHAR ucDBCMaxPWMDuty = 0xFF;
+  27          static xdata UCHAR ucDBCMinPWMDuty = 0x00;
+  28          static xdata UCHAR ucDBCPrevMaxPWMDuty = 0xFF;
+  29          static xdata UCHAR ucDBCULFlag = 0x00;
+  30          static BOOL bDBCCtrl;
+  31          static UCHAR ucDBCEffective, ucDBCYAverage, ucPWMactive, ucDBCSceneYAvg;
+  32          //#if IS_NT68770_SERIES || IS_NT68850_SERIES || IS_NT68655_SERIES || IS_NT68150_SERIES || IS_NT68790_SERIE
+             -S || IS_NT68658_SERIES
+  33          #if IS_NT68770_SERIES_LATER && !IS_NT68661_SERIES//DBC
+  34          static xdata UCHAR ucDBCSceneChanged = 0x0;
+  35          static xdata UCHAR ucDBCPrevSceneChanged = 0x80;
+  36          #endif
+  37          //******************************************************************************
+  38          // G L O B A L   V A R I A B L E S
+  39          //******************************************************************************
+  40          
+  41          //******************************************************************************
+  42          // S T A T I C   V A R I A B L E S
+  43          //******************************************************************************
+  44              
+  45          //******************************************************************************
+  46          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  47          //******************************************************************************
+  48          
+  49          //******************************************************************************
+  50          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  51          //******************************************************************************
+C51 COMPILER V9.54   DBC                                                                   01/06/2017 14:56:55 PAGE 2   
+
+  52          static void DBCLimitTracker(void);
+  53          
+  54          //******************************************************************************
+  55          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  56          //******************************************************************************
+  57          
+  58          //******************************************************************************
+  59          // Prototype: 
+  60          //  void InitDBC(void)
+  61          // Parameters:
+  62          //  None
+  63          // Return:
+  64          //  None
+  65          // Purpose:
+  66          //  Load DBC table to scaler
+  67          // Notes:
+  68          //  None
+  69          //******************************************************************************
+  70          void InitDBC(void)
+  71          {
+  72   1          DBCAPI_LoadTable(&DBCTable);
+  73   1          DBCAPI_ConfigPWM(BRIGHTNESS_FR_PWM_FREQ, DBC_DIV_4X);
+  74   1      //#if IS_NT68770_SERIES || IS_NT68850_SERIES || IS_NT68655_SERIES || IS_NT68661_SERIES || IS_NT68150_SERIE
+             -S || IS_NT68790_SERIES || IS_NT68658_SERIES
+  75   1      #if IS_NT68770_SERIES_LATER
+  76   1          DBCAPI_SetSavingRatio(DBC_SAVING_MODE_2,0);
+  77   1          DBCAPI_SetPWMAdjustment(4, 1);
+  78   1      #else
+                  DBCAPI_SetSavingRatio(DBC_SAVING_MODE_2,0);
+                  DBCAPI_SetPWMAdjustment(0, 1);
+              #endif
+  82   1          DBCAPI_SetPWMInvert(BKL_PWM_POL ? FALSE : TRUE);
+  83   1          DBCAPI_SetDistortion(0x0F);
+  84   1          ucDBCPrevMaxPWMDuty = ucDBCMaxPWMDuty;
+  85   1          DBCAPI_SetDBCMinMax(ucDBCMinPWMDuty, ucDBCMaxPWMDuty);
+  86   1      #if ENABLE_DBC_HW_DEBOUNCE == ON
+  87   1      //#if IS_NT68770_SERIES || IS_NT68850_SERIES || IS_NT68655_SERIES || IS_NT68150_SERIES || IS_NT68790_SERIE
+             -S || IS_NT68658_SERIES
+  88   1      #if IS_NT68770_SERIES_LATER && !IS_NT68661_SERIES//DBC
+  89   1          DBCAPI_SetDebouncingMode(5,5);
+  90   1      #else
+                  DBCAPI_SetDebouncingMode(4,4);
+              #endif
+  93   1      #endif
+  94   1      
+  95   1      //#if IS_NT68770_SERIES || IS_NT68850_SERIES || IS_NT68655_SERIES || IS_NT68150_SERIES || IS_NT68790_SERIE
+             -S || IS_NT68658_SERIES
+  96   1      #if IS_NT68770_SERIES_LATER && !IS_NT68661_SERIES//DBC
+  97   1          DBCAPI_SetNLGain(2);
+  98   1          //DBCAPI_EnableNLGain();
+  99   1          DBCAPI_SetNLGainBreak(0, 1);  // Mars Adjust for on/off difference luma
+ 100   1          DBCAPI_SetLUTGray2PWMLim(0);
+ 101   1          DBCAPI_SetLUTGray2GainLim(0);
+ 102   1          DBCAPI_SetLUTRef(1);
+ 103   1          SC_OSD_FRAME2_FUNC_CTRL |= BIT2;
+ 104   1      #endif
+ 105   1          // Hotfix to solve the issue of temporal abnormal image caused by abnormal DBC data gain after AC on.
+ 106   1          DBCAPI_EnableDBC();
+ 107   1          WaitDisVSync();
+ 108   1          DBCAPI_DisableDBC();
+ 109   1      }
+ 110          
+C51 COMPILER V9.54   DBC                                                                   01/06/2017 14:56:55 PAGE 3   
+
+ 111          //******************************************************************************
+ 112          // Prototype: 
+ 113          //  void EnableDBC(void)
+ 114          // Parameters:
+ 115          //  None
+ 116          // Return:
+ 117          //  None
+ 118          // Purpose:
+ 119          //  Enable DBC function
+ 120          // Notes:
+ 121          //  None
+ 122          //******************************************************************************
+ 123          void EnableDBC(void)
+ 124          {
+ 125   1      //#if IS_NT68770_SERIES || IS_NT68850_SERIES || IS_NT68655_SERIES || IS_NT68661_SERIES || IS_NT68150_SERIE
+             -S || IS_NT68790_SERIES || IS_NT68658_SERIES
+ 126   1      #if IS_NT68770_SERIES_LATER//DBC
+ 127   1          SC_DBC_EXT_CTRL &= ~(BIT7);
+ 128   1          DBCAPI_SetDistortion(0x00);
+ 129   1          DBCAPI_SetSavingRatio(DBC_SAVING_MODE_MAX,0);
+ 130   1      #else
+                  DBCAPI_SetDistortion(0x00);
+                  DBCAPI_SetSavingRatio(DBC_SAVING_MODE_2,0);
+              #endif
+ 134   1      #if ENABLE_DBC_HW_DEBOUNCE == OFF
+                  ClearDBCCounter();
+              #endif
+ 137   1          // Disable abrupt change to avoid image flicking when scene changed or turning off DPS.
+ 138   1          //DBCAPI_EnableAbruptChange(8);
+ 139   1      //#if IS_NT68770_SERIES || IS_NT68850_SERIES || IS_NT68655_SERIES || IS_NT68150_SERIES || IS_NT68790_SERIE
+             -S || IS_NT68658_SERIES
+ 140   1      #if IS_NT68770_SERIES_LATER && !IS_NT68661_SERIES//DBC
+ 141   1          ucDBCMaxPWMDuty = GetBrightness1023() >> 2;
+ 142   1          ucDBCMinPWMDuty = 0;
+ 143   1          ucDBCPrevMaxPWMDuty = ucDBCMaxPWMDuty;
+ 144   1          DBCAPI_SetDBCMinMax(ucDBCMinPWMDuty, ucDBCMaxPWMDuty);
+ 145   1          SC_DBC_PWM_LUT_LIM = 0x40;
+ 146   1          SC_DBC_GRAY_LUT_LIM = 0x40;
+ 147   1          DBCAPI_EnableAbruptChange(8);
+ 148   1          DBCAPI_SetAbruptStep(1);  // Mars Add for abrupt change step
+ 149   1          DBCAPI_SetAbruptMode(1);
+ 150   1          DBCAPI_SetPWMAdjustment(0, 1);
+ 151   1      #else
+                  DBCAPI_DisableAbruptChange();
+                  ucDBCMaxPWMDuty = GetBrightness1023() >> 2;
+                  ucDBCMinPWMDuty = MIN_BACKLIGHT_VALUE >> 2;
+                  ucDBCPrevMaxPWMDuty = ucDBCMaxPWMDuty;
+                  DBCAPI_SetDBCMinMax(ucDBCMinPWMDuty, ucDBCMaxPWMDuty);
+              #endif 
+ 158   1      
+ 159   1      #if DBC_TABLE_GENERATION != 0
+ 160   1          DBCLimitTracker();
+ 161   1      #endif
+ 162   1          
+ 163   1          // Force the following order of enabling DBC function to avoid temporal image flicking
+ 164   1          DBCAPI_EnableDBC();
+ 165   1        DBCAPI_EnableDBCPWM(BKL_PWM_PORT, BKL_PWM_OUTPUT_PIN);
+ 166   1         DBCAPI_EnableRGBCompensation();
+ 167   1      #ifdef PWM_REF_DBC
+ 168   1        SetReferenceDBCDuty(BKL_PWM_PORT, TRUE);
+ 169   1      #endif
+ 170   1          ucDBCULFlag = BIT7 | BIT0;
+C51 COMPILER V9.54   DBC                                                                   01/06/2017 14:56:55 PAGE 4   
+
+ 171   1      }
+ 172          
+ 173          //******************************************************************************
+ 174          // Prototype: 
+ 175          //  void DisableDBC(void)
+ 176          // Parameters:
+ 177          //  None
+ 178          // Return:
+ 179          //  None
+ 180          // Purpose:
+ 181          //  Disable DBC function
+ 182          // Notes:
+ 183          //  None
+ 184          //******************************************************************************
+ 185          void DisableDBC(void)
+ 186          {
+ 187   1          DBCAPI_DisableDBC();
+ 188   1      //    DBCAPI_DisableDBCPWM(BKL_PWM_OUTPUT_PIN);
+ 189   1          DBCAPI_DisableDBCPWM(BKL_PWM_PORT,BKL_PWM_OUTPUT_PIN);
+ 190   1      
+ 191   1          DBCAPI_DisableRGBCompensation();
+ 192   1          DBCAPI_DisableAbruptChange();
+ 193   1      #ifdef PWM_REF_DBC
+ 194   1          SetReferenceDBCDuty(BKL_PWM_PORT, FALSE);
+ 195   1      #endif
+ 196   1      }
+ 197          
+ 198          //******************************************************************************
+ 199          // Prototype: 
+ 200          //  void DisableDBCSmooth(UCHAR reset)
+ 201          // Parameters:
+ 202          //  reset : flag to reset parameters
+ 203          // Return:
+ 204          //  None
+ 205          // Purpose:
+ 206          //  Disable DBC function smoothly
+ 207          // Notes:
+ 208          //  None
+ 209          //******************************************************************************
+ 210          void DisableDBCSmooth(UCHAR reset)
+ 211          {
+ 212   1      //#if IS_NT68770_SERIES || IS_NT68850_SERIES || IS_NT68655_SERIES || IS_NT68150_SERIES || IS_NT68790_SERIE
+             -S || IS_NT68658_SERIES
+ 213   1      #if IS_NT68770_SERIES_LATER && !IS_NT68661_SERIES//DBC
+ 214   1        static BOOL delay_off_flag = FALSE;
+ 215   1        static UCHAR CurTarget;
+ 216   1        if (reset) {
+ 217   2          delay_off_flag = TRUE;
+ 218   2          CurTarget = 0;
+ 219   2        }
+ 220   1        if (delay_off_flag) {
+ 221   2          SC_DBC_EXT_CTRL &= ~(BIT6); 
+ 222   2          DBCAPI_SetPWMAdjustment(0, 2);
+ 223   2          DBCAPI_SetDistortion(0);
+ 224   2          DBCAPI_SetSavingRatio(0,0);
+ 225   2          DBCAPI_DisableNLGain();
+ 226   2          CurTarget++;
+ 227   2          SC_DBC_PWM_LUT_LIM = CurTarget;
+ 228   2          SC_DBC_GRAY_LUT_LIM = CurTarget;
+ 229   2          if(CurTarget == 0xFF)
+ 230   2          {
+ 231   3            //SC_PWMA_CTRL4 = SC_DBC_PWM_ACT;
+C51 COMPILER V9.54   DBC                                                                   01/06/2017 14:56:55 PAGE 5   
+
+ 232   3      /*
+ 233   3            SC_DBC_CTRL &= ~(BIT0|BIT1);      // 0x430  DBC Disable
+ 234   3            SC_LEDDIMMING_CTRL &= ~(BIT7);  // 0xE12
+ 235   3      */
+ 236   3                  DisableDBC();
+ 237   3            delay_off_flag = FALSE;
+ 238   3            CurTarget = 0;
+ 239   3            SC_DBC_PWM_LUT_LIM = CurTarget;
+ 240   3            SC_DBC_GRAY_LUT_LIM = CurTarget;
+ 241   3          }
+ 242   2        }
+ 243   1      #else
+                  static BOOL delay_off_flag = FALSE;
+                  static UCHAR prev_pmw;
+                  USHRT tmp_pwm;
+                  
+                  if (reset) {
+                      // Hotfix to avoid image flick when switching PWM between PWM_A/B and DBC.
+                      //  a) Force PWM duty of PWM_A/B being same with the duty of DBC PWM.
+                      //  b) Reseting PWM on VSync must be turned on.
+                      prev_pmw = DBCAPI_GetActPWM();
+                      tmp_pwm = ((USHRT)DBCAPI_GetPWMOffset() + prev_pmw) % 256;
+                      tmp_pwm = (ULONG)tmp_pwm * 1023 / 255;
+                      SmoothScalerPWM(BKL_PWM_PORT, 0, 0);
+                      SetBrightness(tmp_pwm);
+                      WaitDisVSync();
+              //        DBCAPI_DisableDBCPWM(BKL_PWM_OUTPUT_PIN);
+                    DBCAPI_DisableDBCPWM(BKL_PWM_PORT,BKL_PWM_OUTPUT_PIN);
+                      SmoothScalerPWM(BKL_PWM_PORT, 3, 2);
+                      UserSetBrightness();
+                      // Hotfix to avoid image flick before turning off DBC data gain function.
+                      //  a) Use DBC PWM minimum limitation to force DBC data gain turning to default smoothly.
+                      //  b) Toggle saving ratio to force DBC varing PWM duty to minimum limitation.
+                      DBCAPI_SetPWMAdjustment(0, 2);
+                      DBCAPI_SetDBCMinMax(0xFF, 0xFF);
+                      DBCAPI_SetDistortion(0x00);
+                      delay_off_flag = TRUE;
+                      SetGlobalTimer(GLOBAL_TMR_DBC_OFF, GBTM_DBC_OFF);
+                  }
+              
+                  if (delay_off_flag) {
+                      if ((GetGlobalTimer(GLOBAL_TMR_DBC_OFF) == 0) ||
+                          (DBCAPI_GetActPWM() == 0xFF)) {
+                          DisableDBC();
+                          delay_off_flag = FALSE;
+                      }
+                      else if (prev_pmw == DBCAPI_GetActPWM()){
+                          // Toggle saving ratio if active PMW doesn't move to 0xFF.
+                          DBCAPI_SetSavingRatio(DBC_SAVING_MODE_MAX,0);
+                          WaitDisVSync();
+                          DBCAPI_SetSavingRatio(DBC_SAVING_MODE_2,0);
+                          WaitDisVSync();
+                      }
+                      else {
+                          prev_pmw = DBCAPI_GetActPWM();
+                      }
+                  }
+              #endif
+ 290   1      }
+ 291          
+ 292          #if ENABLE_DBC_HW_DEBOUNCE == OFF
+              //******************************************************************************
+C51 COMPILER V9.54   DBC                                                                   01/06/2017 14:56:55 PAGE 6   
+
+              // Prototype: 
+              //  void AntiNoiseDBC(void)
+              // Parameters:
+              //  None
+              // Return:
+              //  None
+              // Purpose:
+              //  F/W based noise debounce function.
+              // Notes:
+              //  None
+              //******************************************************************************
+              #define DBC_ADJ_ON                  1
+              #define DBC_ADJ_OFF                 0
+              #define DBC_AVERAGE_NOISE_LEVEL     2
+              #define DBC_EFFECTIVE_NOISE_LEVEL   5
+              #define DBC_PWM_NOISE_LEVEL         1
+              #define DBC_SCENE_CHANGED_LEVEL     5
+              
+              void AntiNoiseDBC(void)
+              {
+                  UCHAR effective, average, pwm_active;
+              
+                  average = DBCAPI_GetAverageY();
+                  effective = DBCAPI_GetEffectiveColor();
+                  pwm_active = DBCAPI_GetActPWM();
+              
+                  if ((ucDBCULFlag & BIT7) != 0) {
+                      ucDBCULFlag &= ~BIT7;
+                      ucDBCSceneYAvg = 0;
+                      DCR_UpdateHistogram(TRUE);
+                  }
+                  else if (DCR_UpdateHistogram(FALSE)) {
+                      UCHAR i;
+              
+                      if (DCR_IsSceneChanged() || 
+                          (abs(ucDBCSceneYAvg - average) > DBC_SCENE_CHANGED_LEVEL))  {
+                          UCHAR tmp_flag = ucDBCULFlag;
+                          USHRT total, sum;
+              
+                          DCR_UpdatePrevHistogram();
+                          ucDBCSceneYAvg = average;
+              
+                          // Check the percentage of high gray level (Y14~Y15).
+                          // If the percentage is greater than 10.9375%, we guess the the content is bright majority and
+             - set distortion as 0.
+                          sum = 0;
+                          ucDBCULFlag &= ~BIT2;
+                          for (i = 14; i < BF_IG_PARTITIONS; i++) {
+                              sum += DCR_GetHistogram(i);
+                          }
+                          total = (DCR_GetTotalHistogram() >> 3) - (DCR_GetTotalHistogram() >> 6);
+                          if (sum < total) {
+                              ucDBCULFlag |= BIT2;
+                          }
+              
+                          // Check the percentage of high gray level (Y12~Y15).
+                          // If the percentage is greater than 25%, we guess the the content is bright majority and set 
+             -distortion as 0.
+                          sum = 0;
+                          ucDBCULFlag &= ~BIT1;
+                          for (i = 12; i < BF_IG_PARTITIONS; i++) {
+                              sum += DCR_GetHistogram(i);
+C51 COMPILER V9.54   DBC                                                                   01/06/2017 14:56:55 PAGE 7   
+
+                          }
+                          total = DCR_GetTotalHistogram() >> 2;
+                          if (sum < total) {
+                              ucDBCULFlag |= BIT1;
+                          }
+              
+                          // Check if the majority of content are single gray or not.
+                          // We define the threshold as 80% of total histogram
+                          ucDBCULFlag &= ~BIT0;
+                          total = DCR_GetTotalHistogram() / 10;
+                          for (i = 1; i < BF_IG_PARTITIONS; i++) {
+                              sum = (DCR_GetHistogram(i) + DCR_GetHistogram(i - 1)) / total;
+                              if (sum > 7) {
+                                  ucDBCULFlag |= BIT0;
+                                  break;
+                              }
+                          }
+              
+                          if (ucDBCULFlag != tmp_flag) {
+                              ucDBCYAverage = 0x00;
+                          }
+                      }
+                  }
+              
+                  if (abs(ucDBCYAverage - average) < DBC_AVERAGE_NOISE_LEVEL) {
+                      // Y average no change
+                      if (bDBCCtrl == TRUE) {
+                          if (abs(pwm_active - ucPWMactive) > DBC_PWM_NOISE_LEVEL) {
+                              ucPWMactive = pwm_active;
+                              SetGlobalTimer(GLOBAL_TMR_DBC_STABLE, GBTM_DBC_STABLE);
+                          }
+                          else if (GetGlobalTimer(GLOBAL_TMR_DBC_STABLE) == 0) {
+                              bDBCCtrl = FALSE;
+                              DBCAPI_SetPWMAdjustment(0, DBC_ADJ_OFF);
+                          }
+                      }
+              
+                      if (abs(ucDBCEffective - effective) > DBC_EFFECTIVE_NOISE_LEVEL) {
+                          bDBCCtrl = TRUE;
+                          ucDBCEffective = effective;
+                          DBCAPI_SetPWMAdjustment(0, DBC_ADJ_ON);
+                          SetGlobalTimer(GLOBAL_TMR_DBC_STABLE, GBTM_DBC_STABLE);
+                      }
+                  }
+                  else {
+                      bDBCCtrl = TRUE;
+                      ucDBCYAverage = average;
+                      DBCAPI_SetPWMAdjustment(0, DBC_ADJ_ON);
+                      SetGlobalTimer(GLOBAL_TMR_DBC_STABLE, GBTM_DBC_STABLE);
+              
+                      // Dynamic adjusting distortion to fit the power consumption spec and
+                      // lumimance spec of LGE
+                      if (ucDBCYAverage > 0xE0) {
+                          DBCAPI_SetDistortion(0x00);
+                          DBCAPI_SetSavingRatio(DBC_SAVING_MODE_MAX, 3);
+                      }
+                      else {
+                          if ((ucDBCULFlag & BIT1) && (ucDBCULFlag & BIT2)) {
+                              DBCAPI_SetDistortion(0x0F);
+                              DBCAPI_SetSavingRatio(DBC_SAVING_MODE_2, 3);
+                          }
+                          else {
+C51 COMPILER V9.54   DBC                                                                   01/06/2017 14:56:55 PAGE 8   
+
+                              DBCAPI_SetDistortion(0x03);
+                              DBCAPI_SetSavingRatio(DBC_SAVING_MODE_MAX, 3);
+                          }
+                      }
+                  }
+              }
+              
+              //******************************************************************************
+              // Prototype:
+              //  void ClearDBCCounter(void)
+              // Parameters:
+              //  None
+              // Return:
+              //  None
+              // Purpose:
+              //  Clear DBC counter & reset status
+              // Notes:
+              //  None
+              //******************************************************************************
+              void ClearDBCCounter(void)
+              {
+                  ucDBCYAverage = 0;
+                  ucPWMactive = 0;
+                  ucDBCEffective = 0;
+                  bDBCCtrl = TRUE;
+                  DBCAPI_SetPWMAdjustment(0, DBC_ADJ_ON);
+                  SetGlobalTimer(GLOBAL_TMR_DBC_STABLE, GBTM_DBC_STABLE);
+              }
+              #endif //ENABLE_DBC_HW_DEBOUNCE == OFF
+ 445          
+ 446          //******************************************************************************
+ 447          // Prototype: 
+ 448          //  void DBCBrightnessTracker(void)
+ 449          // Parameters:
+ 450          //  None
+ 451          // Return:
+ 452          //  None
+ 453          // Purpose:
+ 454          //  Tracking user brightness and set min/max DBC PWM duty
+ 455          // Notes:
+ 456          //  None
+ 457          //******************************************************************************
+ 458          void DBCBrightnessTracker(void)
+ 459          {
+ 460   1          UCHAR tmp_pwm;
+ 461   1      
+ 462   1          ucDBCMaxPWMDuty = GetBrightness1023() >> 2;
+ 463   1          ucDBCMinPWMDuty = MIN_BACKLIGHT_VALUE >> 2;
+ 464   1      
+ 465   1          if (ucDBCULFlag & BIT0) {
+ 466   2              tmp_pwm = ucDBCMaxPWMDuty;
+ 467   2          }
+ 468   1          else {
+ 469   2              tmp_pwm = (USHRT)ucDBCMaxPWMDuty * 85 / 100;
+ 470   2          }
+ 471   1      
+ 472   1          if (tmp_pwm < ucDBCMinPWMDuty) {
+ 473   2              tmp_pwm = ucDBCMinPWMDuty;
+ 474   2          }
+ 475   1      
+ 476   1          if (ucDBCPrevMaxPWMDuty != tmp_pwm) {
+ 477   2              if (ucDBCPrevMaxPWMDuty > tmp_pwm) {
+C51 COMPILER V9.54   DBC                                                                   01/06/2017 14:56:55 PAGE 9   
+
+ 478   3                  ucDBCPrevMaxPWMDuty--;
+ 479   3              }
+ 480   2              else {
+ 481   3                  ucDBCPrevMaxPWMDuty++;
+ 482   3              }
+ 483   2              DBCAPI_SetDBCMinMax(ucDBCMinPWMDuty, ucDBCPrevMaxPWMDuty);
+ 484   2          #if DBC_TABLE_GENERATION != 0
+ 485   2              DBCLimitTracker();
+ 486   2          #endif
+ 487   2      
+ 488   2          #if ENABLE_DBC_HW_DEBOUNCE == OFF
+                      ClearDBCCounter();
+                  #endif
+ 491   2              WaitDisVSync();
+ 492   2          }
+ 493   1      }
+ 494          
+ 495          #if DBC_TABLE_GENERATION != 0
+ 496          /**************************************************************************//**
+ 497           * Tracking DBC gray2pwm and gray2gain limit to min duty
+ 498           ******************************************************************************/
+ 499          static void DBCLimitTracker(void)
+ 500          {
+ 501   1          UCHAR i;
+ 502   1          static UCHAR ucDBCPrevLimit = DEFAULT_LIMIT;
+ 503   1          static UCHAR ucDBCPrevMimPWMDuty = MIN_BACKLIGHT_VALUE >> 2;
+ 504   1          
+ 505   1          if (SC_DBC_PWM_MIN > ucDBCPrevMimPWMDuty) { //search up from ucDBCPrevLimit
+ 506   2              for (i = ucDBCPrevLimit; i < 0xFF; i++) {
+ 507   3                  if (DBCTable.ucYGrayToLum[i] >= SC_DBC_PWM_MIN) {
+ 508   4                      ucDBCPrevLimit = i;
+ 509   4                      break;
+ 510   4                  }
+ 511   3              }
+ 512   2          }
+ 513   1          else { //search down from ucDBCPrevLimit
+ 514   2              for (i = ucDBCPrevLimit; i >= DEFAULT_LIMIT; i--) {
+ 515   3                  if (DBCTable.ucYGrayToLum[i] < SC_DBC_PWM_MIN) {
+ 516   4                      ucDBCPrevLimit = i + 1;
+ 517   4                      break;
+ 518   4                  }
+ 519   3              }
+ 520   2          }
+ 521   1          if (i <= DEFAULT_LIMIT) { //make new ucDBCPrevLimit always no less than default limit
+ 522   2              ucDBCPrevLimit = DEFAULT_LIMIT;
+ 523   2          }
+ 524   1          DBCAPI_SetGray2PwmLim(ucDBCPrevLimit);
+ 525   1          DBCAPI_SetGray2GainLim(ucDBCPrevLimit);
+ 526   1          ucDBCPrevMimPWMDuty = SC_DBC_PWM_MIN;
+ 527   1      }
+ 528          #endif
+ 529          #else
+              void ForDBCCompilerCodePass(void)
+              {
+                code UCHAR temp[]={0x00};
+                UCHAR i;
+                i = temp[0];
+              }
+              #endif //ENABLE_DBC == ON
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+C51 COMPILER V9.54   DBC                                                                   01/06/2017 14:56:55 PAGE 10  
+
+   CODE SIZE        =    633    ----
+   CONSTANT SIZE    =    768    ----
+   XDATA SIZE       =     13       2
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

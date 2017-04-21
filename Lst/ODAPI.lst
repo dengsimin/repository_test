@@ -1,0 +1,293 @@
+C51 COMPILER V9.54   ODAPI                                                                 01/06/2017 14:57:17 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE ODAPI
+OBJECT MODULE PLACED IN .\Bin\ODAPI.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Lib\ODAPI.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD;.\App\
+                    -User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NVT\Keypa
+                    -d;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_2560X144
+                    -0,FLASH_BANK=8) PRINT(.\Lst\ODAPI.lst) TABS(2) OBJECT(.\Bin\ODAPI.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          
+  14          #if ENABLE_OD == ON
+  15          
+  16          //******************************************************************************
+  17          // M A C R O   D E F I N I T I O N S
+  18          //******************************************************************************
+  19          #define MOTION_THRESHOLD_OD_OFF 0x40L
+  20          #define MOTION_THRESHOLD_OD_ON  0x1FFFFF
+  21          
+  22          //******************************************************************************
+  23          // G L O B A L   V A R I A B L E S
+  24          //******************************************************************************
+  25          
+  26          //******************************************************************************
+  27          // S T A T I C   V A R I A B L E S
+  28          //******************************************************************************
+  29          
+  30          //******************************************************************************
+  31          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  32          //******************************************************************************
+  33          
+  34          //******************************************************************************
+  35          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  36          //******************************************************************************
+  37          
+  38          //******************************************************************************
+  39          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  40          //******************************************************************************
+  41          
+  42          //******************************************************************************
+  43          // F U N C T I O N   B O D Y S
+  44          //******************************************************************************
+  45          
+  46          /**************************************************************************//**
+  47           * Turn off OD function.
+  48           ******************************************************************************/
+  49          void ODAPI_DisableOD(void)
+  50          {
+  51   1          SC_OD_DDC_CONFIGURATION = 0x00;
+  52   1      #if !IS_NT68360_SERIES
+C51 COMPILER V9.54   ODAPI                                                                 01/06/2017 14:57:17 PAGE 2   
+
+  53   1          // We always keept 0x580[0] as on on NT68360 because some garbage on screen when on/off this bit. 
+  54   1          // Jude 2011/08/29
+  55   1          SC_OD_CONFIGURATION &= ~BIT0;
+  56   1      #if IS_NT68810_SERIES
+                  MMUPowerOff();//NT68810 power
+              #endif
+  59   1      #endif
+  60   1      }
+  61          
+  62          /**************************************************************************//**
+  63           * Turn on OD function.
+  64           ******************************************************************************/
+  65          void ODAPI_EnableOD(void)
+  66          {
+  67   1      #if IS_NT68810_SERIES
+                  MMUPowerOn();//NT68810 power
+              #endif
+  70   1          SC_OD_CONFIGURATION |= BIT0;
+  71   1          Sleep(50);
+  72   1          SC_OD_DDC_CONFIGURATION = 0x01;
+  73   1      }
+  74          
+  75          /**************************************************************************//**
+  76           * Initialize OD-related registers and load OD table.
+  77           * @param ptr Pointer to OD table.
+  78           ******************************************************************************/
+  79          void ODAPI_LoadOD(UCHAR *ptr)
+  80          {
+  81   1          ResetWDTimer();
+  82   1          SC_BYPASS_CTRL &= ~BIT1;    // Turn on OD power
+  83   1      
+  84   1          ODAPI_DisableOD();
+  85   1          Sleep(50); // 24Hz is around 41ms
+  86   1          SC_OD_DDC_CONFIGURATION = 0x04;
+  87   1          //Sleep(100); // Remove the redundant delay.
+  88   1      #if ENABLE_OD_TRANSFORM == ON
+                  WriteODTransformData(OD_TBL|BIT2, ptr, FALSE);
+              #else
+  91   1          WriteScalerIndexPort(OD_TBL|BIT2, 0, 1024, ptr);
+  92   1      #endif
+  93   1      #if ENABLE_OD_3D_MODE == ON
+                  SC_OD_DDC_CONFIGURATION |= BIT1;
+              #if ENABLE_OD_TRANSFORM == ON
+                  WriteODTransformData(OD_TBL|BIT2, ptr+272, TRUE);//272 = 16x17
+              #else
+                  WriteScalerIndexPort2(OD_TBL|BIT2, 0, 1024, ptr+1024);
+              #endif
+                  SC_OD_DDC_CONFIGURATION &= ~BIT1;
+                  WriteShortScaler(&SC_OD_MULTI_ZONE_LOW_BOUNDARY_LO, UserPanelData.usHeight / 4);
+                  WriteShortScaler(&SC_OD_MULTI_ZONE_HIGH_BOUNDARY_LO, UserPanelData.usHeight * 3 / 4);
+                  SC_OD_BTC_CONFIGURATION2 |= BIT3;
+              #endif
+ 105   1      #if IS_NT68870_SERIES
+ 106   1          SC_OD_BTC_CONFIGURATION = 0x71;
+ 107   1      #else
+                  SC_OD_BTC_CONFIGURATION = 0x70;
+              #endif
+ 110   1      #if ENABLE_OD_MOTION_CHK == ON
+                  SC_OD_MOTION_CHECK_BOUNCE_MONITOR = 0x0E;
+                  SC_OD_MOTION_CHECK_THRESHOLD = 0x01;
+                  SC_OD_MOTION_CHECK_DEBOUNCE = 0x01;
+              #endif
+C51 COMPILER V9.54   ODAPI                                                                 01/06/2017 14:57:17 PAGE 3   
+
+ 115   1          SC_OD_STILL_CONFIGURATION = 0x03;
+ 116   1          SC_OD_STILL_THRESHOLD = 0x0B; // Threshold of gray2gray
+ 117   1       #if ENABLE_OD_MOTION_CHK == ON   
+                  ODAPI_SetMCOnOff(ON);
+               #else
+ 120   1          ODAPI_SetMCOnOff(OFF);
+ 121   1       #endif
+ 122   1          ODAPI_SetMCThreshold(MOTION_THRESHOLD_OD_OFF, MOTION_THRESHOLD_OD_ON);
+ 123   1      
+ 124   1          // We use the following two registers to indicate the OD has been reset or not.
+ 125   1          // 0xFF means the OD has been initialized.
+ 126   1          // Others mean the OD is reset.
+ 127   1          SC_OD_TEST_TP_H_MT_STEP |= 0x0F;
+ 128   1          SC_OD_TEST_TP_V_MT_STEP |= 0x0F;
+ 129   1      
+ 130   1          ResetWDTimer();
+ 131   1      }
+ 132          
+ 133          /**************************************************************************//**
+ 134           * Check OD is reset or not.
+ 135           * @return TRUE if OD is reset else FALSE.
+ 136           ******************************************************************************/
+ 137          BOOL ODAPI_IsODReset(void)
+ 138          {
+ 139   1          if (((SC_OD_TEST_TP_H_MT_STEP & 0x0F) == 0x0F) &&
+ 140   1              ((SC_OD_TEST_TP_V_MT_STEP & 0x0F) == 0x0F)) {
+ 141   2              return FALSE;
+ 142   2          }
+ 143   1          return TRUE;
+ 144   1      }
+ 145          
+ 146          /**************************************************************************//**
+ 147           * Turn on/off motion check of OD function.
+ 148           * @param on_off ON to turn on motion check, otherwise OFF.
+ 149           ******************************************************************************/
+ 150          void ODAPI_SetMCOnOff(UCHAR on_off)
+ 151          {
+ 152   1          if (on_off == ON) {
+ 153   2          #if IS_NT68750_SERIES || IS_NT68360_SERIES
+                      SC_OD_MOTION_CHECK_CFGCONFIGURATION = 0x12;
+                  #else
+ 156   2              SC_OD_MOTION_CHECK_CFGCONFIGURATION = 0x10;
+ 157   2          #endif
+ 158   2          }
+ 159   1          else {
+ 160   2              SC_OD_MOTION_CHECK_CFGCONFIGURATION = 0x00;
+ 161   2          }
+ 162   1      }
+ 163          
+ 164          /**************************************************************************//**
+ 165           * Set threshold of motion detection.
+ 166           * @param low Low threshold for motion detection.
+ 167           * @param high High threshold for motion detection.
+ 168           ******************************************************************************/
+ 169          void ODAPI_SetMCThreshold(ULONG low, ULONG high)
+ 170          {
+ 171   1          SC_OD_MOTION_LOW_THRESHOLD_LO = low;
+ 172   1          SC_OD_MOTION_LOW_THRESHOLD_MI = low >> 8;
+ 173   1          SC_OD_MOTION_LOW_THRESHOLD_HI = low >> 16;
+ 174   1          SC_OD_MOTION_HIGH_THRESHOLD_LO = high;
+ 175   1          SC_OD_MOTION_HIGH_THRESHOLD_MI = high >> 8;
+ 176   1          SC_OD_MOTION_HIGH_THRESHOLD_HI = high >> 16;
+C51 COMPILER V9.54   ODAPI                                                                 01/06/2017 14:57:17 PAGE 4   
+
+ 177   1      }
+ 178          
+ 179          /**************************************************************************//**
+ 180           * Dynamically turn on/off motion detection.
+ 181           * Main flow will call this function periodically.
+ 182           ******************************************************************************/
+ 183          #if ENABLE_OD_MOTION_CHK == ON
+              void ODAPI_MotionCheck(void)
+              {
+                  static UCHAR ucODVcnt = 0;
+              
+                  // Confirm the scaler has display VSync out or not!
+                  if ((SC_OD_CONFIGURATION & BIT0) == 0) {
+                      return;
+                  }
+                  if ((SC_POWER_CTRL1 & BIT0) != 0) {
+                      return;
+                  }
+                  if ((SC_DPLL_CTRL1 & BIT0) == 0) {
+                      return;
+                  }
+                  if ((SC_DISPLAY_CTRL & BIT0) == 0) {
+                      return;
+                  }
+              
+                  if (++ucODVcnt > 50) {//4.6ms per loop
+                      ucODVcnt = 0;
+                      if (SC_OD_MOTION_CHECK_STATUS != 0) {
+                          SC_OD_MOTION_LOW_THRESHOLD_LO = MOTION_THRESHOLD_OD_OFF;
+                      }
+                      else {
+                          SC_OD_MOTION_LOW_THRESHOLD_LO = 0x00;
+                      }
+                  }
+              }
+              
+              #endif
+ 214          
+ 215          /**************************************************************************//**
+ 216           * Dynamically OD Setting.
+ 217           * Main flow will call this function periodically.
+ 218           ******************************************************************************/
+ 219          #if ENABLE_DYNAMIC_OD == ON
+              void ODAPI_SetDynamicOD(void)
+              {
+                  SC_D_OD_FRAMERATE_CLASSIFY_CTRL = 0x44; //Set Boundary0
+                  SC_D_OD_FRAMERATE_BOUNDARY1 = 0x04; //Write Boundary 0 MSB (42.5Hz)
+                  SC_D_OD_FRAMERATE_BOUNDARY2 = 0x4E; //Write Boundary 0 LSB
+                  
+                  SC_D_OD_FRAMERATE_CLASSIFY_CTRL = 0x54; //Set Boundary1
+                  SC_D_OD_FRAMERATE_BOUNDARY1 = 0x03; //Set Boundary1 (52.5Hz)
+                  SC_D_OD_FRAMERATE_BOUNDARY2 = 0x7D; //Write Boundary 1 LSB
+              
+                  SC_D_OD_FRAMERATE_CLASSIFY_CTRL = 0x64; //Set Boundary2
+                  SC_D_OD_FRAMERATE_BOUNDARY1 = 0x02; //Set Boundary2 (62.5Hz)
+                  SC_D_OD_FRAMERATE_BOUNDARY2 = 0xEE; //Write Boundary 2 LSB
+              
+                  SC_D_OD_FRAMERATE_CLASSIFY_CTRL = 0x45; //Sync Processor classify enable
+              
+                  SC_D_OD_PART0_OVERSHOOT_GAIN = 0x44; //Part 0 Overshoot gain (0x40 =1)
+                  SC_D_OD_PART0_UNDERSHOOT_GAIN = 0x20;
+                  SC_D_OD_PART1_OVERSHOOT_GAIN = 0x44;
+C51 COMPILER V9.54   ODAPI                                                                 01/06/2017 14:57:17 PAGE 5   
+
+                  SC_D_OD_PART1_UNDERSHOOT_GAIN = 0x30;
+                  SC_D_OD_PART2_OVERSHOOT_GAIN = 0x40;
+                  SC_D_OD_PART2_UNDERSHOOT_GAIN = 0x40;
+                  SC_D_OD_PART3_OVERSHOOT_GAIN = 0x40;
+                  SC_D_OD_PART3_UNDERSHOOT_GAIN = 0x40;
+              
+                  SC_D_OD_CTRL2 = 0x01;
+              }
+              
+              void ODAPI_EnableDynamicOD(void)
+              {
+                  SC_D_OD_CTRL |= BIT2;
+              }
+              
+              void ODAPI_DisableDynamicOD(void)
+              {
+                  SC_D_OD_CTRL &= ~BIT2;
+              }
+              #endif
+ 258          
+ 259          #endif
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    316    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----      11
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

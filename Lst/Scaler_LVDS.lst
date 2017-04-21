@@ -1,0 +1,281 @@
+C51 COMPILER V9.54   SCALER_LVDS                                                           01/06/2017 14:56:48 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE SCALER_LVDS
+OBJECT MODULE PLACED IN .\Bin\Scaler_LVDS.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Lib\NT68810 Series\Scaler_LVDS.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.
+                    -\App;.\App\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Compone
+                    -nt;.\Phy\SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_
+                    -MODULE,LVIEW_2560X1440,FLASH_BANK=8) PRINT(.\Lst\Scaler_LVDS.lst) TABS(2) OBJECT(.\Bin\Scaler_LVDS.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          #include "ScalerProfile.h"
+  14          #if ENABLE_EDP == OFF
+  15          //******************************************************************************
+  16          // M A C R O   D E F I N I T I O N S
+  17          //******************************************************************************
+  18          
+  19          //******************************************************************************
+  20          // G L O B A L   V A R I A B L E S
+  21          //******************************************************************************
+  22          
+  23          //******************************************************************************
+  24          // S T A T I C   V A R I A B L E S
+  25          //******************************************************************************
+  26          
+  27          //******************************************************************************
+  28          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  29          //******************************************************************************
+  30          
+  31          //******************************************************************************
+  32          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  33          //******************************************************************************
+  34          
+  35          //******************************************************************************
+  36          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  37          //******************************************************************************
+  38          
+  39          //******************************************************************************
+  40          // F U N C T I O N   B O D Y S
+  41          //******************************************************************************
+  42          
+  43          /**************************************************************************//**
+  44           * Initialize LVDS-related registers.
+  45           ******************************************************************************/
+  46          void LVDSInit(void)
+  47          {
+  48   1      #if IS_NT68870_SERIES
+  49   1          SC_COMBO_TX_1E00[0x20] = 0x88;//Enable internal 12K resistor
+  50   1          SC_COMBO_TX_1E00[0x00] = 0x80;//Bias power on
+  51   1      #if PANEL_FOUR_PORT_LVDS == ON
+  52   1          SC_COMBO_TX_1E00[0x33] = 0xDE;//Power on LDO (TX and PLL)
+C51 COMPILER V9.54   SCALER_LVDS                                                           01/06/2017 14:56:48 PAGE 2   
+
+  53   1      #else
+              #if LVDS_AB_CD_SWAP == 0
+                  SC_COMBO_TX_1E00[0x33] = 0xD6;//Power on LDO (TX and PLL)
+              #else
+                  SC_COMBO_TX_1E00[0x33] = 0xDA;//Power on LDO (TX and PLL)
+              #endif
+              #endif
+  60   1          SC_COMBO_TX_1E00[0x00] = 0x01;//Set APLL clock source to DP_CLK_CD
+  61   1          SC_COMBO_TX_1E00[0x34] = 0x52;//0xD2;//0x92;//0x52;//Set loop filter bandwidth and VCO CTP control
+  62   1          SC_COMBO_TX_1E00[0x46] = 0x01;//Enable PLL
+  63   1          ResetWDTimer();//Wait for 1us
+  64   1          SC_COMBO_TX_1E00[0x46] = 0x03;//Reset PLL
+  65   1          SC_COMBO_TX_1E00[0x3D] = 0x8F;//Set APLL post-divider
+  66   1          SC_COMBO_TX_1E00[0x55] = 0x0F;
+  67   1      #if PANEL_FOUR_PORT_LVDS == ON
+  68   1          SC_COMBO_TX_1E00[0x35] = 0x33;//Enable LVDS P2S
+  69   1      #else
+              #if LVDS_AB_CD_SWAP == 0
+                  SC_COMBO_TX_1E00[0x35] = 0x32;//0x11;//Enable LVDS P2S
+              #else
+                  SC_COMBO_TX_1E00[0x35] = 0x31;//0x11;//Enable LVDS P2S
+              #endif
+              #endif
+  76   1          SC_COMBO_TX_1E00[0x64] = 0x08;//Select TXMODE to LVDS
+  77   1          SC_COMBO_TX_1E00[0x47] = 0x00;//Disable output pull-low (port A) 
+  78   1          SC_COMBO_TX_1E00[0x48] = 0x00;//Disable output pull-low (port B)
+  79   1          SC_COMBO_TX_1E00[0x49] = 0x00;//Disable output pull-low (port C)
+  80   1          SC_COMBO_TX_1E00[0x4A] = 0x00;//Disable output pull-low (port D)
+  81   1      #if PANEL_FOUR_PORT_LVDS == ON
+  82   1          SC_COMBO_TX_1E00[0x01] = 0x3F;//Enable buffer power (port A) 
+  83   1          SC_COMBO_TX_1E00[0x02] = 0x3F;//Enable buffer power (port B) 
+  84   1          SC_COMBO_TX_1E00[0x03] = 0x3F;//Enable buffer power (port C)
+  85   1          SC_COMBO_TX_1E00[0x04] = 0x3F;//Enable buffer power (port D)
+  86   1      #else
+              #if LVDS_AB_CD_SWAP == 0
+                  SC_COMBO_TX_1E00[0x01] = 0x3F;//Enable buffer power (port A) 
+                  SC_COMBO_TX_1E00[0x02] = 0x3F;//Enable buffer power (port B) 
+                  SC_COMBO_TX_1E00[0x03] = 0x00;//Enable buffer power (port C)
+                  SC_COMBO_TX_1E00[0x04] = 0x00;//Enable buffer power (port D)
+              #else
+                  SC_COMBO_TX_1E00[0x01] = 0x00;//Enable buffer power (port A) 
+                  SC_COMBO_TX_1E00[0x02] = 0x00;//Enable buffer power (port B) 
+                  SC_COMBO_TX_1E00[0x03] = 0x3F;//Enable buffer power (port C)
+                  SC_COMBO_TX_1E00[0x04] = 0x3F;//Enable buffer power (port D)
+              #endif
+              #endif
+  99   1          SC_COMBO_TX_1E00[0x22] = 0x3F;//Enable TX output (port A) 
+ 100   1          SC_COMBO_TX_1E00[0x23] = 0x3F;//Enable TX output (port B)
+ 101   1          SC_COMBO_TX_1E00[0x24] = 0x3F;//Enable TX output (port C)
+ 102   1          SC_COMBO_TX_1E00[0x25] = 0x3F;//Enable TX output (port D)
+ 103   1      #else
+                  SC_LVDS_1D00[0x00] = 0x00;//WRITE     B0    1D00        01
+                  SC_LVDS_1D00[0x0F] = 0x1D;//WRITE     B0    1D0F        1D
+                  SC_LVDS_1D00[0x12] = 0x03;//WRITE     B0    1D12        03
+                  SC_LVDS_1D00[0x12] = 0x07;//WRITE     B0    1D12        07
+                  SC_LVDS_1D00[0x0F] = 0x3D;//WRITE     B0    1D0F        3D
+                  SC_LVDS_1D00[0x15] = 0x01;//WRITE     B0    1D15        01
+                  SC_LVDS_1D00[0x13] = 0x00;//WRITE     B0    1D13        00
+                  SC_LVDS_1D00[0x14] = 0x00;//WRITE     B0    1D14        00
+                  SC_LVDS_1D00[0x01] = 0x1F;//WRITE     B0    1D01        1F
+                  SC_LVDS_1D00[0x02] = 0x1F;//WRITE     B0    1D02        1F
+                  SC_LVDS_1D00[0x09] = 0x1F;//WRITE     B0    1D09        1F
+C51 COMPILER V9.54   SCALER_LVDS                                                           01/06/2017 14:56:48 PAGE 3   
+
+                  SC_LVDS_1D00[0x0A] = 0x1F;//WRITE     B0    1D0A       1F
+              #endif
+ 117   1          SetLvdsChPolSwap();
+ 118   1      }
+ 119          
+ 120          /**************************************************************************//**
+ 121           * Turn off LVDS output.
+ 122           ******************************************************************************/
+ 123          void LvdsOff(void)
+ 124          {
+ 125   1      #if IS_NT68870_SERIES
+ 126   1          SC_COMBO_TX_1E00[0x00] = 0x01;
+ 127   1      #else
+                  SC_LVDS_1D00[0x00] = 0x00;
+              #endif
+ 130   1      }
+ 131          
+ 132          /**************************************************************************//**
+ 133           * Turn on LVDS output.
+ 134           ******************************************************************************/
+ 135          void LvdsOn(void)
+ 136          {
+ 137   1      #if IS_NT68870_SERIES
+ 138   1          SC_COMBO_TX_1E00[0x00] = 0x81;
+ 139   1      #else
+                  SC_LVDS_1D00[0x00] = 0x01;
+              #endif    
+ 142   1          SetLvdsSwing(440);//440mVpp
+ 143   1      }
+ 144          
+ 145          /**************************************************************************//**
+ 146           * Set LVDS swing value.
+ 147           * @param swing LVDS swing.
+ 148           ******************************************************************************/
+ 149          void SetLvdsSwing(USHRT swing)
+ 150          {
+ 151   1          UCHAR level;
+ 152   1          level = (UCHAR)(((swing / 2) - 40) / 20);
+ 153   1      #if IS_NT68870_SERIES
+ 154   1          SC_COMBO_TX_1E00[0x59] = level;//ucLVDS_Swing_Table[swing];
+ 155   1          SC_COMBO_TX_1E00[0x5A] = level;//ucLVDS_Swing_Table[swing];
+ 156   1      #if PANEL_FOUR_PORT_LVDS == ON
+ 157   1          SC_COMBO_TX_1E00[0x5B] = level;//ucLVDS_Swing_Table[swing];
+ 158   1          SC_COMBO_TX_1E00[0x5C] = level;//ucLVDS_Swing_Table[swing];
+ 159   1      #endif
+ 160   1      #else
+                  SC_LVDS_1D00[0x17] = level;
+                  SC_LVDS_1D00[0x18] = level;
+              #endif
+ 164   1          
+ 165   1          
+ 166   1      #ifdef NT68890_DEMO
+                  SC_COMBO_TX_1E00[0x5B] = 0x18;//ucLVDS_Swing_Table[swing];
+              #endif
+ 169   1      }
+ 170          
+ 171          /**************************************************************************//**
+ 172           * Set the stage of LVDS clock delay.
+ 173           * @param delay Clock delay.
+ 174           ******************************************************************************/
+ 175           
+ 176          #if !lrd_dis
+C51 COMPILER V9.54   SCALER_LVDS                                                           01/06/2017 14:56:48 PAGE 4   
+
+              void SetLvdsClkDelay(LVDSDelay delay)
+              {
+                  if (delay > LVDS_DELAY_7_STAGE)
+                      delay = LVDS_DELAY_OFF;
+              
+              #if IS_NT68870_SERIES
+                  SC_COMBO_TX_1E00[0x0B] = ((SC_COMBO_TX_1E00[0x0B] & 0xF0) | delay);
+                  SC_COMBO_TX_1E00[0x0D] = ((SC_COMBO_TX_1E00[0x0D] & 0xF0) | delay);
+                  SC_COMBO_TX_1E00[0x0F] = ((SC_COMBO_TX_1E00[0x0F] & 0xF0) | delay);
+                  SC_COMBO_TX_1E00[0x11] = ((SC_COMBO_TX_1E00[0x11] & 0xF0) | delay);
+              #if PANEL_FOUR_PORT_LVDS == ON
+                  SC_COMBO_TX_1E00[0x0B] = ((SC_COMBO_TX_1E00[0x0B] & 0x0F) | (delay<<4));
+                  SC_COMBO_TX_1E00[0x0D] = ((SC_COMBO_TX_1E00[0x0D] & 0x0F) | (delay<<4));
+                  SC_COMBO_TX_1E00[0x0F] = ((SC_COMBO_TX_1E00[0x0F] & 0x0F) | (delay<<4));
+                  SC_COMBO_TX_1E00[0x11] = ((SC_COMBO_TX_1E00[0x11] & 0x0F) | (delay<<4));
+              #endif
+              #else
+                  SC_LVDS_CLOCK_DELAY &= 0x88; // 0x1fc
+                  SC_LVDS_CLOCK_DELAY |= (delay | (delay << 4));
+              #endif
+              }
+              /**************************************************************************//**
+               * Set the stage of LVDS data delay.
+               * @param delay Data delay.
+               ******************************************************************************/
+              void SetLvdsDataDelay(LVDSDelay delay)
+              {
+                  if (delay > LVDS_DELAY_7_STAGE)
+                      delay = LVDS_DELAY_OFF;
+              #if IS_NT68870_SERIES
+                  SC_COMBO_TX_1E00[0x13] = ((SC_COMBO_TX_1E00[0x13] & 0xF0) | delay);
+                  SC_COMBO_TX_1E00[0x15] = ((SC_COMBO_TX_1E00[0x15] & 0xF0) | delay);
+                  SC_COMBO_TX_1E00[0x17] = ((SC_COMBO_TX_1E00[0x17] & 0xF0) | delay);
+                  SC_COMBO_TX_1E00[0x19] = ((SC_COMBO_TX_1E00[0x19] & 0xF0) | delay);
+              #if PANEL_FOUR_PORT_LVDS == ON
+                  SC_COMBO_TX_1E00[0x13] = ((SC_COMBO_TX_1E00[0x13] & 0x0F) | (delay<<4));
+                  SC_COMBO_TX_1E00[0x15] = ((SC_COMBO_TX_1E00[0x15] & 0x0F) | (delay<<4));
+                  SC_COMBO_TX_1E00[0x17] = ((SC_COMBO_TX_1E00[0x17] & 0x0F) | (delay<<4));
+                  SC_COMBO_TX_1E00[0x19] = ((SC_COMBO_TX_1E00[0x19] & 0x0F) | (delay<<4));
+              #endif
+              #else
+                  SC_LVDS_DATA_DELAY &= 0x88;// 0x1fb
+                  SC_LVDS_DATA_DELAY |= (delay | (delay << 4));
+                  SC_LVDS_PAD_POWER &= 0xF8;// 0x1fe
+                  SC_LVDS_PAD_POWER |= delay;
+              #endif
+              }
+              #endif
+ 225          
+ 226          #if 0
+              /**************************************************************************//**
+               * Set LVDS P2S-related registers.
+               ******************************************************************************/
+              void SetLvdsP2SByDCLK(void)
+              {
+              }
+              #endif
+ 234          /**************************************************************************//**
+ 235           * Set LVDS LVDS Channel Polarity Swap (Positive/Negative)
+ 236           ******************************************************************************/
+ 237          void SetLvdsChPolSwap(void)
+ 238          {
+C51 COMPILER V9.54   SCALER_LVDS                                                           01/06/2017 14:56:48 PAGE 5   
+
+ 239   1      #if ENABLE_LVDS_POL_SWAP
+              #if IS_NT68870_SERIES
+                  SC_COMBO_TX_1E00[0x36] |= 0x33;
+              #else
+                  SC_LVDS_1D00[0x0F] |= 0xC0;
+              #endif
+              #endif
+ 246   1      }
+ 247          #endif
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    153    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

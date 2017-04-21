@@ -1,0 +1,358 @@
+A51 MACRO ASSEMBLER  NT68F631_8BANK                                                       01/04/2017 21:34:57 PAGE     1
+
+
+MACRO ASSEMBLER A51 V8.02c
+OBJECT MODULE PLACED IN .\Bin\NT68F631_8bank.obj
+ASSEMBLER INVOKED BY: D:\Keil_v5\C51\BIN\A51.EXE Lib\NT68F631_8bank.a51 SET(LARGE) PRINT(.\Lst\NT68F631_8bank.lst) OBJEC
+                      T(.\Bin\NT68F631_8bank.obj) EP
+
+LOC  OBJ            LINE     SOURCE
+
+                       1     $nomod51  
+                       2     $nocond 
+                       3     ;------------------------------------------------------------------------------
+                       4     ;  This file is part of the BL51 / L251 Banked Linker/Locater package
+                       5     ;  Copyright (c) 1988-1999 Keil Elektronik GmbH and Keil Software, Inc.
+                       6     ;  Version 2.0 (Code and Variable Banking for 8051 based Derivatives)
+                       7     ;------------------------------------------------------------------------------
+                       8     ;************************ Configuration Section *******************************
+  0008                 9     ?B_NBANKS       EQU  8    ; Define max. Number of Banks                       *
+                      10     ;                         ; The following values are allowed: 2, 4, 8, 16, 32 *
+                      11     ;                         ; the max. value for ?B_BANKS is 32                 *
+                      12     ;                                                                             *
+  0000                13     ?B_MODE         EQU  0    ; 0 for Bank-Switching via 8051 Port                *
+                      14     ;                         ; 1 for Bank-Switching via XDATA Port               *
+                      15     ;                         ; 4 for user-provided bank switch code              *
+                      16     ;                                                                             *
+  0000                17     ?B_RTX          EQU  0    ; 0 for applications without RTX-51 FULL            *
+                      18     ;                         ; 1 for applications using RTX-51 FULL              *
+                      19     ;                                                                             *
+  0000                20     ?B_VAR_BANKING  EQU  0    ; Enable Variable Banking in XDATA and CODE memory  *
+                      21     ;                         ; 0 Variable Banking is disabled                    *
+                      22     ;                         ; 1 XDATA and CODE banking with same address lines  *
+                      23     ;                         ; 2 XDATA uses a different banking port             *
+                      24     ;                                                                             *
+                             ENDIF;                                                                        *
+                      39     ;                                                                             *
+                      40     IF  ?B_MODE = 0;                                                              *
+                      41     ;-----------------------------------------------------------------------------*
+                      42     ; if ?BANK?MODE is 0 define the following values                              *
+                      43     ; For Bank-Switching via 8051 Port define Port Address / Bits                 *
+                      44     ;                                                                             *
+  0090                45     P1              DATA    90H      ; I/O Port Address                           *
+                      46     ;                                                                             *
+  0090                47     ?B_PORT         EQU     P1       ; default is P1                              *
+  0000                48     ?B_FIRSTBIT     EQU     0        ; default is Bit 3                           *
+                      49     ;-----------------------------------------------------------------------------*
+                      50     ENDIF;                                                                        *
+                      51     ;                                                                             *
+                             ENDIF;                                                                        *
+                      60     ;                                                                             *
+                             ENDIF;                                                                        *
+                      99     ;                                                                             *
+                     100     ;******************************************************************************
+                     101     ;                                                                             *
+                     102     ; THEORY OF OPERATION                                                         *
+                     103     ; -------------------                                                         *
+                     104     ; The section below describes the code generated by BL51 or L251 and the      *
+                     105     ; operation of the L51_BANK.A51 module.  BL51/L251 generates for each         *
+                     106     ; function that is located in a code memory bank and called from the common   *
+                     107     ; area or a different code bank and entry into the INTRABANK CALL TABLE.  The *
+                     108     ; INTRABANK CALL TABLE is located in the SEGMENT ?BANK?SELECT and listed in   *
+                     109     ; the Linker MAP file. The entries in that TABLE have the following format:   *
+                     110     ;                                                                             *
+                     111     ;   ?FCT?1:  MOV  DPTR,#FCT     ; Load Address of target FCT                  *
+                     112     ;            JMP  ?B_BANKn      ; Switch to Bank and Jump to Target Code      *
+                     113     ;                                                                             *
+                     114     ; Instead of directly calling the function FCT, the Linker changes the entry  *
+A51 MACRO ASSEMBLER  NT68F631_8BANK                                                       01/04/2017 21:34:57 PAGE     2
+
+                     115     ; to ?FCT?1.  This entry selects the bank where the function FCT is located   *
+                     116     ; and calls that function via the routines defined in this L51_BANK.A51 file. *
+                     117     ; The L51_BANK.A51 file contains two sets of functions for each bank:         *
+                     118     ;                                                                             *
+                     119     ; ?B_BANKn    is a routine which saves the entry of the ?B_SWITCHn function   *
+                     120     ;             for the current active bank on the STACK and switches to the    *
+                     121     ;             bank 'n'.  Then it jumps to the address specified by the DPTR   *
+                     122     ;             register.  It is allowed to modify the following registers in   *
+                     123     ;             the ?B_BANKn routine:  A, B, R0, DPTR, PSW                      *
+                     124     ;                                                                             *
+                     125     ; ?B_SWITCHn  is a function which selects the bank 'n'.  This function is     *
+                     126     ;             used at the end of a user function to return to the calling     *
+                     127     ;             code bank.  Only the following registers may be altered in the  *
+                     128     ;             ?B_SWITCHn function:  R0, DPTR                                  *
+                     129     ;                                                                             *
+                     130     ; The current active bank is stored in ?B_CURRENTBANK.  RTX-51 uses this      *
+                     131     ; variable to restore the code bank after a task switch.  To get correct      *
+                     132     ; results, ?B_CURRENTBANK must be set to the code bank before the hardware    *
+                     133     ; switch is done, or the code banking sequences must be interrupt protected.  *
+                     134     ;******************************************************************************
+                     135     
+                     136                     NAME    ?BANK?SWITCHING
+                     137     
+                     138                     PUBLIC  ?B_NBANKS, ?B_MODE, ?B_CURRENTBANK, ?B_MASK
+                     139                     PUBLIC  ?B_FACTOR
+                     140     
+                     141     ; Standard SFR Symbols required in L51_BANK.A51
+  00E0               142     ACC     DATA    0E0H
+  00F0               143     B       DATA    0F0H
+  0082               144     DPL     DATA    82H
+  0083               145     DPH     DATA    83H
+                     146     
+                     147     
+                     148     ; generate Mask and Bank Number Information
+                             ELSEIF  ?B_NBANKS <= 8
+  0007               154       MASK          EQU     00000111B
+                             ENDIF     
+                     160     
+                     161     IF  ?B_MODE = 0 ;**************************************************************
+                     162     
+  0001               163     ?B_FACTOR       EQU     1 SHL ?B_FIRSTBIT
+                     164     
+  0007               165     ?B_MASK         EQU     MASK SHL ?B_FIRSTBIT
+                     166     
+                     167     BANKN           MACRO   N
+                     168     BANK&N           EQU     N SHL ?B_FIRSTBIT
+                     169                     ENDM
+                     170     
+  0000               171     CNT             SET     0
+                     172     
+                     173                     REPT    ?B_NBANKS
+                     174                     BANKN   %CNT
+                     175     CNT             SET     CNT+1
+                     176                     ENDM
+                     177+1                   BANKN   %CNT
+                     180+1                   BANKN   %CNT
+                     183+1                   BANKN   %CNT
+                     186+1                   BANKN   %CNT
+                     189+1                   BANKN   %CNT
+                     192+1                   BANKN   %CNT
+                     195+1                   BANKN   %CNT
+                     198+1                   BANKN   %CNT
+                     201     
+                     202     
+  0090               203     ?B_CURRENTBANK  EQU     ?B_PORT
+                     204     
+A51 MACRO ASSEMBLER  NT68F631_8BANK                                                       01/04/2017 21:34:57 PAGE     3
+
+                     205       ; Convert Bank No in Accu to Address * 8
+                     206     
+                     207       IF  ?B_FIRSTBIT = 0
+                     208       CONVBANKNO    MACRO
+                     209                     SWAP    A
+                     210                     RR      A
+                     211                     ENDM
+                     212       ENDIF
+                     213     
+                               ENDIF
+                     220     
+                               ENDIF
+                     226     
+                               ENDIF
+                     231     
+                               ENDIF
+                     237     
+                               ENDIF
+                     244     
+                               ENDIF
+                     251     
+                               ENDIF
+                     257     
+                     258     
+                     259     SELECT          MACRO   N
+                     260     LOCAL           XLABEL, YLABEL
+                     261     
+                     262                     PUBLIC  ?B_BANK&N
+                     263     ?B_BANK&N:      
+                     264                     MOV     A,?B_CURRENTBANK
+                     265                     ANL     A,#?B_MASK
+                     266     ;;               CJNE    A,#BANK&N,XLABEL
+                     267     ;;               CLR     A
+                     268     ;;               JMP     @A+DPTR
+                     269     ;;
+                     270     ;;XLABEL:
+                     271                     CONVBANKNO         ; Convert Bank Number to Address
+                     272                     PUSH    ACC
+                     273                     MOV     A,#HIGH ?BANK?SWITCH
+                     274                     PUSH    ACC
+                     275     ;;YLABEL:
+                     276                     PUSH    DPL
+                     277                     PUSH    DPH
+                     278                     LJMP    ?B_SWITCH&N
+                     279                     ENDM
+                     280     
+                     281     
+                     282     ?BANK?SELECT    SEGMENT  CODE
+                     283     
+----                 284                     RSEG    ?BANK?SELECT
+  0000               285     CNT             SET     0
+                     286     
+                     287                     REPT    ?B_NBANKS
+                     288                     SELECT  %CNT
+                     289     CNT             SET     CNT+1
+                     290     
+                     291                     ENDM
+                     292+1                   SELECT  %CNT
+                     315+1                   SELECT  %CNT
+                     338+1                   SELECT  %CNT
+                     361+1                   SELECT  %CNT
+                     384+1                   SELECT  %CNT
+                     407+1                   SELECT  %CNT
+                     430+1                   SELECT  %CNT
+                     453+1                   SELECT  %CNT
+                     476     
+A51 MACRO ASSEMBLER  NT68F631_8BANK                                                       01/04/2017 21:34:57 PAGE     4
+
+                     477     
+                     478     
+                     479     SWITCH          MACRO   N
+                     480                     ORG     N * 8
+                     481                     PUBLIC  ?B_SWITCH&N
+                     482       ?B_SWITCH&N:
+                     483       IF ?B_RTX = 0
+                     484         IF  N <> 0
+                     485                     ORL     ?B_CURRENTBANK,#?B_MASK
+                     486         ENDIF
+                     487         IF  N <> (?B_NBANKS-1)
+                     488                     ANL     ?B_CURRENTBANK,#(BANK&N OR NOT ?B_MASK) 
+                     489         ENDIF
+                     490                     RET
+                     491       ELSE
+                     492         IF  N = 0
+                     493                     ANL     ?B_CURRENTBANK,#(BANK&N OR NOT ?B_MASK) 
+                     494         ELSEIF  N <> (?B_NBANKS-1)
+                     495                     MOV     R0,A
+                     496                     MOV     A,#(BANK&N OR NOT ?B_MASK) 
+                     497                     LJMP    SWITCHBNK
+                     498         ELSE
+                     499                     ORL     ?B_CURRENTBANK,#?B_MASK
+                     500                     RET
+                     501         ENDIF
+                     502       ENDIF                
+                     503                     ENDM
+                     504     
+                     505     
+                     506     ?BANK?SWITCH    SEGMENT  CODE  PAGE
+                     507     
+----                 508                     RSEG    ?BANK?SWITCH
+  0000               509     CNT             SET     0
+                     510     
+                     511                     REPT    ?B_NBANKS
+                     512                     SWITCH  %CNT
+                     513     
+                     514     CNT             SET     CNT+1
+                     515                     ENDM
+                     516+1                   SWITCH  %CNT
+                     542+1                   SWITCH  %CNT
+                     568+1                   SWITCH  %CNT
+                     594+1                   SWITCH  %CNT
+                     620+1                   SWITCH  %CNT
+                     646+1                   SWITCH  %CNT
+                     672+1                   SWITCH  %CNT
+                     698+1                   SWITCH  %CNT
+                     724     
+                     725     
+                               ENDIF
+                     735     
+                     736     ENDIF  ; close block IF ?B_MODE = 0 *******************************************
+                     737     
+                     738     
+                             ENDIF  ; close block IF ?B_MODE = 1 *******************************************
+                     973     
+                     974     
+                             ENDIF  ; close block IF ?B_MODE = 4 *******************************************
+                    1033     
+----                1034                     RSEG    ?BANK?SELECT
+                    1035     
+                    1036     ;************************  SWITCHBANK FUNCTION  *******************************
+                    1037     ;                                                                             *
+                    1038     ; SWITCHBANK allows use of bank-switching for C programs                      *
+                    1039     ;                                                                             *
+                    1040     ; prototype:   extern switchbank (unsigned char bank_number);                 *
+A51 MACRO ASSEMBLER  NT68F631_8BANK                                                       01/04/2017 21:34:57 PAGE     5
+
+                    1041     ;                                                                             *
+                    1042     ;******************************************************************************
+                    1043                     PUBLIC  _SWITCHBANK
+                    1044     
+0098 EF             1045     _SWITCHBANK:    MOV     A,R7
+                    1046     
+                             ENDIF  ; close block IF ?B_VAR_BANKING <> 0 ***********************************
+                    1090     
+                    1091     IF  ?B_MODE = 0 ;**************************************************************
+                    1092     
+0099 C4             1093     _SWITCHBANK_A:  SWAP    A
+009A 03             1094                     RR      A
+009B 900000   F     1095                     MOV     DPTR,#?BANK?SWITCH
+009E 73             1096                     JMP     @A+DPTR
+                    1097     
+                    1098     ENDIF  ; close block IF ?B_MODE = 0 *******************************************
+                    1099     
+                             ENDIF  ; close block IF ?B_MODE = 1 *******************************************
+                    1115     
+                    1116     
+                             ENDIF  ; close block IF ?B_MODE = 4 *******************************************
+                    1137     
+                    1138     
+A51 MACRO ASSEMBLER  NT68F631_8BANK                                                       01/04/2017 21:34:57 PAGE     6
+
+SYMBOL TABLE LISTING
+------ ----- -------
+
+
+N A M E             T Y P E  V A L U E   ATTRIBUTES
+
+?BANK?SELECT . . .  C SEG    009FH       REL=UNIT
+?BANK?SWITCH . . .  C SEG    003CH       REL=PAGE
+?BANK?SWITCHING. .  N NUMB   -----       
+?B_BANK0 . . . . .  C ADDR   0000H   R   SEG=?BANK?SELECT
+?B_BANK1 . . . . .  C ADDR   0013H   R   SEG=?BANK?SELECT
+?B_BANK2 . . . . .  C ADDR   0026H   R   SEG=?BANK?SELECT
+?B_BANK3 . . . . .  C ADDR   0039H   R   SEG=?BANK?SELECT
+?B_BANK4 . . . . .  C ADDR   004CH   R   SEG=?BANK?SELECT
+?B_BANK5 . . . . .  C ADDR   005FH   R   SEG=?BANK?SELECT
+?B_BANK6 . . . . .  C ADDR   0072H   R   SEG=?BANK?SELECT
+?B_BANK7 . . . . .  C ADDR   0085H   R   SEG=?BANK?SELECT
+?B_COMMON_XRAM . .    ----   -----       
+?B_CURRENTBANK . .  D ADDR   0090H   A   
+?B_FACTOR. . . . .  N NUMB   0001H   A   
+?B_FIRSTBIT. . . .  N NUMB   0000H   A   
+?B_INTR_ACCESS . .    ----   -----       
+?B_MASK. . . . . .  N NUMB   0007H   A   
+?B_MODE. . . . . .  N NUMB   0000H   A   
+?B_NBANKS. . . . .  N NUMB   0008H   A   
+?B_PORT. . . . . .  D ADDR   0090H   A   
+?B_RTX . . . . . .  N NUMB   0000H   A   
+?B_SWITCH0 . . . .  C ADDR   0000H   R   SEG=?BANK?SWITCH
+?B_SWITCH1 . . . .  C ADDR   0008H   R   SEG=?BANK?SWITCH
+?B_SWITCH2 . . . .  C ADDR   0010H   R   SEG=?BANK?SWITCH
+?B_SWITCH3 . . . .  C ADDR   0018H   R   SEG=?BANK?SWITCH
+?B_SWITCH4 . . . .  C ADDR   0020H   R   SEG=?BANK?SWITCH
+?B_SWITCH5 . . . .  C ADDR   0028H   R   SEG=?BANK?SWITCH
+?B_SWITCH6 . . . .  C ADDR   0030H   R   SEG=?BANK?SWITCH
+?B_SWITCH7 . . . .  C ADDR   0038H   R   SEG=?BANK?SWITCH
+?B_VARBANKING. . .    ----   -----       
+?B_VAR_BANKING . .  N NUMB   0000H   A   
+ACC. . . . . . . .  D ADDR   00E0H   A   
+B. . . . . . . . .  D ADDR   00F0H   A   
+BANK0. . . . . . .  N NUMB   0000H   A   
+BANK1. . . . . . .  N NUMB   0001H   A   
+BANK2. . . . . . .  N NUMB   0002H   A   
+BANK3. . . . . . .  N NUMB   0003H   A   
+BANK4. . . . . . .  N NUMB   0004H   A   
+BANK5. . . . . . .  N NUMB   0005H   A   
+BANK6. . . . . . .  N NUMB   0006H   A   
+BANK7. . . . . . .  N NUMB   0007H   A   
+CNT. . . . . . . .  N NUMB   0008H   A   
+DPH. . . . . . . .  D ADDR   0083H   A   
+DPL. . . . . . . .  D ADDR   0082H   A   
+MASK . . . . . . .  N NUMB   0007H   A   
+P1 . . . . . . . .  D ADDR   0090H   A   
+_SWITCHBANK. . . .  C ADDR   0098H   R   SEG=?BANK?SELECT
+_SWITCHBANK_A. . .  C ADDR   0099H   R   SEG=?BANK?SELECT
+
+
+REGISTER BANK(S) USED: 0 
+
+
+ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)

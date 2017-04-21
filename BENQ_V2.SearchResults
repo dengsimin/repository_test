@@ -1,0 +1,83 @@
+---- AudioMuteOn Matches (13 in 9 files) ----
+APPCtrl.c (app):    AudioMuteOn();
+Board.c (phy\si\nvt\board):void AudioMuteOn(void)
+Board.h (phy\si\nvt\board):extern void AudioMuteOn(void);
+OSDView2.c (app\osd\osd_benq):    AudioMuteOn();
+OSDView2.c (app\osd\osd_benq_v1):    AudioMuteOn();
+OSDView2.c (app\osd\osd_benq_v2):    AudioMuteOn();
+SyncHandler.c (sys):    			AudioMuteOn();//lrd add 
+SysAPI.c (sys):    AudioMuteOn();
+SysAPI.c (sys):    AudioMuteOn();
+SysAPI.c (sys)://	AudioMuteOn();
+SysAPI.c (sys)://	AudioMuteOn();
+UserSetting.c (app\user):        AudioMuteOn();
+UserSetting.c (app\user):    AudioMuteOn();
+---- KEYEVT_LEFT Matches (6 in 6 files) ----
+APPCtrl.c (App):    APPEVT_NONKEY,              //KEYEVT_LEFT
+Event.h (App):    KEYEVT_LEFT,
+KeyCtrl.c (App):        KEYCODE_LEFT, KEYEVT_LEFT,
+OSDCtrl.c (App\OSD\OSD_BENQ):    OSD_NONKEY_EVENT,   //KEYEVT_LEFT
+OSDCtrl.c (App\OSD\OSD_BENQ_V1):    OSD_NONKEY_EVENT,   //KEYEVT_LEFT
+OSDCtrl.c (App\OSD\OSD_BENQ_V2):    OSD_NONKEY_EVENT,   //KEYEVT_LEFT
+---- KEYCODE_LEFT Matches (61 in 60 files) ----
+KeyCtrl.c (App):        KEYCODE_LEFT, KEYEVT_LEFT,
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68150_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68150_FPGA_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68150_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68150_RA_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68168_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68169_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68169_FPGA_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68169_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68169_RA_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68360_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68360_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68361_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68361_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68364_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68650_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68652_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68652_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68655_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68655_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68658_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68658_FPGA_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68658_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68660_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68660_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68661_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68661_FPGA_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68661_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68662_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68668_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68669_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68673_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68675_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68676_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68677_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68750_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68750_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68751_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68753_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68770_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68770_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68776_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68777_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68790_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68790_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68810_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68810_FPGA_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68810_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68810_MODULE_KEYPAD_80A):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68810_MODULE_KEYPAD_80L):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68850_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68850_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68857_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68857_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68859_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68859_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68860_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68870_FPGA_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD):#define KEYCODE_LEFT        0x00
+KeyPadConfig.h (Phy\SI\NVT\Keypad\NT68890_DEMO_KEYPAD):#define KEYCODE_LEFT        0x00

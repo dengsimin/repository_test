@@ -1,0 +1,703 @@
+C51 COMPILER V9.54   SCALER_POWER                                                          01/06/2017 14:56:48 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE SCALER_POWER
+OBJECT MODULE PLACED IN .\Bin\Scaler_Power.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Lib\NT68810 Series\Scaler_Power.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(
+                    -.\App;.\App\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Compon
+                    -ent;.\Phy\SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870
+                    -_MODULE,LVIEW_2560X1440,FLASH_BANK=8) PRINT(.\Lst\Scaler_Power.lst) TABS(2) OBJECT(.\Bin\Scaler_Power.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          #include "ScalerProfile.h"
+  14          #include "Scaler_DP_6502.h"
+  15          #include "Scaler_TMDS_6502.h"
+  16          
+  17          //******************************************************************************
+  18          // M A C R O   D E F I N I T I O N S
+  19          //******************************************************************************
+  20          
+  21          //******************************************************************************
+  22          // G L O B A L   V A R I A B L E S
+  23          //******************************************************************************
+  24          BOOL bLowPowerMode = FALSE; /*!< The status of low power mode. */
+  25          
+  26          //******************************************************************************
+  27          // S T A T I C   V A R I A B L E S
+  28          //******************************************************************************
+  29          static BOOL bForceToSleep = FALSE; /*!< Flag of force power saving. */
+  30          
+  31          //******************************************************************************
+  32          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  33          //******************************************************************************
+  34          #if ENABLE_LOW_PWR_MODE == ON
+  35          extern idata USHRT usMCUCLKDIVIDERLoop;
+  36          #endif
+  37          
+  38          //******************************************************************************
+  39          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  40          //******************************************************************************
+  41          
+  42          //******************************************************************************
+  43          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  44          //******************************************************************************
+  45          
+  46          //******************************************************************************
+  47          // F U N C T I O N   B O D Y S
+  48          //******************************************************************************
+  49          
+  50          #if ENABLE_HDMI_PRETEST == OFF
+  51          /**************************************************************************//**
+  52           * Turn the scaler to power saving state.
+C51 COMPILER V9.54   SCALER_POWER                                                          01/06/2017 14:56:48 PAGE 2   
+
+  53           ******************************************************************************/
+  54          void ScalerPowerSaving(void)
+  55          {
+  56   1          DisplayPostPattern(POSTPTN_WHITE);//discharge panel power
+  57   1          DisableScalerPWM(PWM_ALL); //Turn off PWMA/PWMB
+  58   1      #if ENABLE_SCALER_AUDIO == ON
+  59   1          ScalerAudioPowerOff(); //Samuel-2009-04-09: Turn off PWMA/B first and then turn off audio analog power
+  60   1      #endif
+  61   1          DisableDPLL();
+  62   1          DVI_PowerOff();
+  63   1          VGA_PowerOff();
+  64   1          AphyPowerOff(TRUE);
+  65   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INT
+             -ERFACE&INPUT_DP3)
+  66   1          DP_PowerOFF();
+  67   1          Set6502Reset();
+  68   1      #endif
+  69   1      #if 1//IS_NT68810_SERIES
+  70   1      #if (INPUT_INTERFACE&INPUT_DIG0) || (INPUT_INTERFACE&INPUT_DIG1)
+  71   1          TMDS_EnableCKDT(_DPPP_PHY0);
+  72   1      #endif
+  73   1      #if (INPUT_INTERFACE&INPUT_DIG2) || (INPUT_INTERFACE&INPUT_DIG3)
+  74   1          TMDS_EnableCKDT(_DPPP_PHY1);
+  75   1      #endif
+  76   1      #endif
+  77   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1)
+  78   1          SC_DPpp_CFG_TMDS_1A00[_DPRP_REG_1FD] = 0x64;
+  79   1      #endif
+  80   1      #if (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INTERFACE&INPUT_DP3)
+                  SC_DPpp_CFG_TMDS_1700[_DPRP_REG_1FD] = 0x64;
+              #endif
+  83   1      #if IS_NT68870_SERIES
+  84   1      #if (INPUT_INTERFACE & INPUT_MHL_MASK) 
+                  MHL_PhyOff();
+              #endif
+  87   1      #endif
+  88   1      
+  89   1          DisplayMuteImage();
+  90   1      #if ENABLE_MMU == ON
+  91   1          MMUPowerOff();
+  92   1      #endif
+  93   1          TurnOffScalerMainPower();
+  94   1          if(UserData.ucAutoPowerOffTime != AUTO_POWER_OFF){
+  95   2              UserSetAutoPowerOffTimer();
+  96   2          }
+  97   1      #if ENABLE_LOW_PWR_MODE == ON
+  98   1          McuPowerDownAPLL();
+  99   1          if (bForceToSleep == FALSE) {
+ 100   2              SetLowPowerMode(FALSE);
+ 101   2          }
+ 102   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1)
+ 103   1      //    SC_POWER_CTRL2 |= BIT1;
+ 104   1      //    SC_DPpp_CFG_TMDS_1A00[_DPRP_REG_1FD] = 0x64;
+ 105   1          DPConfigAUXDetect();
+ 106   1      #endif
+ 107   1      #if (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INTERFACE&INPUT_DP3)
+              //    SC_POWER_CTRL2 |= BIT1;
+              //    SC_DPpp_CFG_TMDS_1700[_DPRP_REG_1FD] = 0x64;
+                  DPConfigAUXDetect();
+              #endif
+ 112   1      #endif
+ 113   1      }
+C51 COMPILER V9.54   SCALER_POWER                                                          01/06/2017 14:56:48 PAGE 3   
+
+ 114          #endif
+ 115          
+ 116          /**************************************************************************//**
+ 117           * Set force to sleep flag.
+ 118           ******************************************************************************/
+ 119          void SetForceToSleep(void)
+ 120          {
+ 121   1          bForceToSleep = TRUE;
+ 122   1      }
+ 123          
+ 124          /**************************************************************************//**
+ 125           * Clear force to sleep flag.
+ 126           ******************************************************************************/
+ 127          void ClearForceToSleep(void)
+ 128          {
+ 129   1          bForceToSleep = FALSE;
+ 130   1      }
+ 131          
+ 132          /**************************************************************************//**
+ 133           * Get the status of force to sleep flag.
+ 134           * @return Status of force to sleep.
+ 135           ******************************************************************************/
+ 136          BOOL IsForceToSleep(void)
+ 137          {
+ 138   1          return bForceToSleep;
+ 139   1      }
+ 140          
+ 141          /**************************************************************************//**
+ 142           * Turn off scaler power.
+ 143           ******************************************************************************/
+ 144          void ScalerPowerDown(void)
+ 145          {
+ 146   1      #if ENABLE_SCALER_LEDDRV_IO_MODE
+                  LEDDRVIOPwrSav();
+              #endif
+ 149   1          DisplayPostPattern(POSTPTN_WHITE);//discharge panel power
+ 150   1          DisableScalerPWM(PWM_ALL); //Turn off PWMA/PWMB
+ 151   1      #if ENABLE_SCALER_AUDIO == ON
+ 152   1          ScalerAudioPowerOff(); //Samuel-2009-04-09: Turn off PWMA/B first and then turn off audio analog power
+ 153   1      #endif
+ 154   1          DisableDPLL();
+ 155   1          DVI_PowerOff();
+ 156   1          VGA_PowerOff();
+ 157   1          AphyPowerOff(TRUE);
+ 158   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INT
+             -ERFACE&INPUT_DP3)
+ 159   1          DP_PowerOFF();
+ 160   1          Set6502Reset();
+ 161   1      #endif
+ 162   1          DisplayMuteImage();
+ 163   1      #if ENABLE_MMU == ON
+ 164   1          MMUPowerOff();
+ 165   1      #endif
+ 166   1          TurnOffScalerMainPower();
+ 167   1      #if ENABLE_LOW_PWR_MODE == ON
+ 168   1          McuPowerDownAPLL();
+ 169   1          SetLowPowerMode(TRUE);
+ 170   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INT
+             -ERFACE&INPUT_DP3)
+ 171   1          DPConfigAUXDetect();
+ 172   1      #endif
+ 173   1      #endif
+C51 COMPILER V9.54   SCALER_POWER                                                          01/06/2017 14:56:48 PAGE 4   
+
+ 174   1      #if ENABLE_CUT_POWER_ARCH == ON
+ 175   1      #if MD_ENABLE_AO_DETECT == ON
+              //save memory befor +5V power off.
+                  NvramWriteUserData(&UserData);
+              #if ((ENABLE_FE2P == ON) && (ENABLE_AUTO_CONTROL == OFF))
+                  FE2P_SaveToFlash();
+              #endif
+              //    SX8670PowerDown();
+                  PowerMOSOff();
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                  do {
+                      ResetWDTimer();
+                      SC_ZERO_PWR_CTRL_B69 |= BIT0;
+                      SC_ZERO_PWR_CTRL_B69 &= ~BIT0;
+                      Sleep(AO_KEY_DEBOUNCE_TIME); //wait HW debounce
+                  } while ((SC_ZERO_PWR_CTRL_B64 & BIT2) != 0);
+              
+              //    SC_ZERO_PWR_CTRL_B64 = 0xE0;//|= BIT1;//need add stby key.
+              //    ZPLatchData();
+              #else
+                  do {
+                      ResetWDTimer();
+                      AO_DETECT |= BIT2;
+                      Sleep(AO_KEY_DEBOUNCE_TIME); //wait HW debounce
+                  } while ((AO_DETECT & BIT2) != 0);
+              
+                  AO_DETECT |= BIT1;//need add stby key.
+                  Sleep(1);
+                  AO_DETECT &= ~BIT1;//need add stby key.
+              #endif
+              #else
+ 205   1          PowerMOSOff();
+ 206   1      #endif
+ 207   1      #endif
+ 208   1      }
+ 209          #if (IS_NT68810_SERIES || IS_NT68870_SERIES)
+ 210          void ZPLatchData(void)
+ 211          {
+ 212   1          SC_ZERO_PWR_CTRL_B66 &= ~BIT7;
+ 213   1          SC_ZERO_PWR_CTRL_B66 |= BIT7;
+ 214   1          SC_ZERO_PWR_CTRL_B66 &= ~BIT7;
+ 215   1      }
+ 216          #if MD_ENABLE_AO_DETECT == ON
+              void SetZPDetect(UCHAR mode)
+              {
+                  switch (mode) {
+                  case ZP_CLEAR://clear
+                      SC_ZERO_PWR_CTRL_B64 = 0x00;
+                      SC_ZERO_PWR_CTRL_B65 = (BIT2 | BIT1);//0x02;
+                      SC_ZERO_PWR_CTRL_B66 = 0x57;
+                      break;
+                  case ZP_SYNC_DET://power saving
+                      SC_DPpp_CFG_TMDS_1A00[0x246] = 0x03;
+                      SC_DPpp_CFG_TMDS_1A00[0x246] = 0x01;
+                      SC_DPpp_CFG_TMDS_1A00[_DPRP_REG_1FD] = 0x64;
+                      SC_DPpp_CFG_TMDS_1A00[_DPPHY_EQR_IMP_ENABLE] = 0x00;
+                      SC_DPpp_CFG_TMDS_1A00[_DPPHY_EQR_RES_CTRL3] = 0x00;
+                      SC_DPpp_CFG_TMDS_1A00[0x240] = 0x00;
+                      SC_DPpp_CFG_TMDS_1A00[0x242] = 0x11;//0x11;//0x22;
+                      SC_ISOLATION_CONTROL |= BIT4;
+                      SC_ZERO_PWR_CTRL_B64 = 0xE0;
+                      SC_ZERO_PWR_CTRL_B65 = 0x0E;//0x08;
+C51 COMPILER V9.54   SCALER_POWER                                                          01/06/2017 14:56:48 PAGE 5   
+
+                      SC_ZERO_PWR_CTRL_B66 = 0x3F;//0x3B;//0x3F;
+                      break;
+                  case ZP_DC_OFF://DC off
+                      SC_ZERO_PWR_CTRL_B64 = 0x00;
+                      SC_ZERO_PWR_CTRL_B65 = 0x00;
+                      SC_ZERO_PWR_CTRL_B66 = 0x01;
+                      break;
+                 }
+              }
+              
+              void ZPClearADC(void)
+              {
+                  SC_ZERO_PWR_CTRL_B69 = 0x00;
+                  ZPLatchData();
+                  SC_ZERO_PWR_CTRL_B69 = 0x03;
+                  ZPLatchData();
+                  SC_ZERO_PWR_CTRL_B69 = 0x02;
+                  ZPLatchData();
+              }
+              
+              void ZPResetADC(void)
+              {
+                  SC_ZERO_PWR_CTRL_B69 = 0x00;
+                  ZPLatchData();
+                  SC_ZERO_PWR_CTRL_B69 = 0x03;
+                  ZPLatchData();
+                  SC_ZERO_PWR_CTRL_B69 = 0x00;
+                  ZPLatchData();
+              }
+              
+              void ZPPowerOff(void)
+              {
+                  SC_ZERO_PWR_CTRL_B64 &= ~BIT1;
+                  Sleep(1);
+                  SC_ZERO_PWR_CTRL_B64 |= BIT1;
+                  Sleep(1);
+                  SC_ZERO_PWR_CTRL_B64 &= ~BIT1;
+                  while(1){
+                      Sleep(10);
+              #if 1//debug
+                      if ((SC_ZERO_PWR_CTRL_B67 & 0x0E) != 0) {//Error
+                          break;
+                      }
+              #endif
+                  }
+              }
+              #endif
+ 283          #endif
+ 284          /**************************************************************************//**
+ 285           * Turn on scaler power.
+ 286           ******************************************************************************/
+ 287          void ScalerPowerUp(void)
+ 288          {
+ 289   1          ClearForceToSleep();
+ 290   1      #if 1//ENABLE_AUTO_CONTROL == OFF
+ 291   1          if ((SC_POWER_CTRL1 & BIT3) != 0) {
+ 292   2          #if ENABLE_CUT_POWER_ARCH == ON
+ 293   2              PowerMOSOn();
+ 294   2              McuPowerUpAPLL();
+ 295   2              ScalerInitialize();
+ 296   2              APPInitSystem();
+ 297   2          #else
+C51 COMPILER V9.54   SCALER_POWER                                                          01/06/2017 14:56:48 PAGE 6   
+
+                      McuPowerUpAPLL();
+                      SetNormalPowerMode();
+                      TurnOnScalerMainPower();
+                  #if ENABLE_SCALER_AUDIO == ON
+                      ScalerAudioPowerOn();
+                  #endif
+                  #endif
+ 305   2          #if ENABLE_MMU == ON
+ 306   2              MMUPowerOn();
+ 307   2          #endif
+ 308   2              EnableScalerPWM(PWM_ALL);//Turn on PWMA/PWMB
+ 309   2              EnableDPLL();
+ 310   2              DVI_PowerOn();
+ 311   2              VGA_PowerOn();
+ 312   2          }
+ 313   1      #endif
+ 314   1          SetModeChangeFlag();
+ 315   1      }
+ 316          
+ 317          /**************************************************************************//**
+ 318           * Turn the scaler to the normal power state.
+ 319           ******************************************************************************/
+ 320          void SetNormalPowerMode(void)
+ 321          {
+ 322   1      #if IS_NT68790_SERIES || IS_NT68658_SERIES// || IS_NT68810_SERIES || IS_NT68870_SERIES
+              #if MD_ENABLE_DC2DC == ON
+                  SC_ADC_ZERO_POWER_CTRL = 0x81;// 0xb57
+                  SC_DVI2_ZERO_POWER_CTRL |= BIT3;
+                  SC_DC2DC_E39 = 0x06;//en=0x06, disenable=0x00. RA==>disable
+                  #if IS_NT68658_SERIES
+                      SC_DC2DC_E3A = 0x00;
+                  #else
+                      SC_DC2DC_E3A = 0x01;
+                  #endif
+                  SC_APR_ISOLATION = 0x00;
+              #else
+                  SC_ADC_ZERO_POWER_CTRL = 0x81;// 0xb57
+                  SC_DVI2_ZERO_POWER_CTRL = 0x00;  // 0xb5d
+                  SC_APR_ISOLATION = 0x03;  // 0xb5f
+                  SC_DC2DC_E39 = 0x00;
+                  SC_DC2DC_E3A = 0x00;
+              #endif
+                  SC_DC2DC_E30 = 0x00;
+              //    SC_DC2DC_E39 = 0x00;
+                  SC_DC2DC_E3B = 0x00;
+                  SC_DC2DC_E3C = 0x00;
+                  SC_DC2DC_E3D = 0x00;
+                  SC_DC2DC_E3E = 0x00;
+                  SC_DC2DC_E3F = 0x00;
+                  Sleep(10);
+              #endif
+ 349   1          LDO_ADJ |= (BIT7 | BIT4);
+ 350   1          LDO_ADJ &= ~BIT0;
+ 351   1      
+ 352   1      #if ENABLE_CUT_POWER_ARCH == ON
+ 353   1      if ((SC_POWER_CTRL1&0x0F) != 0x0D) { // APR2 Reset in int.c
+ 354   2          SC_POWER_CTRL1 |= BIT7;
+ 355   2      //    SC_CUT_POWER_CTRL |= BIT2;
+ 356   2          SC_CUT_POWER_CTRL |= BIT0;  // 0xb62
+ 357   2          SC_ISOLATION_CONTROL = SCREB_B61_PU;
+ 358   2          SC_CUT_POWER_CTRL &= 0x07; // 0xb62
+ 359   2          SC_CUT_POWER_CTRL &= ~BIT1; // 0xb62
+C51 COMPILER V9.54   SCALER_POWER                                                          01/06/2017 14:56:48 PAGE 7   
+
+ 360   2          SC_POWER_CTRL1 &= ~BIT7;
+ 361   2      }
+ 362   1      #endif
+ 363   1      #if IS_NT68790_SERIES || IS_NT68658_SERIES// || IS_NT68810_SERIES || IS_NT68870_SERIES
+              #if MD_ENABLE_DC2DC == ON
+                  SC_ADC_ZERO_POWER_CTRL = 0x81;// 0xb57
+                  SC_DVI2_ZERO_POWER_CTRL |= BIT3;
+                  SC_DC2DC_E39 = 0x06;//en=0x06, disenable=0x00. RA==>disable
+                  #if IS_NT68658_SERIES
+                      SC_DC2DC_E3A = 0x00;
+                  #else
+                      SC_DC2DC_E3A = 0x01;
+                  #endif
+                  SC_APR_ISOLATION = 0x00;
+              #else
+                  SC_ADC_ZERO_POWER_CTRL = 0x81;// 0xb57
+                  SC_DVI2_ZERO_POWER_CTRL = 0x00; // 0xb5d
+                  SC_APR_ISOLATION = 0x03;  // 0xb5f
+                  SC_DC2DC_E39 = 0x00;
+                  SC_DC2DC_E3A = 0x00;
+              #endif
+                  SC_DC2DC_E30 = 0x00;
+              //    SC_DC2DC_E39 = 0x00;
+                  SC_DC2DC_E3B = 0x00;
+                  SC_DC2DC_E3C = 0x00;
+                  SC_DC2DC_E3D = 0x00;
+                  SC_DC2DC_E3E = 0x00;
+                  SC_DC2DC_E3F = 0x00;
+                  Sleep(10);
+              #endif
+ 390   1      
+ 391   1      #if (ENABLE_INTERNAL_LDO == ON) || (ENABLE_INTERNAL_ADC_LDO == ON)
+                  SC_ADC_ZERO_POWER_CTRL = SCREG_057_INT_LDO;// 0xb57
+              #else
+ 394   1          SC_ADC_ZERO_POWER_CTRL = SCREG_057_EXT_LDO;// 0xb57
+ 395   1      #endif
+ 396   1          SC_MPLL_B3E = 0xFE;//0xF2;//WRITE     B0    B3E  F2
+ 397   1          SC_MPLL_B3F = 0xA1;//0x51;//WRITE     B0    B3F  51
+ 398   1          SC_MPLL_B45 = 0x71;//0x60;//WRITE     B0    B45  60
+ 399   1          SC_MCU_CLK_DIVIDER = 0x00;
+ 400   1          SC_ZERO_POWER_LDO18 = SCREG_055_PU;
+ 401   1          SC_OSC_LDO18 = SCREG_056_PU;  // 0xb56
+ 402   1      
+ 403   1      #if 0//ENABLE_INTERNAL_LDO == ON
+                  SC_APR_LDO_CTRL = 0x00;
+              #else
+ 406   1          SC_APR_LDO_V_CTRL |= BIT0;//NT68850 沒有 LDO, 所以 b53 的 control register 後來都被拿去當 apr2 的 cloc
+             -k gen control 使用
+ 407   1      #if IS_NT68870_SERIES
+ 408   1          SC_APR_LDO_CTRL = 0x48;//0x40 is the original setting for 810  // 0xb5a
+ 409   1      //    SC_LDO_2V5_CTRL_BD2 = 0x07;
+ 410   1      #else
+                  SC_APR_LDO_CTRL = 0x40;//0x40 is the original setting for 810
+              #endif
+ 413   1      #endif
+ 414   1          
+ 415   1      //    SC_SOG_SLICER_CTRL = 0x00;
+ 416   1      //    SC_SOG_SLICER_EN = 0x80;
+ 417   1          SC_ADC_IP_CTRL_1D80[_ADC_POWER_CTRL] |= BIT4;  // 0x1db5
+ 418   1          SC_ADC_IP_CTRL_1D80[_ADC_MISC_CTRL_33] = 0xDE;// 0x1db3
+ 419   1      //    Sleep(1);
+ 420   1      
+C51 COMPILER V9.54   SCALER_POWER                                                          01/06/2017 14:56:48 PAGE 8   
+
+ 421   1          SC_MPLL_DIV = SCREG_B40;
+ 422   1          SC_MPLL_CTRL_B41 = SCREG_B41;
+ 423   1          SC_MPLL_CTRL_B42 = SCREG_B42;
+ 424   1          SC_MPLL_LDO_VADJ = SCREG_B43;
+ 425   1      //    SC_MPLL_X2 = 0x03;
+ 426   1          
+ 427   1          SC_DVI_ZERO_POWER_CTRL = 0x00;  // 0xb58
+ 428   1          SC_DVI1_ZERO_POWER_CTRL = 0x00;// 0xb5B
+ 429   1      
+ 430   1          SC_ADC_REG_1D |= BIT6;//870=0x1ec     // 0x1ea
+ 431   1          SchmittTriggerPowerOn();
+ 432   1      #if ENABLE_HW_CEC == ON
+                  CECUpdateRefClock();
+              #endif
+ 435   1          bLowPowerMode = FALSE;
+ 436   1      }
+ 437          
+ 438          /**************************************************************************//**
+ 439           * Turn the scaler to the zero power state.
+ 440           * @param pwroff TRUE to indicate "power off", FALSE is "power saving"
+ 441           ******************************************************************************/
+ 442          void SetLowPowerMode(UCHAR pwroff)
+ 443          {
+ 444   1          // Return immediately to avoid performing low power procedure twice or more
+ 445   1          if (bLowPowerMode && (pwroff == FALSE)) {
+ 446   2              return;
+ 447   2          }
+ 448   1      //#if (INPUT_INTERFACE&INPUT_DP)
+ 449   1      //    SC_DP_AUX_DETECT &= ~(BIT2|BIT3);
+ 450   1      //    SC_DP_AUX_DETECT |= (BIT2|BIT0); //dp_det_start & dp_aux_det_en
+ 451   1      //#endif
+ 452   1      #if (INPUT_INTERFACE&INPUT_MHL_MASK)
+                  if (GetCbusConnectStatus() == MHL_DATA_RDY) {
+                      MHLClearHPD();
+                  }
+                  if ( pwroff ) {
+                      //TPV requests VBus keeping on while DC off??
+                      SC_CBUS_RESISTOR_CTRL = 0x00;//samsung S2: DC off/on issue
+                  }
+                  else if ( (IsMHL0Connect() || IsMHL1Connect()) ) {
+                      return;
+                  }
+                  if (MHL_IsPackedPixelMode(MHL_CBUS_CH1)) {
+                      MHLPackedPixelMode(MHL_CBUS_CH1, FALSE);        
+                  }
+                  if (MHL_IsPackedPixelMode(MHL_CBUS_CH2)) {
+                      MHLPackedPixelMode(MHL_CBUS_CH2, FALSE);        
+                  }
+                  //SC_MHL_CTRL_2E0 = 0x00; //detect SCDT in ZP
+                  SetCbusConnectStatus(MHL_NONE);
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                SC_CBUS_INT_EN = 0x00;
+              #else
+                  SC_CBUS_INT_EN = 0xFF; //turn off interrupt
+              #endif
+              #endif
+ 477   1      #if 0//ENABLE_USB_TYPE_C == ON
+                  if (IsUSBCCVBusAttach() == TRUE) {
+                      return;
+                  }
+              #endif
+ 482   1      
+C51 COMPILER V9.54   SCALER_POWER                                                          01/06/2017 14:56:48 PAGE 9   
+
+ 483   1          SC_ADC_ZERO_POWER_CTRL = 0x83;// 0xb57
+ 484   1          SC_ADC_REG_1D &= ~BIT6;//870=0x1ec   
+ 485   1      //    SC_SOG_SLICER_CTRL = SCREG_012_PD;
+ 486   1      //    SC_SOG_SLICER_EN = 0x01;
+ 487   1          SC_ADC_IP_CTRL_1D80[_ADC_SOG_DISCUR] = 0x00;//SOG_DISCUR
+ 488   1          SC_ADC_IP_CTRL_1D80[_ADC_SOG_THRESHOLD] = 0x00;//SOGTH
+ 489   1          SC_ADC_IP_CTRL_1D80[_ADC_SOG_CLAMP_CURRENT] = 0x00;//SOG_CLP_SW
+ 490   1          SC_ADC_IP_CTRL_1D80[_ADC_MISC_CTRL_33] = 0x00;
+ 491   1          SchmittTriggerPowerOff();
+ 492   1      
+ 493   1          DVI_PowerOff();
+ 494   1      #if 0//(INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_
+             -INTERFACE&INPUT_DP3)
+                  DP_PowerOFF();
+              #endif
+ 497   1          // For improving the issue of unabling to wake up from DPSM mode over some specific TMDS source
+ 498   1          // Jude 2011/11/07
+ 499   1      #if 1
+ 500   1          SC_DVI_ZERO_POWER_CTRL = 0x00;
+ 501   1          SC_DVI1_ZERO_POWER_CTRL = 0x00;
+ 502   1      #else
+                  if (pwroff) {
+                      SC_DVI_ZERO_POWER_CTRL = 0x00;
+                      SC_DVI1_ZERO_POWER_CTRL = 0x00;
+                  }
+                  else {
+                      SC_DVI_ZERO_POWER_CTRL = 0x12;
+                      SC_DVI1_ZERO_POWER_CTRL = 0x12;
+                  }
+              #endif
+ 512   1      
+ 513   1      //    SC_MPLL_X2 = (BIT4|BIT3); // 3MHz
+ 514   1      //    SC_APR_LDO_CTRL = 0x00;//0x04;
+ 515   1          SC_ZERO_POWER_LDO18 = SCREG_055_PD;
+ 516   1          SC_OSC_LDO18 = SCREG_056_PD;
+ 517   1          SC_MCU_CLK_DIVIDER = 0x22; // 3MHz
+ 518   1          SC_LVDS_MISC_CTRL1 &= ~BIT6;    //bit6=0
+ 519   1          SC_LVDS_MISC_CTRL2 &= 0xF8;
+ 520   1          SC_LVDS_MISC_CTRL3 = 0x00; //  2009-03-19
+ 521   1      //  Used to control HPD    
+ 522   1      //    if ( pwroff ) {
+ 523   1      //        SC_18V_LDO_CONTROL &= ~BIT6;
+ 524   1      //    }
+ 525   1          
+ 526   1      #if ENABLE_HW_CEC == ON
+                  CECUpdateRefClock();
+              #endif
+ 529   1      
+ 530   1          SC_ADC_ZERO_POWER_CTRL = 0x03;// 0xb57
+ 531   1      #if ENABLE_CUT_POWER_ARCH == ON
+ 532   1          #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT
+             -_INTERFACE&INPUT_DP3)
+ 533   1          DPConfigHWHPD(FALSE);
+ 534   1          #endif
+ 535   1          SC_ISOLATION_CONTROL = SCREB_B61_PD;
+ 536   1      
+ 537   1          SC_CUT_POWER_CTRL |= (SCREB_B62_PD & ~BIT1);//0xF8
+ 538   1          SC_CUT_POWER_CTRL |= BIT1;
+ 539   1      //    SC_CUT_POWER_CTRL &= ~BIT2;
+ 540   1          SC_CUT_POWER_CTRL &= ~BIT0;
+ 541   1      #endif
+ 542   1      
+C51 COMPILER V9.54   SCALER_POWER                                                          01/06/2017 14:56:48 PAGE 10  
+
+ 543   1          LDO_ADJ &= ~(BIT7|BIT4); //Power down APLL for power consumption
+ 544   1      //    LDO_ADJ |= BIT0;
+ 545   1          //Samuel-2010-02-09: For UART communication in low-power mode.
+ 546   1          TL1 = 256 - GetUARTTimer(REF_CLK/4);
+ 547   1          TH1 = 256 - GetUARTTimer(REF_CLK/4);
+ 548   1          bLowPowerMode = TRUE;
+ 549   1      #if IS_NT68790_SERIES || IS_NT68658_SERIES// || IS_NT68810_SERIES || IS_NT68870_SERIES
+              #if MD_ENABLE_DC2DC == ON
+                  SC_DVI2_ZERO_POWER_CTRL &= ~BIT3;
+              #endif
+              #endif
+ 554   1      }
+ 555          
+ 556          /**************************************************************************//**
+ 557           * Turn off scaler register read/write power.
+ 558           ******************************************************************************/
+ 559          void PowerDownRegisterAccess(void)
+ 560          {
+ 561   1          SC_ADC_ZERO_POWER_CTRL &= ~(BIT7);// 0xb57
+ 562   1      }
+ 563          
+ 564          /**************************************************************************//**
+ 565           * Turn on scaler register read/write power.
+ 566           ******************************************************************************/
+ 567          void PowerUpRegisterAccess(void)
+ 568          {
+ 569   1          SC_ADC_ZERO_POWER_CTRL |= (BIT7|BIT1|BIT0);// 0xb57
+ 570   1      }
+ 571          
+ 572          /**************************************************************************//**
+ 573           * Chech current power status
+ 574           ******************************************************************************/
+ 575          BOOL IsZpMode(void)
+ 576          {
+ 577   1          return bLowPowerMode;
+ 578   1      }
+ 579          
+ 580          /**************************************************************************//**
+ 581           * Turn on scaler main power (scaler registers are 0x101, 0x102).
+ 582           ******************************************************************************/
+ 583          void TurnOnScalerMainPower(void)
+ 584          {
+ 585   1      #if ENABLE_MMU == ON
+ 586   1          SC_POWER_CTRL2 = 0x6E;
+ 587   1      #else
+                  SC_POWER_CTRL2 = 0x6A;
+              #endif
+ 590   1      #if ENABLE_SCALER_AUDIO
+ 591   1          SC_POWER_CTRL2 |= BIT7;
+ 592   1      #endif
+ 593   1          SC_POWER_CTRL1 = 0x40;
+ 594   1      }
+ 595          
+ 596          /**************************************************************************//**
+ 597           * Turn off scaler main power (scaler registers are 0x101, 0x102).
+ 598           ******************************************************************************/
+ 599          void TurnOffScalerMainPower(void)
+ 600          {
+ 601   1          SC_POWER_CTRL1 = 0x0F;
+ 602   1          SC_POWER_CTRL2 = 0x00;
+ 603   1      }
+ 604          
+C51 COMPILER V9.54   SCALER_POWER                                                          01/06/2017 14:56:48 PAGE 11  
+
+ 605          /**************************************************************************//**
+ 606           * Turn off the power of TMDS input.
+ 607           ******************************************************************************/
+ 608          void PowerDownDigitalInput(void)
+ 609          {
+ 610   1          DVI_PowerOff();
+ 611   1      }
+ 612          
+ 613          /**************************************************************************//**
+ 614           * Turn off the power of analog input.
+ 615           ******************************************************************************/
+ 616          void PowerDownAnalogInput(void)
+ 617          {
+ 618   1          VGA_PowerOff();
+ 619   1      }
+ 620          
+ 621          /**************************************************************************//**
+ 622           * Turn on the power of all input.
+ 623           ******************************************************************************/
+ 624          void PowerUpAllInput(void)
+ 625          {
+ 626   1          DVI_PowerOn();
+ 627   1          VGA_PowerOn();
+ 628   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INT
+             -ERFACE&INPUT_DP3)
+ 629   1      //    DP_PowerOn();
+ 630   1          DP_CLKOn();
+ 631   1      #endif
+ 632   1      #if ENABLE_SCALER_AUDIO == ON
+ 633   1          ScalerAudioPowerOn();
+ 634   1      #endif
+ 635   1      }
+ 636          
+ 637          #if ENABLE_LOW_PWR_MODE == ON
+ 638          /**************************************************************************//**
+ 639           * Restore SC_MCU_CLK_DIVIDER to zero power setting.
+ 640           ******************************************************************************/
+ 641          void McuClkDivderCheck(void)
+ 642          {
+ 643   1          if ((bLowPowerMode == TRUE) && (SC_MCU_CLK_DIVIDER == 0x00)) {
+ 644   2              if (++usMCUCLKDIVIDERLoop >= 500) {
+ 645   3                  McuIICPreSendACK(MCU_IIC_CON_DEFAULT);
+ 646   3                  SC_MCU_CLK_DIVIDER = 0x22;
+ 647   3              }
+ 648   2          }
+ 649   1      }
+ 650          #endif
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    621    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

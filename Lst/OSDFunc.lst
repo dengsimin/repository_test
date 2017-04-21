@@ -1,0 +1,35 @@
+C51 COMPILER V9.54   OSDFUNC                                                               01/06/2017 14:57:05 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE OSDFUNC
+OBJECT MODULE PLACED IN .\Bin\OSDFunc.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE App\OSD\OSDFunc.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD;
+                    -.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NVT
+                    -\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_25
+                    -60X1440,FLASH_BANK=8) PRINT(.\Lst\OSDFunc.lst) TABS(2) OBJECT(.\Bin\OSDFunc.obj)
+
+line level    source
+
+   1          #include "Include.h"
+   2          
+   3          #if OSDTYPE == OSD_BENQ
+              #include "OSD_BENQ/OSDFunc.c"
+              #elif OSDTYPE == OSD_BENQ_V1
+              #include "OSD_BENQ_V1/OSDFunc.c"
+              #elif OSDTYPE == OSD_BENQ_V2
+   8          #include "OSD_BENQ_V2/OSDFunc.c"
+   9          #endif 
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   ----    ----
+   CONSTANT SIZE    =   3306    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

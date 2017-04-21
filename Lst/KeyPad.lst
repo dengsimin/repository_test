@@ -1,0 +1,319 @@
+C51 COMPILER V9.54   KEYPAD                                                                01/06/2017 14:56:45 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE KEYPAD
+OBJECT MODULE PLACED IN .\Bin\KeyPad.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Phy\SI\NVT\Keypad\KeyPad.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.
+                    -\App\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\P
+                    -hy\SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE
+                    -,LVIEW_2560X1440,FLASH_BANK=8) PRINT(.\Lst\KeyPad.lst) TABS(2) OBJECT(.\Bin\KeyPad.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          #if MD_ENABLE_STRESS_TEST_KEY == ON
+              #include "KeyPadStressTest.h"
+              #endif
+  16          
+  17          //******************************************************************************
+  18          // G L O B A L   D E F I N I T I O N S
+  19          //******************************************************************************
+  20          #define KEY_MIN_LEVEL0 ((KEY_TYP_LEVEL0+KEY_TYP_LEVEL1)/2)
+  21          #define KEY_MIN_LEVEL1 ((KEY_TYP_LEVEL1+KEY_TYP_LEVEL2)/2)
+  22          #define KEY_MIN_LEVEL2 ((KEY_TYP_LEVEL2+KEY_TYP_LEVEL3)/2)
+  23          #ifdef FOURKEY_IN_ONE_ADC
+              #define KEY_MIN_LEVEL3 ((KEY_TYP_LEVEL3+KEY_TYP_LEVEL4)/2)
+              #endif
+  26          //******************************************************************************
+  27          // G L O B A L   V A R I A B L E S
+  28          //******************************************************************************
+  29          #if MD_ENABLE_AO_DETECT == ON
+              bit bWaitPowerKeyRelease;
+              xdata USHRT usAOTimer;
+              #endif
+  33          
+  34          //******************************************************************************
+  35          // S T A T I C   V A R I A B L E S
+  36          //******************************************************************************
+  37          
+  38          //******************************************************************************
+  39          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  40          //******************************************************************************
+  41          
+  42          //******************************************************************************
+  43          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  44          //******************************************************************************
+  45          
+  46          //******************************************************************************
+  47          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  48          //******************************************************************************
+  49          
+  50          //******************************************************************************
+  51          // Prototype: 
+  52          //  static UCHAR GetIOKeyCode(UCHAR btn)
+C51 COMPILER V9.54   KEYPAD                                                                01/06/2017 14:56:45 PAGE 2   
+
+  53          // Parameters:
+  54          //  None
+  55          // Return:
+  56          //  Key Code
+  57          // Purpose:
+  58          //  Get key code
+  59          // Notes:
+  60          //  None
+  61          //******************************************************************************
+  62          static UCHAR GetIOKeyCode(UCHAR btn)
+  63          {
+  64   1          static code UCHAR ucIOKeyMap[9][3] = 
+  65   1          {
+  66   1              {IOBTN_1_PORT,  IOBTN_1_BIT,  IOBTN_1_ACTIVE},
+  67   1              {IOBTN_2_PORT,  IOBTN_2_BIT,  IOBTN_2_ACTIVE},
+  68   1              {IOBTN_3_PORT,  IOBTN_3_BIT,  IOBTN_3_ACTIVE},
+  69   1              {IOBTN_4_PORT,  IOBTN_4_BIT,  IOBTN_4_ACTIVE},
+  70   1              {IOBTN_5_PORT,  IOBTN_5_BIT,  IOBTN_5_ACTIVE},
+  71   1              {IOBTN_6_PORT,  IOBTN_6_BIT,  IOBTN_6_ACTIVE},
+  72   1              {IOBTN_7_PORT,  IOBTN_7_BIT,  IOBTN_7_ACTIVE},
+  73   1              {IOBTN_8_PORT,  IOBTN_8_BIT,  IOBTN_8_ACTIVE},
+  74   1              {MCU_PORT_NULL, 0,            0             },
+  75   1          };
+  76   1      
+  77   1          UCHAR port, pin, act, i;
+  78   1      
+  79   1          // Decode btn id to IOKeyMap order
+  80   1          port = btn;
+  81   1          for (i = 0; i < 8; i++) 
+  82   1          {
+  83   2                if (port & BIT0) break;
+  84   2                port >>= 1;
+  85   2            }
+  86   1      
+  87   1          port = ucIOKeyMap[i][0];
+  88   1          pin  = ucIOKeyMap[i][1];
+  89   1          act  = ucIOKeyMap[i][2];
+  90   1      
+  91   1          if ((port != MCU_PORT_NULL) &&(McuGetIOBit(port, pin) == act))       return btn;
+  92   1          else       return 0x00;
+  93   1      }
+  94          
+  95          //******************************************************************************
+  96          // Prototype: 
+  97          //  UCHAR ScanKeyPad(void)
+  98          // Parameters:
+  99          //  None
+ 100          // Return:
+ 101          //  Key value
+ 102          // Purpose:
+ 103          //  Scan the keypad
+ 104          // Notes:
+ 105          //  None
+ 106          //******************************************************************************
+ 107          UCHAR ScanKeyPad(void)
+ 108          {
+ 109   1          static UCHAR key_buffer;
+ 110   1          USHRT local_timer;
+ 111   1          UCHAR key_temp, key_stable_time;
+ 112   1          local_timer = GetTimerTick();
+ 113   1          key_stable_time = 0;
+ 114   1          do {    
+C51 COMPILER V9.54   KEYPAD                                                                01/06/2017 14:56:45 PAGE 3   
+
+ 115   2              key_temp = GetKey();
+ 116   2              if (key_temp != key_buffer) {
+ 117   3                  key_buffer = key_temp;
+ 118   3                  local_timer = GetTimerTick();
+ 119   3                  key_stable_time = KEY_STABLE_TIME;
+ 120   3              }
+ 121   2          } while ((key_stable_time!=0) && ((GetTimerTick()-local_timer) < key_stable_time));
+ 122   1      
+ 123   1        
+ 124   1      //AO DETECT : Power key detect///////
+ 125   1      #if MD_ENABLE_AO_DETECT == ON
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                  if (bWaitPowerKeyRelease == TRUE) {//wait release
+                      key_buffer &= ~KEYCODE_PWR;
+                      if ((GetTimerTick() - usAOTimer) > AO_KEY_DEBOUNCE_TIME) {//AO timeout
+                          if ((SC_ZERO_PWR_CTRL_B64 & BIT2) != 0) {
+                              SC_ZERO_PWR_CTRL_B69 |= BIT0;
+                              SC_ZERO_PWR_CTRL_B69 &= ~BIT0;
+                              usAOTimer = GetTimerTick();
+                          }
+                          else {
+                              bWaitPowerKeyRelease = FALSE;
+                          }
+                      }
+                  }
+                  else {
+                      if ((key_buffer & KEYCODE_PWR) != 0x00) {
+                          Sleep(AO_KEY_DEBOUNCE_TIME); //wait HW debounce
+                      }
+                      if ((SC_ZERO_PWR_CTRL_B64 & BIT2) != 0) {
+                          key_buffer |= KEYCODE_PWR;
+              //            printf("key\r\n");
+                      }
+                  }
+              #else    
+                  if (bWaitPowerKeyRelease == TRUE) {//wait release
+                      key_buffer &= ~KEYCODE_PWR;
+                      if ((GetTimerTick() - usAOTimer) > AO_KEY_DEBOUNCE_TIME) {//AO timeout
+                          if ((AO_DETECT & BIT2) != 0) {
+                              AO_DETECT |= BIT2;
+                              usAOTimer = GetTimerTick();
+                          }
+                          else {
+                              bWaitPowerKeyRelease = FALSE;
+                          }
+                      }
+                  }
+                  else {
+                      if ((key_buffer & KEYCODE_PWR) != 0x00) {
+                          Sleep(AO_KEY_DEBOUNCE_TIME); //wait HW debounce
+                      }
+                      if ((AO_DETECT & BIT2) != 0) {
+                          key_buffer |= KEYCODE_PWR;
+              //            printf("key\r\n");
+                      }
+                  }
+              #endif
+              #endif
+ 173   1      /////////////////////////////////////
+ 174   1      #if MD_ENABLE_STRESS_TEST_KEY == ON
+                  if(CheckModuleTestKey(key_buffer) == TRUE){
+                      key_buffer = 0x00;
+C51 COMPILER V9.54   KEYPAD                                                                01/06/2017 14:56:45 PAGE 4   
+
+                  }
+              #endif
+ 179   1      
+ 180   1          return key_buffer;
+ 181   1      }
+ 182          
+ 183          //******************************************************************************
+ 184          // Prototype: 
+ 185          //  UCHAR GetKey(void)
+ 186          // Parameters:
+ 187          //  None
+ 188          // Return:
+ 189          //  Key value
+ 190          // Purpose:
+ 191          //  Scan the keypad
+ 192          // Notes:
+ 193          //  None
+ 194          //******************************************************************************
+ 195          UCHAR GetKey(void)
+ 196          {
+ 197   1      #define DEBUG_ADC_VALUE   0
+ 198   1          UCHAR key, adc_level;
+ 199   1      
+ 200   1          key = 0;
+ 201   1      
+ 202   1          // Perform AD Key decode
+ 203   1          McuPowerUpADC();
+ 204   1          McuStartADC();
+ 205   1          McuWaitADCComplete();
+ 206   1          McuPowerDownADC();
+ 207   1          adc_level = McuGetADC(KEY_GROUP1_ADC);
+ 208   1        #if DEBUG_ADC_VALUE
+                OSDShowNum(10,11,adc_level);
+                #endif
+ 211   1      // 51 79 109  //p+a  ADGRP1_CODE_1 | ADGRP2_CODE_2
+ 212   1          if (adc_level < KEY_MIN_LEVEL0) {
+ 213   2              key |= ADGRP1_CODE_1;
+ 214   2          }
+ 215   1          else if (adc_level > KEY_MIN_LEVEL0 && adc_level < KEY_MIN_LEVEL1) {
+ 216   2              key |= ADGRP1_CODE_2;
+ 217   2          }
+ 218   1          else if (adc_level > KEY_MIN_LEVEL1 && adc_level < KEY_MIN_LEVEL2) {
+ 219   2              key |= ADGRP1_CODE_3;
+ 220   2          }
+ 221   1      #ifdef FOURKEY_IN_ONE_ADC
+                  else if (adc_level > KEY_MIN_LEVEL2 && adc_level < KEY_MIN_LEVEL3) {
+                      key |= ADGRP1_CODE_4;
+                  }
+              #endif
+ 226   1          adc_level = McuGetADC(KEY_GROUP2_ADC);
+ 227   1      
+ 228   1        #if DEBUG_ADC_VALUE
+                OSDShowNum(10,14,adc_level);
+                OSDTurnOnOSD();
+                #endif
+ 232   1      
+ 233   1          if (adc_level < KEY_MIN_LEVEL0) {
+ 234   2              key |= ADGRP2_CODE_1;
+ 235   2          }
+ 236   1          else if (adc_level > KEY_MIN_LEVEL0 && adc_level < KEY_MIN_LEVEL1) {
+ 237   2              key |= ADGRP2_CODE_2;
+ 238   2          }
+C51 COMPILER V9.54   KEYPAD                                                                01/06/2017 14:56:45 PAGE 5   
+
+ 239   1          else if (adc_level > KEY_MIN_LEVEL1 && adc_level < KEY_MIN_LEVEL2) {
+ 240   2              key |= ADGRP2_CODE_3;
+ 241   2          }
+ 242   1      
+ 243   1      
+ 244   1      
+ 245   1          // Perform IO Key decode
+ 246   1          key |= GetIOKeyCode(IOBTN_CODE_1);
+ 247   1          key |= GetIOKeyCode(IOBTN_CODE_2);
+ 248   1          key |= GetIOKeyCode(IOBTN_CODE_3);
+ 249   1          key |= GetIOKeyCode(IOBTN_CODE_4);
+ 250   1          key |= GetIOKeyCode(IOBTN_CODE_5);
+ 251   1          key |= GetIOKeyCode(IOBTN_CODE_6);
+ 252   1          key |= GetIOKeyCode(IOBTN_CODE_7);
+ 253   1          key |= GetIOKeyCode(IOBTN_CODE_8);
+ 254   1      
+ 255   1          return key;
+ 256   1      }
+ 257          
+ 258          #if 1//MD_ENABLE_AO_DETECT == ON
+ 259          bit CheckFactoryMode(void)
+ 260          {
+ 261   1      #if (!PWR_AUTO_INTO_FAC)
+ 262   1          #define into_fac_time (3000)
+ 263   1          USHRT press_time = 0;
+ 264   1        if (GetKey() == (KEYCODE_MENU)) { 
+ 265   2              for(press_time=0;press_time< into_fac_time;press_time++)
+ 266   2              {
+ 267   3                  if(GetKey() == (KEYCODE_MENU))
+ 268   3                      Sleep(1);
+ 269   3                  else
+ 270   3                      break;
+ 271   3                      
+ 272   3              }
+ 273   2              if(press_time == into_fac_time)
+ 274   2              return TRUE;
+ 275   2          }
+ 276   1              return FALSE;   
+ 277   1      #else
+                if (GetKey() == (KEYCODE_FACT & ~KEYCODE_PWR)) {
+                      return TRUE;
+                  }
+                  return FALSE;   
+              #endif
+ 283   1      }
+ 284          #endif
+ 285          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    505    ----
+   CONSTANT SIZE    =     27    ----
+   XDATA SIZE       =      1       8
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

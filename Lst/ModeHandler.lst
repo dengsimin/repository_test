@@ -1,0 +1,376 @@
+C51 COMPILER V9.54   MODEHANDLER                                                           01/06/2017 14:56:40 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MODEHANDLER
+OBJECT MODULE PLACED IN .\Bin\ModeHandler.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Sys\ModeHandler.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD;
+                    -.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NVT
+                    -\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_25
+                    -60X1440,FLASH_BANK=8) PRINT(.\Lst\ModeHandler.lst) TABS(2) OBJECT(.\Bin\ModeHandler.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          
+  14          //******************************************************************************
+  15          // M A C R O   D E F I N I T I O N S
+  16          //******************************************************************************
+  17          enum {
+  18              MODE_HDLR_FLAG_HOLD_DISPLAY  = 0x01 /*!< Flag of holding mode handler. */
+  19          };
+  20          
+  21          /*!
+  22           * Check the flag of holding mode handler.
+  23           */
+  24          #define IsModeHdlrHold() ((ucModeHdlrFlag&MODE_HDLR_FLAG_HOLD_DISPLAY) != 0)
+  25          /*!
+  26           * Set the flag of holding mode handler.
+  27           */
+  28          #define SetModeHdlrHoldFlag() {ucModeHdlrFlag |= MODE_HDLR_FLAG_HOLD_DISPLAY;}
+  29          /*!
+  30           * Clear the flag of holding mode handler.
+  31           */
+  32          #define ClearModeHdlrHoldFlag() {ucModeHdlrFlag &= ~MODE_HDLR_FLAG_HOLD_DISPLAY;}
+  33          
+  34          //******************************************************************************
+  35          // G L O B A L   V A R I A B L E S
+  36          //******************************************************************************
+  37          
+  38          //******************************************************************************
+  39          // S T A T I C   V A R I A B L E S
+  40          //******************************************************************************
+  41          static xdata UCHAR ucModeHdlrFlag = 0x00;
+  42          static xdata UCHAR ucModeHdlrState = WAIT_SYNC_STABLE;
+  43          static xdata USHRT usSyncStableTimer;
+  44          static xdata UCHAR pre_sync_mode = NO_SYNC;
+  45          
+  46          //******************************************************************************
+  47          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  48          //******************************************************************************
+  49          extern xdata UCHAR ucInputSyncMode;
+  50          
+  51          //******************************************************************************
+  52          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+C51 COMPILER V9.54   MODEHANDLER                                                           01/06/2017 14:56:40 PAGE 2   
+
+  53          //******************************************************************************
+  54          static void GetInputTiming(void);
+  55          static void ClearInputTiming(void);
+  56          static void ModeHandlePowerUp(void);
+  57          
+  58          //******************************************************************************
+  59          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  60          //******************************************************************************
+  61          
+  62          //******************************************************************************
+  63          // F U N C T I O N   B O D Y S
+  64          //******************************************************************************
+  65          
+  66          /**************************************************************************//**
+  67           * Mode handler.
+  68           ******************************************************************************/
+  69          void ModeHandler(void)
+  70          {
+  71   1          if (ucModeHdlrState != SOFT_POWER_OFF) {
+  72   2              SyncHandler(); //Update ucInputSyncMode
+  73   2          }
+  74   1      
+  75   1          switch (ucModeHdlrState) {
+  76   2              case WAIT_MODE_CHANGE:
+  77   2                  switch (ucInputSyncMode) {
+  78   3                      case NO_SYNC:
+  79   3                      case NO_CABLE:
+  80   3                          ucModeHdlrState = WAIT_SYNC_STABLE;
+  81   3                          pre_sync_mode = ucInputSyncMode;
+  82   3                          usSyncStableTimer = GetTimerTick();
+  83   3                          ClearInputTiming();
+  84   3                          break;
+  85   3                      case OUT_SYNC:
+  86   3                  #if ENABLE_HDMI == ON
+  87   3                      case DIG_SYNC:
+  88   3                          HdmiHandler();
+  89   3                          // Attention! There must be "No break" here.
+  90   3                  #endif
+  91   3                      default:
+  92   3                  #if ENABLE_MMU_ERR_RCVY == ON
+                                  MMUErrCorrection();
+                          #endif
+  95   3                  #if ENABLE_OD_MOTION_CHK == ON
+                                  ODAPI_MotionCheck();
+                          #endif
+  98   3                  #if (ENABLE_SCALER_3D == ON) && (ENABLE_DVI_DUAL_LINK == ON)
+                              // Force mode changing when source switches the 120Hz 2D timing to 120Hz 3D timing
+                              // Jude 2011/08/25
+                              if (DetectAMD3DModeChange()) {
+                                  SetModeChangeFlag();
+                              }
+                          #endif
+ 105   3      #if ENABLE_FREESYNC_DEMO == ON
+                                  if (bFreeSyncMode != IsFreeSyncMode()) {
+                                      ucModeHdlrState = WAIT_SYNC_STABLE;
+                                      pre_sync_mode = ucInputSyncMode;
+                                      usSyncStableTimer = GetTimerTick();
+                                  }
+              #endif
+ 112   3                          break;
+ 113   3                  }
+ 114   2                  break;
+C51 COMPILER V9.54   MODEHANDLER                                                           01/06/2017 14:56:40 PAGE 3   
+
+ 115   2      
+ 116   2              case WAIT_SYNC_STABLE:
+ 117   2                  if (pre_sync_mode != ucInputSyncMode) { //Mode changed
+ 118   3                      pre_sync_mode = ucInputSyncMode;
+ 119   3                      usSyncStableTimer = GetTimerTick();
+ 120   3                  }
+ 121   2                  else { //Mode does not change
+ 122   3                      switch (ucInputSyncMode) {
+ 123   4                          case SEP_SYNC:
+ 124   4                          case COM_SYNC:
+ 125   4                          case SOG_SYNC:
+ 126   4                          case DIG_SYNC:
+ 127   4                          case OUT_SYNC:
+ 128   4                              if ((GetTimerTick()-usSyncStableTimer) > SYNC_STABLE_TIME) {
+ 129   5                    ucModeHdlrState = SYNC_IS_STABLE;           
+ 130   5                              }
+ 131   4                              break;
+ 132   4          
+ 133   4                          default:
+ 134   4                              break;
+ 135   4                      }
+ 136   3                  }
+ 137   2                  break;
+ 138   2      
+ 139   2              case SYNC_IS_STABLE:
+ 140   2                  if (IsModeHdlrHold()) break;
+ 141   2                  GetInputTiming();
+ 142   2                  switch (ucInputSyncMode) {
+ 143   3                      case SEP_SYNC:
+ 144   3                      case COM_SYNC:
+ 145   3                      case SOG_SYNC:
+ 146   3                      case DIG_SYNC:
+ 147   3                          ModeSearch();
+ 148   3                          if (IsOutOfRange() == TRUE) {
+ 149   4                              ucInputSyncMode = OUT_SYNC;
+ 150   4                          }
+ 151   3                          else {
+ 152   4                              if (ModeConfig() == TRUE) {
+ 153   5                                  NormalDisplay();
+ 154   5                              }
+ 155   4                              else {
+ 156   5                                  ucInputSyncMode = OUT_SYNC;
+ 157   5                              }
+ 158   4                          }
+ 159   3                          ucModeHdlrState = WAIT_DISPLAY_READY;
+ 160   3                          break;
+ 161   3      
+ 162   3                      case NO_SYNC:
+ 163   3                      case NO_CABLE:
+ 164   3                          ucModeHdlrState = WAIT_SYNC_STABLE;
+ 165   3                          pre_sync_mode = ucInputSyncMode;
+ 166   3                          usSyncStableTimer = GetTimerTick();
+ 167   3                          break;
+ 168   3      
+ 169   3                      case OUT_SYNC:
+ 170   3                          ucModeHdlrState = WAIT_DISPLAY_READY;
+ 171   3                          break;
+ 172   3      
+ 173   3                      default:
+ 174   3                          break;
+ 175   3                  }
+ 176   2                  break;
+C51 COMPILER V9.54   MODEHANDLER                                                           01/06/2017 14:56:40 PAGE 4   
+
+ 177   2      
+ 178   2              case WAIT_DISPLAY_READY:
+ 179   2                  switch (ucInputSyncMode) {
+ 180   3                      case NO_SYNC:
+ 181   3                      case NO_CABLE:
+ 182   3                          ucModeHdlrState = WAIT_SYNC_STABLE;
+ 183   3                          pre_sync_mode = ucInputSyncMode;
+ 184   3                          usSyncStableTimer = GetTimerTick();
+ 185   3                          break;
+ 186   3      
+ 187   3                      case SEP_SYNC:
+ 188   3                      case COM_SYNC:
+ 189   3                      case SOG_SYNC:
+ 190   3                          ucModeHdlrState = WAIT_MODE_CHANGE;
+ 191   3                          PanelPowerOnSequence(FALSE);
+ 192   3                          DisplayNormalImage();
+ 193   3                          break;
+ 194   3      
+ 195   3                      case DIG_SYNC:
+ 196   3                      #if ENABLE_HDMI == ON
+ 197   3                          HdmiHandler();
+ 198   3                          // Check HDMI is in mute/unexpect state or not
+ 199   3                          // If it is true, restart sync stable state
+ 200   3                          if (IsHDMIDataMute()) {
+ 201   4                              ucModeHdlrState = WAIT_SYNC_STABLE;
+ 202   4                              usSyncStableTimer = GetTimerTick();
+ 203   4                              break;
+ 204   4                          }
+ 205   3                          // If input is DVI, we turn off the preamble detection
+ 206   3                          // to avoid sync un-stable issue when input source is AMD 3D signal
+ 207   3                          HDMIEnablePreambleDetection(IsHDMI());
+ 208   3                          #if 0
+                                  // If input is HDMI, we turn on AVMute interrupt to avoid green screen issue
+                                  // over some specific DVD/PatternGen when HDMI timing changed.
+                                  //HDMIEnableAVMuteInt(IsHDMI());
+                                  #endif
+ 213   3                      #endif
+ 214   3                          ucModeHdlrState = WAIT_MODE_CHANGE;
+ 215   3                          PanelPowerOnSequence(FALSE);
+ 216   3                          DisplayNormalImage();
+ 217   3                          break;
+ 218   3      
+ 219   3                      case OUT_SYNC:
+ 220   3                      #if ENABLE_HDMI == ON
+ 221   3                          HdmiHandler();
+ 222   3                      #endif
+ 223   3                          ucModeHdlrState = WAIT_MODE_CHANGE;
+ 224   3                          break;
+ 225   3                      default:
+ 226   3                          break;
+ 227   3                  }
+ 228   2                  break;
+ 229   2      
+ 230   2              case POWER_SAVING_MODE:
+ 231   2                  if (pre_sync_mode != ucInputSyncMode) { //Mode changed
+ 232   3                      SYSAPI_WakeUp();
+ 233   3                  }
+ 234   2                  break;
+ 235   2      
+ 236   2              case SOFT_POWER_ON:
+ 237   2                  ModeHandlePowerUp();
+ 238   2                  break;
+C51 COMPILER V9.54   MODEHANDLER                                                           01/06/2017 14:56:40 PAGE 5   
+
+ 239   2      
+ 240   2              case SOFT_POWER_OFF:
+ 241   2                  break;
+ 242   2      
+ 243   2              default:
+ 244   2                  break;
+ 245   2          }
+ 246   1      
+ 247   1      #if ENABLE_LOW_PWR_MODE == ON
+ 248   1          McuClkDivderCheck();
+ 249   1      #endif
+ 250   1      }
+ 251          
+ 252          /**************************************************************************//**
+ 253           * Get current input timing from scaler and assign the timing to InputTiming.
+ 254           ******************************************************************************/
+ 255          static void GetInputTiming(void)
+ 256          {
+ 257   1          if ((ucInputSyncMode != NO_SYNC) && (ucInputSyncMode != NO_CABLE)) {
+ 258   2              InputTiming.usHSyncFreq = GetInputHFreq();
+ 259   2              InputTiming.usVSyncFreq = GetInputVFreq();
+ 260   2              InputTiming.ucHSyncWidth = GetInputHSyncWidth();
+ 261   2              InputTiming.ucVSyncWidth = GetInputVSyncWidth();
+ 262   2              InputTiming.ucHVPolarity = GetInputHVPolarity();
+ 263   2              InputTiming.usVTotal = GetInputVTotal();
+ 264   2          }
+ 265   1      }
+ 266          
+ 267          /**************************************************************************//**
+ 268           * Clear InputTiming.
+ 269           ******************************************************************************/
+ 270          static void ClearInputTiming(void)
+ 271          {
+ 272   1          InputTiming.usHSyncFreq = 0;
+ 273   1          InputTiming.usVSyncFreq = 0;
+ 274   1          InputTiming.ucHSyncWidth = 0;
+ 275   1          InputTiming.ucVSyncWidth = 0;
+ 276   1          InputTiming.ucHVPolarity = 0;
+ 277   1          InputTiming.usVTotal = 0;
+ 278   1      }
+ 279          
+ 280          /**************************************************************************//**
+ 281           * Change the state to POWER_SAVING_MODE.
+ 282           ******************************************************************************/
+ 283          void ModeHandlePowerSaving(void)
+ 284          {
+ 285   1          ucModeHdlrState = POWER_SAVING_MODE;
+ 286   1          pre_sync_mode = ucInputSyncMode;
+ 287   1      }
+ 288          
+ 289          /**************************************************************************//**
+ 290           * Change the state to WAIT_SYNC_STABLE.
+ 291           ******************************************************************************/
+ 292          static void ModeHandlePowerUp(void)
+ 293          {
+ 294   1          pre_sync_mode = ucInputSyncMode;
+ 295   1          ucModeHdlrState = WAIT_SYNC_STABLE;
+ 296   1          usSyncStableTimer = GetTimerTick();
+ 297   1      }
+ 298          
+ 299          /**************************************************************************//**
+ 300           * Change the state to SOFT_POWER_ON.
+C51 COMPILER V9.54   MODEHANDLER                                                           01/06/2017 14:56:40 PAGE 6   
+
+ 301           ******************************************************************************/
+ 302          void ModeHandleSoftPowerOn(void)
+ 303          {
+ 304   1          ucModeHdlrState = SOFT_POWER_ON;
+ 305   1      }
+ 306          
+ 307          /**************************************************************************//**
+ 308           * Change the state to SOFT_POWER_OFF.
+ 309           ******************************************************************************/
+ 310          void ModeHandleSoftPowerOff(void)
+ 311          {
+ 312   1          ucModeHdlrState = SOFT_POWER_OFF;
+ 313   1      
+ 314   1          // Clear Mode Handler Configuration Flags
+ 315   1          ClearModeHdlrHoldFlag();
+ 316   1      }
+ 317          
+ 318          /**************************************************************************//**
+ 319           * Get the current state.
+ 320           ******************************************************************************/
+ 321          UCHAR GetModeHandleState(void)
+ 322          {
+ 323   1          return ucModeHdlrState;
+ 324   1      }
+ 325          
+ 326          /**************************************************************************//**
+ 327           * Hold the mode handler at SYNC_IS_STABLE state.
+ 328           ******************************************************************************/
+ 329          void HoldModeDisplay(void)
+ 330          {
+ 331   1          SetModeHdlrHoldFlag();
+ 332   1      }
+ 333          
+ 334          /**************************************************************************//**
+ 335           * Release the mode handler and continue the mode detection.
+ 336           ******************************************************************************/
+ 337          void ContinueModeDisplay(void)
+ 338          {
+ 339   1          ClearModeHdlrHoldFlag();
+ 340   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    549    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      5    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,785 @@
+C51 COMPILER V9.54   SYSAPI                                                                01/06/2017 14:56:42 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE SYSAPI
+OBJECT MODULE PLACED IN .\Bin\SysAPI.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Sys\SysAPI.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD;.\App
+                    -\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NVT\Keyp
+                    -ad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_2560X14
+                    -40,FLASH_BANK=8) PRINT(.\Lst\SysAPI.lst) TABS(2) OBJECT(.\Bin\SysAPI.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          
+  14          //******************************************************************************
+  15          // M A C R O   D E F I N I T I O N S
+  16          //******************************************************************************
+  17          
+  18          //******************************************************************************
+  19          // G L O B A L   V A R I A B L E S
+  20          //******************************************************************************
+  21          
+  22          //******************************************************************************
+  23          // S T A T I C   V A R I A B L E S
+  24          //******************************************************************************
+  25          static BOOL bIsACOnFlag = TRUE;
+  26          static UCHAR PreSetBrightnessPWMMax = FALSE;
+  27          
+  28          //******************************************************************************
+  29          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  30          //******************************************************************************
+  31          
+  32          //******************************************************************************
+  33          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  34          //******************************************************************************
+  35          
+  36          //******************************************************************************
+  37          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  38          //******************************************************************************
+  39          
+  40          //******************************************************************************
+  41          // F U N C T I O N   B O D Y S
+  42          //******************************************************************************
+  43          
+  44          /**************************************************************************//**
+  45           * Turn off system.
+  46           ******************************************************************************/
+  47          void SYSAPI_SetPowerOff(void)
+  48          {
+  49   1      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+  50   1      #if ENABLE_SCALER_AUDIO == ON
+  51   1          ScalerAudioPreMute();
+  52   1      #endif
+C51 COMPILER V9.54   SYSAPI                                                                01/06/2017 14:56:42 PAGE 2   
+
+  53   1      #endif
+  54   1      #if 1// 1 lrd add 
+  55   1        NvramWriteSystemData(&SystemData);
+  56   1        NvramWriteUserData(&UserData);
+  57   1      #if ((ENABLE_FE2P == ON) && (ENABLE_AUTO_CONTROL == OFF))
+  58   1        FE2P_SaveToFlash();
+  59   1      #endif
+  60   1      #endif
+  61   1          bShowInputNovitceFlag = TRUE;
+  62   1          Custom_System.bPressKeyWakeUp = FALSE;
+  63   1      
+  64   1        ModeHandleSoftPowerOff();
+  65   1          LedGreenOff();
+  66   1          LedRedOff();
+  67   1          AudioMuteOn();
+  68   1          PanelPowerOffSequence();
+  69   1          AudioPowerOff();
+  70   1      #if (ENABLE_DIGI3_HPD == ON) ||(ENABLE_DIGI2_HPD == ON) ||(ENABLE_DIGI1_HPD == ON) || (ENABLE_DIGI0_HPD ==
+             - ON) || (ENABLE_DP_HPD == ON) || (ENABLE_DP1_HPD == ON) || (ENABLE_DP2_HPD == ON) || (ENABLE_DP3_HPD == ON)
+  71   1          SYSAPI_PerformHPDOff(FALSE);
+  72   1      #endif
+  73   1      #if MD_ENABLE_AO_DETECT == OFF
+  74   1          ScalerPowerDown();
+  75   1      #endif
+  76   1      #if (IS_NT68810_SERIES || IS_NT68870_SERIES) && MD_ENABLE_AO_DETECT == ON
+                  NvramWriteUserData(&UserData);
+              #if ((ENABLE_FE2P == ON) && (ENABLE_AUTO_CONTROL == OFF))
+                  FE2P_SaveToFlash();
+              #endif
+                  do {
+                      ResetWDTimer();
+                      SC_ZERO_PWR_CTRL_B69 |= BIT0;
+                      SC_ZERO_PWR_CTRL_B69 &= ~BIT0;
+                      Sleep(AO_KEY_DEBOUNCE_TIME); //wait HW debounce
+                  } while ((SC_ZERO_PWR_CTRL_B64 & BIT2) != 0);
+                  SetZPDetect(ZP_DC_OFF);
+                  ZPLatchData();
+                  ZPClearADC();
+                  ZPPowerOff();
+              #endif
+  92   1      }
+  93          
+  94          /**************************************************************************//**
+  95           * Turn on system.
+  96           ******************************************************************************/
+  97          void SYSAPI_SetPowerOn(void)
+  98          {
+  99   1          ModeHandleSoftPowerOn();
+ 100   1          LedRedOff();
+ 101   1          LedGreenOn();
+ 102   1          ScalerPowerUp();
+ 103   1          AudioPowerOn();
+ 104   1      }
+ 105          
+ 106          /**************************************************************************//**
+ 107           * Set system to power saving.
+ 108           ******************************************************************************/
+ 109          void SYSAPI_PowerSaving(void)
+ 110          {
+ 111   1          bShowInputNovitceFlag = TRUE;
+ 112   1      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 113   1      #if ENABLE_SCALER_AUDIO == ON
+C51 COMPILER V9.54   SYSAPI                                                                01/06/2017 14:56:42 PAGE 3   
+
+ 114   1          ScalerAudioPreMute();
+ 115   1      #endif
+ 116   1      #endif
+ 117   1          ModeHandlePowerSaving();
+ 118   1          LedGreenOff();
+ 119   1          LedRedOn();
+ 120   1          AudioMuteOn();
+ 121   1          PanelPowerOffSequence();
+ 122   1          AudioPowerOff();
+ 123   1      #if ENABLE_USB_TYPE_C == ON
+                  if (IsUSBCCVBusAttach() == TRUE) {
+                      return;
+                  }
+              #endif
+ 128   1      
+ 129   1      #if ENABLE_HDMI_PRETEST == OFF && ENABLE_AUTO_CONTROL == OFF
+ 130   1      #if (IS_NT68810_SERIES || IS_NT68870_SERIES) && MD_ENABLE_AO_DETECT == ON
+              //    ScalerPowerDown();
+                  SetZPDetect(ZP_SYNC_DET);
+              //    ZPLatchData();
+                  ZPResetADC();
+                  ZPPowerOff();
+              #else
+ 137   1          ScalerPowerSaving();
+ 138   1      #endif
+ 139   1      #endif
+ 140   1      }
+ 141          
+ 142          /**************************************************************************//**
+ 143           * Force system to power saving state even video signal is present.
+ 144           ******************************************************************************/
+ 145          void SYSAPI_ForcePowerSaving(void)
+ 146          {
+ 147   1          SetForceToSleep();
+ 148   1          SYSAPI_PowerSaving();
+ 149   1      }
+ 150          
+ 151          /**************************************************************************//**
+ 152           * Wake system up.
+ 153           ******************************************************************************/
+ 154          void SYSAPI_WakeUp(void)
+ 155          {
+ 156   1      UCHAR ZpIf = GetCurrInputInterface(); //need to discuss with Nick&James
+ 157   1          ModeHandleSoftPowerOn();
+ 158   1          LedRedOff();
+ 159   1          LedGreenOn();  
+ 160   1          ScalerPowerUp();
+ 161   1          
+ 162   1      #if 0//(INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_
+             -INTERFACE&INPUT_DP3)
+                  ClrDPLink();
+              #endif
+ 165   1      //    SetInputInterface(ZpIf);
+ 166   1      #if (INPUT_INTERFACE&INPUT_MHL_MASK) 
+                  if ( MHL_IsCDSenseFlagOn() ) {
+                      if (( ZpIf==DIGITAL_INPUT0 && MHL_GetCbusCH() == MHL_CBUS_CH1 ) ||
+                           ( ZpIf==DIGITAL_INPUT1 && MHL_GetCbusCH() == MHL_CBUS_CH2 ) ||
+                     ( ZpIf==DIGITAL_INPUT2 && MHL_GetCbusCH() == MHL_CBUS_CH1 ) ||
+                     ( ZpIf==DIGITAL_INPUT3 && MHL_GetCbusCH() == MHL_CBUS_CH2 )    ) {
+                          ResetCurTimerTick();
+                      }
+                  }
+C51 COMPILER V9.54   SYSAPI                                                                01/06/2017 14:56:42 PAGE 4   
+
+              #endif
+ 176   1      }
+ 177          
+ 178          /**************************************************************************//**
+ 179           * Check system 5V is present or not.
+ 180           * If 5V is absent, reset system in time.
+ 181           ******************************************************************************/
+ 182          void SYSAPI_CheckSysPower(void)
+ 183          {
+ 184   1          // Restart system if system 5V is absent
+ 185   1          if (McuCheck5V() == FALSE) {
+ 186   2              //((void (code*)(void))0)();
+ 187   2              while(1);   // Use WDT to reset instead of jump (void *) 0
+ 188   2                          // Because WDT is similar to HW reset. Whole HW system will
+ 189   2                          // be reset, but "Jump to zero" can not.
+ 190   2          }
+ 191   1      }
+ 192          
+ 193          #if ENABLE_SET_PWM_MAX_BUFFER == ON
+ 194          /**************************************************************************//**
+ 195           * Set Brightness to 1023 Polling
+ 196           ******************************************************************************/
+ 197          void SetBrightnessPWMMax()
+ 198          {
+ 199   1         UCHAR port;
+ 200   1           if(GetSCID() == SCID_770_E){
+ 201   2             if(PreSetBrightnessPWMMax == TRUE){
+ 202   3                if (GetGlobalTimer(GLOBAL_TMR_PWM_MAX_UPDATE) == 0){ 
+ 203   4                    PreSetBrightnessPWMMax = FALSE;
+ 204   4                    if( GetScalerPWM(port) == 1020){
+ 205   5                        SetBrightness(1023);
+ 206   5                    }
+ 207   4                 }
+ 208   3             }
+ 209   2           }
+ 210   1      }
+ 211          #endif
+ 212          
+ 213          /**************************************************************************//**
+ 214           * Set brightness.
+ 215           * @param br Brightness. The range is 0 ~ 1023.
+ 216           ******************************************************************************/
+ 217          void SetBrightness(USHRT br)
+ 218          {
+ 219   1      #if ENABLE_SCALER_LEDDRV_ANA_MODE == ON
+                  SetLEDDRVCurrent(br);
+              #else    
+ 222   1      #if ENABLE_SET_PWM_MAX_BUFFER == ON
+ 223   1          if(GetSCID() == SCID_770_E){
+ 224   2              if(GetScalerPWM(BKL_PWM_PORT) == 0 && br == 1023){
+ 225   3                  br = 1020;
+ 226   3                  PreSetBrightnessPWMMax = TRUE;
+ 227   3                  SetGlobalTimer(GLOBAL_TMR_PWM_MAX_UPDATE,6000);    
+ 228   3              }else {
+ 229   3                  if(br == 1023){
+ 230   4                      if(GetGlobalTimer(GLOBAL_TMR_PWM_MAX_UPDATE) != 0){
+ 231   5                         br = 1020;;  
+ 232   5                      }
+ 233   4                  }else {
+ 234   4                      PreSetBrightnessPWMMax = FALSE;
+ 235   4                      SetGlobalTimer(GLOBAL_TMR_PWM_MAX_UPDATE,0);
+ 236   4                  }
+C51 COMPILER V9.54   SYSAPI                                                                01/06/2017 14:56:42 PAGE 5   
+
+ 237   3              }
+ 238   2           }
+ 239   1      #endif
+ 240   1      
+ 241   1      #if BKL_PWM_POL == HIGH
+ 242   1          SetScalerPWM(BKL_PWM_PORT, br);
+ 243   1      #else
+                  SetScalerPWM(BKL_PWM_PORT, (1023 - br));
+              #endif
+ 246   1      #endif//ENABLE_SCALER_LEDDRV_ANA_MODE == ON
+ 247   1      
+ 248   1      #if ENABLE_LD == ON
+                  LDAPI_SetBrightness(br >> 2);
+              #endif
+ 251   1      }
+ 252          
+ 253          /**************************************************************************//**
+ 254           * Get brightness.
+ 255           * @return Value of brightness. The range is 0 ~ 1023.
+ 256           ******************************************************************************/
+ 257          /*
+ 258          USHRT GetBrightness(void)
+ 259          {
+ 260          #if BKL_PWM_POL == HIGH
+ 261              return GetScalerPWM(BKL_PWM_PORT);
+ 262          #else
+ 263              return (1023-GetScalerPWM(BKL_PWM_PORT));
+ 264          #endif
+ 265          }
+ 266          */
+ 267          
+ 268          /**************************************************************************//**
+ 269           * Set the PWM frequency.
+ 270           * @param enable TRUE to set frequency for normal display. FALSE to set frequency for free run.
+ 271           ******************************************************************************/
+ 272          void SetBLPwmByInputVSync(UCHAR enable)
+ 273          {
+ 274   1      #if ENABLE_SCALER_LEDDRV == ON
+                  if (enable == TRUE) {
+                      SetLEDDriverFreq(BRIGHTNESS_ND_PWM_FREQ);
+                  }
+                  else {
+                      SetLEDDriverFreq(BRIGHTNESS_FR_PWM_FREQ);
+                  }
+              #else
+ 282   1          if (enable == TRUE) {
+ 283   2              ConfigScalerPWM(BKL_PWM_PORT, BKL_PWM_OUTPUT_PIN, BRIGHTNESS_ND_PWM_FREQ);
+ 284   2          }
+ 285   1          else {
+ 286   2              ConfigScalerPWM(BKL_PWM_PORT, BKL_PWM_OUTPUT_PIN, BRIGHTNESS_FR_PWM_FREQ);
+ 287   2          }
+ 288   1      #endif
+ 289   1      }
+ 290          
+ 291          /**************************************************************************//**
+ 292           * Set audio volume.
+ 293           * @param value Value of audio volume. The range is 0 ~ 1023.
+ 294           ******************************************************************************/
+ 295          void SetVolume(USHRT value)
+ 296          #if 0
+              {
+                USHRT scaler_vol;
+C51 COMPILER V9.54   SYSAPI                                                                01/06/2017 14:56:42 PAGE 6   
+
+              #if 1
+                if ((UserData.ucInputSource >= INPUT_SC_VGA)&&(UserData.ucInputSource <= INPUT_SC_DVI1))
+                {
+                  scaler_vol = (ULONG) value * (MAX_VOLUME_ANOGALE_VALUE - MIN_VOLUME_ANOGALE_VALUE) / 1023
+                            + MIN_VOLUME_ANOGALE_VALUE;
+                }
+                else//由于没有做数字信号下选用模拟通道输出，因此不用做判断。
+                {
+                    scaler_vol = (ULONG) value * (MAX_VOLUME_VALUE - MIN_VOLUME_VALUE) / 1023
+                            + MIN_VOLUME_VALUE;
+              
+                }
+              #endif
+              #if 0
+              #if VOLUME_PWM_POL == HIGH
+                  SetScalerPWM(VOLUME_PWM_PORT, value);
+              #else
+                  SetScalerPWM(VOLUME_PWM_PORT, (1023-value));
+              #endif
+              
+              #if ENABLE_SCALER_AUDIO == ON
+                  #if (VOLUME_PWM_PORT==PWM_A) || (VOLUME_PWM_PORT==PWM_B) || (VOLUME_PWM_PORT==PWM_C) || (VOLUME_PWM_PO
+             -RT==PWM_D)
+                  ConfigScalerAudio(0xFFFF);  // Load default setting
+                #else
+                  value = (ULONG) value * HDMI_AUDIO_VOLUME_RANGE / 1023;
+                  ConfigScalerAudio(value);
+                  #endif
+              #endif
+              #else
+              
+                if(value)
+                {
+              #if VOLUME_PWM_POL == HIGH
+                      SetScalerPWM(VOLUME_PWM_PORT, 1023);
+              #else
+                      SetScalerPWM(VOLUME_PWM_PORT, 0);
+              #endif
+              //  AudioMuteOff();
+              
+                }
+                else
+                {
+              #if VOLUME_PWM_POL == HIGH
+                  SetScalerPWM(VOLUME_PWM_PORT, 0);
+              #else
+                  SetScalerPWM(VOLUME_PWM_PORT, 1023);
+              #endif
+              //  AudioMuteOn();
+              
+                }
+                  ConfigScalerAudio(scaler_vol);
+              #endif
+              }
+              #else
+ 353          {
+ 354   1        USHRT scaler_vol;
+ 355   1      #if 1
+ 356   1            scaler_vol = (ULONG) value * (MAX_VOLUME_VALUE - MIN_VOLUME_VALUE) / 1023
+ 357   1                    + MIN_VOLUME_VALUE;
+ 358   1      #endif
+ 359   1      #if 0
+C51 COMPILER V9.54   SYSAPI                                                                01/06/2017 14:56:42 PAGE 7   
+
+              #if VOLUME_PWM_POL == HIGH
+                  SetScalerPWM(VOLUME_PWM_PORT, value);
+              #else
+                  SetScalerPWM(VOLUME_PWM_PORT, (1023-value));
+              #endif
+              
+              #if ENABLE_SCALER_AUDIO == ON
+                  #if (VOLUME_PWM_PORT==PWM_A) || (VOLUME_PWM_PORT==PWM_B) || (VOLUME_PWM_PORT==PWM_C) || (VOLUME_PWM_PO
+             -RT==PWM_D)
+                  ConfigScalerAudio(0xFFFF);  // Load default setting
+                #else
+                  value = (ULONG) value * HDMI_AUDIO_VOLUME_RANGE / 1023;
+                  ConfigScalerAudio(value);
+                  #endif
+              #endif
+              #else
+ 375   1      
+ 376   1        if(value)
+ 377   1        {
+ 378   2      #if VOLUME_PWM_POL == HIGH
+ 379   2                  if ((SC_AUDIO_SELECT & 0x20) != 0)//((UserData.ucInputSource >= INPUT_SC_VGA)&&(UserData.ucInp
+             -utSource <= INPUT_SC_DVI1))
+ 380   2              SetScalerPWM(VOLUME_PWM_PORT, 700);
+ 381   2                  else
+ 382   2              SetScalerPWM(VOLUME_PWM_PORT, 1023);
+ 383   2      #else
+                      SetScalerPWM(VOLUME_PWM_PORT, 0);
+              #endif
+ 386   2      //  AudioMuteOff();
+ 387   2      
+ 388   2        }
+ 389   1        else
+ 390   1        {
+ 391   2      #if VOLUME_PWM_POL == HIGH
+ 392   2          SetScalerPWM(VOLUME_PWM_PORT, 0);
+ 393   2      #else
+                  SetScalerPWM(VOLUME_PWM_PORT, 1023);
+              #endif
+ 396   2      //  AudioMuteOn();
+ 397   2      
+ 398   2        }
+ 399   1          ConfigScalerAudio(scaler_vol);
+ 400   1      #endif
+ 401   1      }
+ 402          
+ 403          #endif
+ 404          /**************************************************************************//**
+ 405           * Panel power up sequence.
+ 406           * @param force TRUE to turn on backlight without checking mode handle state else FALSE.
+ 407           ******************************************************************************/
+ 408          void PanelPowerOnSequence(UCHAR force)
+ 409          {
+ 410   1      #if ENABLE_EDP == ON
+                  USHRT local_timer;
+              #endif
+ 413   1      
+ 414   1          if (IsPanelPowerOn() == FALSE) {
+ 415   2              while (GetGlobalTimer(GLOBAL_TMR_PANEL_ONOFF)) {
+ 416   3                  ResetWDTimer();
+ 417   3              }
+ 418   2              PanelPowerOn();
+ 419   2              Sleep(UserPanelData.usPowerUpPanelTime+PANEL_POWER_DELAY);
+C51 COMPILER V9.54   SYSAPI                                                                01/06/2017 14:56:42 PAGE 8   
+
+ 420   2      #if ENABLE_EDP == ON
+                      local_timer = GetTimerTick();
+                      do {
+                          ResetWDTimer();
+                          CheckDPTXHPD();
+                      } while ((GetTimerTick()-local_timer) < DPTX_HPD_DELAY+50);
+              #else
+ 427   2              LvdsOn();
+ 428   2      #endif
+ 429   2              Sleep(UserPanelData.usPowerUpInvTime);
+ 430   2          }
+ 431   1          // Check sync status before turn on backlight to avoid panel flashing
+ 432   1          if (force == FALSE) {
+ 433   2              if (CheckModeChangeFlag() && (GetModeHandleState() == WAIT_MODE_CHANGE)) {
+ 434   3                  return;
+ 435   3              }
+ 436   2              if ((GetInputSyncMode() == NO_SYNC) && (bIsCableConnect() == FALSE)) {
+ 437   3                  return;
+ 438   3              }
+ 439   2              if ((GetInputSyncMode() == NO_CABLE) && (bIsCableConnect() == TRUE)) {
+ 440   3                  return;
+ 441   3              }
+ 442   2          }
+ 443   1          BacklightOn();
+ 444   1      }
+ 445          
+ 446          /**************************************************************************//**
+ 447           * Panel power down sequence.
+ 448           ******************************************************************************/
+ 449          void PanelPowerOffSequence(void)
+ 450          {
+ 451   1          BacklightOff();
+ 452   1          if (IsPanelPowerOn() == TRUE) {
+ 453   2              Force2Background(0, 0, 0);
+ 454   2              OSDAPI_TurnOffOSD();//2011-05-11:Turn off OSD before white pattern insertion
+ 455   2      
+ 456   2              switch(PANEL_PWR_OFF_SEQUENCE_MODE){
+ 457   3                default:
+ 458   3                case PANEL_INSERT_BLACK:  
+ 459   3                  Sleep(UserPanelData.usPowerDownInvTime);
+ 460   3      #if ENABLE_EDP == OFF
+ 461   3                  LvdsOff();
+ 462   3      #endif
+ 463   3                  Sleep(UserPanelData.usPowerDownPanelTime);
+ 464   3                  PanelPowerOff();
+ 465   3                break;           
+ 466   3                case PANEL_INSERT_WHITE:
+ 467   3                  SetPostBGColor(0xFF, 0xFF, 0xFF);//PANEL_INSERT_WHITE_DISCHARGE_ELECTRICITY 
+ 468   3                  Sleep(UserPanelData.usPowerDownInvTime);
+ 469   3      #if ENABLE_EDP == OFF
+ 470   3                  LvdsOff();
+ 471   3      #endif
+ 472   3                  SetPostBGColor(0x00, 0x00, 0x00);//PANEL_INSERT_WHITE_DISCHARGE_ELECTRICITY
+ 473   3                  Sleep(UserPanelData.usPowerDownPanelTime);
+ 474   3                  PanelPowerOff();
+ 475   3                break;
+ 476   3                case PANEL_INSERT_WHITE|PANEL_POWER_LVDS_SWAP:
+ 477   3                  SetPostBGColor(0xFF, 0xFF, 0xFF);//PANEL_INSERT_WHITE_DISCHARGE_ELECTRICITY
+ 478   3                  Sleep(UserPanelData.usPowerDownPanelTime);
+ 479   3                  PanelPowerOff();
+ 480   3                  SetPostBGColor(0x00, 0x00, 0x00);//PANEL_INSERT_WHITE_DISCHARGE_ELECTRICITY
+ 481   3                  Sleep(UserPanelData.usPowerDownInvTime);
+C51 COMPILER V9.54   SYSAPI                                                                01/06/2017 14:56:42 PAGE 9   
+
+ 482   3      #if ENABLE_EDP == OFF
+ 483   3                  LvdsOff();
+ 484   3      #endif
+ 485   3                break; 
+ 486   3                case PANEL_INSERT_BLACK|PANEL_POWER_LVDS_SWAP:
+ 487   3                  Sleep(UserPanelData.usPowerDownPanelTime);
+ 488   3                  PanelPowerOff();
+ 489   3                  Sleep(UserPanelData.usPowerDownInvTime);
+ 490   3      #if ENABLE_EDP == OFF
+ 491   3                  LvdsOff();
+ 492   3      #endif
+ 493   3                break;  
+ 494   3             }
+ 495   2      
+ 496   2              SetGlobalTimer(GLOBAL_TMR_PANEL_ONOFF, GBTM_PANEL_ONOFF);
+ 497   2          }
+ 498   1      }
+ 499          
+ 500          #if (ENABLE_DIGI3_HPD == ON) ||(ENABLE_DIGI2_HPD == ON) ||(ENABLE_DIGI1_HPD == ON) || (ENABLE_DIGI0_HPD ==
+             - ON) || (ENABLE_DP_HPD == ON) || (ENABLE_DP1_HPD == ON) || (ENABLE_DP2_HPD == ON) || (ENABLE_DP3_HPD == ON) || (ENABLE_U
+             -SB_TYPE_C == ON)
+ 501          /**************************************************************************//**
+ 502           * Pull up HDP pin.
+ 503           ******************************************************************************/
+ 504          void SYSAPI_PerformHPDOn(void)
+ 505          {
+ 506   1          UCHAR curr_interface = GetCurrInputInterface();
+ 507   1      #if ENABLE_DIGI0_HPD == ON
+                  if (curr_interface == DIGITAL_INPUT0) {
+                      Digi0HPDOn();
+                  }
+              #endif
+ 512   1      #if ENABLE_DIGI1_HPD == ON
+ 513   1          if (curr_interface == DIGITAL_INPUT1) {
+ 514   2              Digi1HPDOn();
+ 515   2          }
+ 516   1      #endif
+ 517   1      #if ENABLE_DIGI2_HPD == ON
+ 518   1          if (curr_interface == DIGITAL_INPUT2) {
+ 519   2              Digi2HPDOn();
+ 520   2          }
+ 521   1      #endif
+ 522   1      #if ENABLE_DIGI3_HPD == ON
+ 523   1          if (curr_interface == DIGITAL_INPUT3) {
+ 524   2              Digi3HPDOn();
+ 525   2          }
+ 526   1      #endif
+ 527   1      #if ENABLE_DP_HPD == ON && ENABLE_USB_TYPE_C == OFF
+ 528   1          if (curr_interface == DISPLAY_PORT_INPUT) {
+ 529   2              DPHPDOn();
+ 530   2          }
+ 531   1      #endif
+ 532   1      #if ENABLE_DP1_HPD == ON
+                  if (curr_interface == DISPLAY_PORT_INPUT1) {
+                      DP1HPDOn();
+                  }
+              #endif
+ 537   1      #if ENABLE_DP2_HPD == ON
+                  if (curr_interface == DISPLAY_PORT_INPUT2) {
+                      DP2HPDOn();
+                  }
+              #endif
+C51 COMPILER V9.54   SYSAPI                                                                01/06/2017 14:56:42 PAGE 10  
+
+ 542   1      #if ENABLE_DP3_HPD == ON
+                  if (curr_interface == DISPLAY_PORT_INPUT3) {
+                      DP3HPDOn();
+                  }
+              #endif
+ 547   1      #if ENABLE_USB_TYPE_C == ON
+                  if ((GetCurrInputInterface() == USB_TYPE_C_INTERFACE) && IsUSBCCVBusAttach() && (SystemData.bPDdone ==
+             - TRUE)) {
+                      USBCCConfigHPD(TRUE);
+                  }
+              #endif
+ 552   1      }
+ 553          
+ 554          /**************************************************************************//**
+ 555           * Pull low HDP pin.
+ 556           ******************************************************************************/
+ 557          void SYSAPI_PerformHPDOff(UCHAR force)
+ 558          {
+ 559   1          UCHAR curr_interface = GetCurrInputInterface();
+ 560   1          
+ 561   1          // We have to hide the SystemData variables in the future :)
+ 562   1              if (force == TRUE) {
+ 563   2      #if ENABLE_DIGI0_HPD == ON
+                      #if (INPUT_INTERFACE&INPUT_MHL0)
+                          if ((MHL_Is_CDSense1_IO_HIGH()) == FALSE)
+                      #endif
+                          {
+                              Digi0HPDOff();
+                          }
+              #endif
+ 571   2      #if ENABLE_DIGI1_HPD == ON
+ 572   2              #if (INPUT_INTERFACE&INPUT_MHL1)
+                          if ((MHL_Is_CDSense2_IO_HIGH()) == FALSE)
+                      #endif
+ 575   2                  {
+ 576   3                      Digi1HPDOff();
+ 577   3                  }
+ 578   2      #endif
+ 579   2      #if ENABLE_DIGI2_HPD == ON
+ 580   2              #if (INPUT_INTERFACE&INPUT_MHL2)
+                          if ((MHL_Is_CDSense1_IO_HIGH()) == FALSE)
+                      #endif
+ 583   2                  {
+ 584   3                      Digi2HPDOff();
+ 585   3                  }
+ 586   2      #endif
+ 587   2      #if ENABLE_DIGI3_HPD == ON
+ 588   2              #if (INPUT_INTERFACE&INPUT_MHL3)
+                          if ((MHL_Is_CDSense2_IO_HIGH()) == FALSE)
+                      #endif
+ 591   2                  {
+ 592   3                      Digi3HPDOff();
+ 593   3                  }
+ 594   2      #endif
+ 595   2      #if ENABLE_DP_HPD == ON && ENABLE_USB_TYPE_C == OFF
+ 596   2                  DPHPDOff();
+ 597   2      #endif
+ 598   2      #if ENABLE_DP1_HPD == ON
+                          DP1HPDOff();
+              #endif
+ 601   2      #if ENABLE_DP2_HPD == ON
+                          DP2HPDOff();
+C51 COMPILER V9.54   SYSAPI                                                                01/06/2017 14:56:42 PAGE 11  
+
+              #endif
+ 604   2      #if ENABLE_DP3_HPD == ON
+                          DP3HPDOff();
+              #endif
+ 607   2      #if ENABLE_USB_TYPE_C == ON
+                          if (IsUSBCCVBusAttach() && (SystemData.bPDdone == TRUE)) {
+                              USBCCConfigHPD(FALSE);
+                          }
+              #endif
+ 612   2                  SetGlobalTimer(GLOBAL_TMR_HPD, HPD_LOW_PERIOD);
+ 613   2              }    
+ 614   1              else {
+ 615   2      #if ENABLE_DIGI0_HPD == ON
+                          if ((curr_interface == DIGITAL_INPUT0) && IsDigital0Connect()) {
+                          #if (INPUT_INTERFACE&INPUT_MHL0)
+                              if ((MHL_Is_CDSense1_IO_HIGH()) == FALSE)
+                          #endif
+                              {
+                                  Digi0HPDOff();
+                                  SetGlobalTimer(GLOBAL_TMR_HPD, HPD_LOW_PERIOD);
+                              }
+                          }
+              #endif
+ 626   2      #if ENABLE_DIGI1_HPD == ON
+ 627   2                  if ((curr_interface == DIGITAL_INPUT1) && IsDigital1Connect()) {
+ 628   3                  #if (INPUT_INTERFACE&INPUT_MHL1)
+                              if ((MHL_Is_CDSense2_IO_HIGH()) == FALSE)
+                          #endif
+ 631   3                      {
+ 632   4                          Digi1HPDOff();            
+ 633   4                          SetGlobalTimer(GLOBAL_TMR_HPD, HPD_LOW_PERIOD);
+ 634   4                      }
+ 635   3                  }
+ 636   2      #endif
+ 637   2      #if ENABLE_DIGI2_HPD == ON
+ 638   2                  if ((curr_interface == DIGITAL_INPUT2) && IsDigital2Connect()) {
+ 639   3                  #if (INPUT_INTERFACE&INPUT_MHL2)
+                              if ((MHL_Is_CDSense1_IO_HIGH()) == FALSE)
+                          #endif
+ 642   3                      {
+ 643   4                          Digi2HPDOff();
+ 644   4                          SetGlobalTimer(GLOBAL_TMR_HPD, HPD_LOW_PERIOD);
+ 645   4                      }
+ 646   3                  }
+ 647   2      #endif
+ 648   2      #if ENABLE_DIGI3_HPD == ON
+ 649   2                  if ((curr_interface == DIGITAL_INPUT3) && IsDigital3Connect()) {
+ 650   3                  #if (INPUT_INTERFACE&INPUT_MHL3)
+                              if ((MHL_Is_CDSense2_IO_HIGH()) == FALSE)
+                          #endif
+ 653   3                      {
+ 654   4                          Digi3HPDOff();            
+ 655   4                          SetGlobalTimer(GLOBAL_TMR_HPD, HPD_LOW_PERIOD);
+ 656   4                      }
+ 657   3                  }
+ 658   2      #endif
+ 659   2      #if ENABLE_USB_TYPE_C == OFF
+ 660   2      #if ENABLE_DP_HPD == ON
+ 661   2      #if ENABLE_DP_ADV_HPD == ON
+ 662   2                  if ((curr_interface == DISPLAY_PORT_INPUT) && IsDPConnect()) {
+ 663   3      //                if ((IsDPTrainingDone() == FALSE) && (!IsZpMode())) {
+ 664   3                          DPHPDOff();
+C51 COMPILER V9.54   SYSAPI                                                                01/06/2017 14:56:42 PAGE 12  
+
+ 665   3                          SetGlobalTimer(GLOBAL_TMR_HPD, DP_HPD_LOW_PERIOD);
+ 666   3      //                }
+ 667   3                  }
+ 668   2      #endif
+ 669   2                  if (UserData.bPowerStatus == OFF) {
+ 670   3                      DPHPDOff();
+ 671   3                      SetGlobalTimer(GLOBAL_TMR_HPD, DP_HPD_LOW_PERIOD);
+ 672   3                  }
+ 673   2      #endif
+ 674   2      #endif
+ 675   2      #if ENABLE_DP1_HPD == ON
+              #if ENABLE_DP1_ADV_HPD == ON
+                          if ((curr_interface == DISPLAY_PORT_INPUT1) && IsDP1Connect()) {
+              //                if ((IsDPTrainingDone() == FALSE) && (!IsZpMode())) {
+                                  DP1HPDOff();
+                                  SetGlobalTimer(GLOBAL_TMR_HPD, DP_HPD_LOW_PERIOD);
+              //                }
+                          }
+              #endif
+                          if (UserData.bPowerStatus == OFF) {
+                              DP1HPDOff();
+                              SetGlobalTimer(GLOBAL_TMR_HPD, DP_HPD_LOW_PERIOD);
+                          }
+              #endif
+ 689   2      #if ENABLE_DP2_HPD == ON
+              #if ENABLE_DP2_ADV_HPD == ON
+                          if ((curr_interface == DISPLAY_PORT_INPUT2) && IsDP2Connect()) {
+              //                if ((IsDPTrainingDone() == FALSE) && (!IsZpMode())) {
+                                  DP2HPDOff();
+                                  SetGlobalTimer(GLOBAL_TMR_HPD, DP_HPD_LOW_PERIOD);
+              //                }
+                          }
+              #endif
+                          if (UserData.bPowerStatus == OFF) {
+                              DP2HPDOff();
+                              SetGlobalTimer(GLOBAL_TMR_HPD, DP_HPD_LOW_PERIOD);
+                          }
+              #endif
+ 703   2      #if ENABLE_DP3_HPD == ON
+              #if ENABLE_DP3_ADV_HPD == ON
+                          if ((curr_interface == DISPLAY_PORT_INPUT3) && IsDP3Connect()) {
+              //                if ((IsDPTrainingDone() == FALSE) && (!IsZpMode())) {
+                                  DP3HPDOff();
+                                  SetGlobalTimer(GLOBAL_TMR_HPD, DP_HPD_LOW_PERIOD);
+              //                }
+                          }
+              #endif
+                          if (UserData.bPowerStatus == OFF) {
+                              DP3HPDOff();
+                              SetGlobalTimer(GLOBAL_TMR_HPD, DP_HPD_LOW_PERIOD);
+                          }
+              #endif
+ 717   2      #if ENABLE_USB_TYPE_C == ON
+                          if ((GetCurrInputInterface() == USB_TYPE_C_INTERFACE) && IsUSBCCVBusAttach() && (SystemData.bP
+             -Ddone == TRUE)) {
+                              USBCCConfigHPD(FALSE);
+                              SetGlobalTimer(GLOBAL_TMR_HPD, USBCC_HPD_LOW_PERIOD);
+                          }
+              #endif
+ 723   2             }
+ 724   1          }
+ 725          
+C51 COMPILER V9.54   SYSAPI                                                                01/06/2017 14:56:42 PAGE 13  
+
+ 726          #endif
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    890    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      1      12
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

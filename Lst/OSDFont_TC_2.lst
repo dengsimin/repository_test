@@ -1,0 +1,34 @@
+C51 COMPILER V9.54   OSDFONT_TC_2                                                          12/29/2016 18:19:58 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE OSDFONT_TC_2
+OBJECT MODULE PLACED IN .\Bin\OSDFont_TC_2.obj
+COMPILER INVOKED BY: D:\win7_32Èí¼þ\Keil_v5\C51\BIN\C51.EXE App\OSD\OSDFont_TC_2.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR
+                    -(.\App;.\App\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Compo
+                    -nent;.\Phy\SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT6887
+                    -0_MODULE,NVT_2560X1440_FP,FLASH_BANK=8) PRINT(.\Lst\OSDFont_TC_2.lst) TABS(2) OBJECT(.\Bin\OSDFont_TC_2.obj)
+
+line level    source
+
+   1          #include "Include.h"
+   2          
+   3          #if OSDTYPE == OSD_BENQ
+              #elif OSDTYPE == OSD_BENQ_V1
+              #elif OSDTYPE == OSD_BENQ_V2
+   6          #include "OSD_BENQ_V2/OSDFont_TC_2.c"
+   7          #endif 
+   8          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     23    ----
+   CONSTANT SIZE    =   7659    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

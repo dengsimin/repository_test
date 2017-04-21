@@ -1,0 +1,15 @@
+C51 COMPILER V9.54   DEMOOSDVIEW                                                           12/19/2016 09:30:01 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DEMOOSDVIEW
+OBJECT MODULE PLACED IN .\Bin\DemoOSDView.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE App\OSD\DemoOSDView.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\
+                    -OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI
+                    -\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,NVT_
+                    -1920X1080,FLASH_BANK=4) PRINT(.\Lst\DemoOSDView.lst) TABS(2) OBJECT(.\Bin\DemoOSDView.obj)
+
+line level    source
+
+*** ERROR C318 OF App\OSD\DemoOSDView.c: can't open file 'App\OSD\DemoOSDView.c'
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  1 ERROR(S)

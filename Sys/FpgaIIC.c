@@ -1,0 +1,674 @@
+/******************************************************************************/
+/*                       Novatek MicroElectronics Corp.                       */
+/*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+/*                         HsinChu 300, Taiwan, R.O.C.                        */
+/*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+/*                            All Rights Reserved                             */
+/******************************************************************************/
+/******************************************************************************/
+/*       FpgaIIC.c                                                           */
+/*       Release Date:2010/10/15       Last Maintenance:2010/10/15           */
+/*       Original Version:2.2.00       Last Version:2.2.00                    */
+/*       Coding By: Samuel Su          Maintenance By: Samuel Su              */
+/******************************************************************************/
+
+//******************************************************************************
+// I N C L U D E   F I L E S
+//******************************************************************************
+#include "Include.h"
+
+#if defined(ENABLE_FPGA_MODE)
+//******************************************************************************
+// G L O B A L   D E F I N I T I O N S
+//******************************************************************************
+#if FPGA_SCL_PORT == MCU_PORT_A
+    #define SCL_DIR_PORT    RDPA_REG
+    #define SCL_PORT        PortA
+#elif FPGA_SCL_PORT == MCU_PORT_B
+    #define SCL_DIR_PORT    RDPB_REG
+    #define SCL_PORT        PortB
+#elif FPGA_SCL_PORT == MCU_PORT_C
+    #define SCL_DIR_PORT    RDPC_REG
+    #define SCL_PORT        PortC
+#elif FPGA_SCL_PORT == MCU_PORT_D
+    #define SCL_DIR_PORT    RDPD_REG
+    #define SCL_PORT        PortD
+#elif FPGA_SCL_PORT == MCU_PORT_E
+    #define SCL_DIR_PORT    RDPE_REG
+    #define SCL_PORT        PortE
+#elif FPGA_SCL_PORT == MCU_PORT_3
+    #define SCL_PORT        P3
+#endif
+#if FPGA_SDA_PORT == MCU_PORT_A
+    #define SDA_DIR_PORT    RDPA_REG
+    #define SDA_PORT        PortA
+#elif FPGA_SDA_PORT == MCU_PORT_B
+    #define SDA_DIR_PORT    RDPB_REG
+    #define SDA_PORT        PortB
+#elif FPGA_SDA_PORT == MCU_PORT_C
+    #define SDA_DIR_PORT    RDPC_REG
+    #define SDA_PORT        PortC
+#elif FPGA_SDA_PORT == MCU_PORT_D
+    #define SDA_DIR_PORT    RDPD_REG
+    #define SDA_PORT        PortD
+#elif FPGA_SDA_PORT == MCU_PORT_E
+    #define SDA_DIR_PORT    RDPE_REG
+    #define SDA_PORT        PortE
+#elif FPGA_SDA_PORT == MCU_PORT_3
+    #define SDA_PORT        P3
+#endif
+
+#if FPGA_SCL_PORT == MCU_PORT_3
+#define IIC_SCL_IN      
+#define IIC_SCL_OUT     
+#define IIC_SCL_HIGH    (SCL_PORT |= FPGA_SCL_BIT)
+#define IIC_SCL_LOW     (SCL_PORT &= ~FPGA_SCL_BIT)
+#else
+#define IIC_SCL_IN      (SCL_DIR_PORT |= FPGA_SCL_BIT)
+#define IIC_SCL_OUT     (SCL_DIR_PORT &= ~FPGA_SCL_BIT)
+#define IIC_SCL_HIGH    (SCL_PORT = (SCL_PORT | SCL_DIR_PORT) | FPGA_SCL_BIT)
+#define IIC_SCL_LOW     (SCL_PORT = (SCL_PORT | SCL_DIR_PORT) & ~FPGA_SCL_BIT)
+#endif
+#define IIC_SCL_STATUS  (SCL_PORT & FPGA_SCL_BIT)
+
+#if FPGA_SDA_PORT == MCU_PORT_3
+#define IIC_SDA_IN      
+#define IIC_SDA_OUT     
+#define IIC_SDA_HIGH    (SDA_PORT |= FPGA_SDA_BIT)
+#define IIC_SDA_LOW     (SDA_PORT &= ~FPGA_SDA_BIT)
+#else
+#define IIC_SDA_IN      (SDA_DIR_PORT |= FPGA_SDA_BIT)
+#define IIC_SDA_OUT     (SDA_DIR_PORT &= ~FPGA_SDA_BIT)
+#define IIC_SDA_HIGH    (SDA_PORT = (SDA_PORT | SDA_DIR_PORT) | FPGA_SDA_BIT)
+#define IIC_SDA_LOW     (SDA_PORT = (SDA_PORT | SDA_DIR_PORT) & ~FPGA_SDA_BIT)
+#endif
+#define IIC_SDA_STATUS  (SDA_PORT & FPGA_SDA_BIT)
+
+
+#if defined(FPGA_SCL_PORT2) && defined(FPGA_SDA_PORT2)
+#if FPGA_SCL_PORT2 == MCU_PORT_A
+    #define SCL_DIR_PORT2    RDPA_REG
+    #define SCL_PORT2        PortA
+#elif FPGA_SCL_PORT2 == MCU_PORT_B
+    #define SCL_DIR_PORT2    RDPB_REG
+    #define SCL_PORT2        PortB
+#elif FPGA_SCL_PORT2 == MCU_PORT_C
+    #define SCL_DIR_PORT2    RDPC_REG
+    #define SCL_PORT2        PortC
+#elif FPGA_SCL_PORT2 == MCU_PORT_D
+    #define SCL_DIR_PORT2    RDPD_REG
+    #define SCL_PORT2        PortD
+#elif FPGA_SCL_PORT2 == MCU_PORT_E
+    #define SCL_DIR_PORT2    RDPE_REG
+    #define SCL_PORT2        PortE
+#elif FPGA_SCL_PORT2 == MCU_PORT_3
+    #define SCL_PORT2        P3
+#endif
+#if FPGA_SDA_PORT2 == MCU_PORT_A
+    #define SDA_DIR_PORT2    RDPA_REG
+    #define SDA_PORT2        PortA
+#elif FPGA_SDA_PORT2 == MCU_PORT_B
+    #define SDA_DIR_PORT2    RDPB_REG
+    #define SDA_POR2T2        PortB
+#elif FPGA_SDA_PORT2 == MCU_PORT_C
+    #define SDA_DIR_PORT2    RDPC_REG
+    #define SDA_PORT2        PortC
+#elif FPGA_SDA_PORT2 == MCU_PORT_D
+    #define SDA_DIR_PORT2    RDPD_REG
+    #define SDA_PORT2        PortD
+#elif FPGA_SDA_PORT2 == MCU_PORT_E
+    #define SDA_DIR_PORT2    RDPE_REG
+    #define SDA_PORT2        PortE
+#elif FPGA_SDA_PORT2 == MCU_PORT_3
+    #define SDA_PORT2        P3
+#endif
+
+#if FPGA_SCL_PORT2 == MCU_PORT_3
+#define IIC2_SCL_IN      
+#define IIC2_SCL_OUT     
+#define IIC2_SCL_HIGH    (SCL_PORT2 |= FPGA_SCL_BIT2)
+#define IIC2_SCL_LOW     (SCL_PORT2 &= ~FPGA_SCL_BIT2)
+#else
+#define IIC2_SCL_IN      (SCL_DIR_PORT2 |= FPGA_SCL_BIT2)
+#define IIC2_SCL_OUT     (SCL_DIR_PORT2 &= ~FPGA_SCL_BIT2)
+#define IIC2_SCL_HIGH    (SCL_PORT2 = (SCL_PORT2 | SCL_DIR_PORT2) | FPGA_SCL_BIT2)
+#define IIC2_SCL_LOW     (SCL_PORT2 = (SCL_PORT2 | SCL_DIR_PORT2) & ~FPGA_SCL_BIT2)
+#endif
+#define IIC2_SCL_STATUS  (SCL_PORT2 & FPGA_SCL_BIT2)
+
+#if FPGA_SDA_PORT2 == MCU_PORT_3
+#define IIC2_SDA_IN      
+#define IIC2_SDA_OUT     
+#define IIC2_SDA_HIGH    (SDA_PORT2 |= FPGA_SDA_BIT2)
+#define IIC2_SDA_LOW     (SDA_PORT2 &= ~FPGA_SDA_BIT2)
+#else
+#define IIC2_SDA_IN      (SDA_DIR_PORT2 |= FPGA_SDA_BIT2)
+#define IIC2_SDA_OUT     (SDA_DIR_PORT2 &= ~FPGA_SDA_BIT2)
+#define IIC2_SDA_HIGH    (SDA_PORT2 = (SDA_PORT2 | SDA_DIR_PORT2) | FPGA_SDA_BIT2)
+#define IIC2_SDA_LOW     (SDA_PORT2 = (SDA_PORT2 | SDA_DIR_PORT2) & ~FPGA_SDA_BIT2)
+#endif
+#define IIC2_SDA_STATUS  (SDA_PORT2 & FPGA_SDA_BIT2)
+#endif
+
+//******************************************************************************
+// G L O B A L   V A R I A B L E S
+//******************************************************************************
+
+//******************************************************************************
+// S T A T I C   V A R I A B L E S
+//******************************************************************************
+static xdata UCHAR ucIICIndex = 1;
+//******************************************************************************
+// E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+//******************************************************************************
+
+//******************************************************************************
+// S T A T I C   F U N C T I O N   P R O T O T Y P E S
+//******************************************************************************
+static void FpgaIICDelay(void);
+static void FpgaIICStart(void);
+static void FpgaIICStop(void);
+static UCHAR FpgaIICWriteByte(UCHAR Data);
+static UCHAR FpgaIICReadByte(UCHAR AckFlag);
+
+//******************************************************************************
+// Prototype: 
+//  static void SetIICSCLHigh(void)
+// Parameters:
+//  None
+// Return:
+//  None
+// Purpose:
+//  Set IIC SCL to high and wait SCL to high
+// Notes:
+//  CPU clk=48MHz, SCL/SDA=P3, maximum loop time about 33ms
+//******************************************************************************
+static void SetIICSCLHigh(void)
+{
+    idata USHRT loop;
+
+    if ( ucIICIndex == 1 ) {
+        IIC_SCL_HIGH;
+        loop = 0;
+        while ((IIC_SCL_STATUS == LOW) && (--loop != 0)) {
+            _nop_();
+            _nop_();
+        }
+    }
+#if defined(FPGA_SCL_PORT2) && defined(FPGA_SDA_PORT2)
+    else if ( ucIICIndex == 2 ) {
+        IIC2_SCL_HIGH;
+        loop = 0;
+        while ((IIC2_SCL_STATUS == LOW) && (--loop != 0)) {
+            _nop_();
+            _nop_();
+        }
+    }
+
+#endif
+}
+
+//******************************************************************************
+// Prototype: 
+//  static void FpgaIICDelay(void)
+// Parameters:
+//  None
+// Return:
+//  None
+// Purpose:
+//  Make a delay
+// Notes:
+//  None
+//******************************************************************************
+static void FpgaIICDelay(void)
+{
+    _nop_();
+    _nop_();
+    _nop_();
+    _nop_();
+    _nop_();
+    _nop_();
+}
+
+//******************************************************************************
+// Prototype: 
+//  static void FpgaIICStart(void)
+// Parameters:
+//  None
+// Return:
+//  None
+// Purpose:
+//  Create IIC start condition
+// Notes:
+//  None
+//******************************************************************************
+static void FpgaIICStart(void)
+{
+    UCHAR i;
+
+    if ( ucIICIndex == 1 ) {
+        IIC_SDA_HIGH;
+        SetIICSCLHigh();
+        IIC_SDA_IN;
+        FpgaIICDelay();
+        i = 0;
+        while ((IIC_SDA_STATUS==LOW) && (i<9)) { //Gen 9 clock
+            IIC_SCL_LOW;
+            FpgaIICDelay();
+            SetIICSCLHigh();
+            i++;
+        }
+        IIC_SDA_OUT;
+        IIC_SDA_LOW;
+        FpgaIICDelay();
+        IIC_SCL_LOW;
+    }
+#if defined(FPGA_SCL_PORT2) && defined(FPGA_SDA_PORT2)
+    else if ( ucIICIndex == 2 ) {
+        IIC2_SDA_HIGH;
+        SetIICSCLHigh();
+        IIC2_SDA_IN;
+        FpgaIICDelay();
+        i = 0;
+        while ((IIC2_SDA_STATUS==LOW) && (i<9)) { //Gen 9 clock
+            IIC2_SCL_LOW;
+            FpgaIICDelay();
+            SetIICSCLHigh();
+            i++;
+        }
+        IIC2_SDA_OUT;
+        IIC2_SDA_LOW;
+        FpgaIICDelay();
+        IIC2_SCL_LOW;
+    }
+#endif
+}
+
+//******************************************************************************
+// Prototype: 
+//  static void FpgaIICStop(void)
+// Parameters:
+//  None
+// Return:
+//  None
+// Purpose:
+//  Create IIC stop condition
+// Notes:
+//  None
+//******************************************************************************
+static void FpgaIICStop(void)
+{
+    if ( ucIICIndex == 1 ) {
+        IIC_SDA_LOW;
+        FpgaIICDelay();
+        SetIICSCLHigh();
+        FpgaIICDelay();
+        IIC_SDA_HIGH;
+    }
+#if defined(FPGA_SCL_PORT2) && defined(FPGA_SDA_PORT2)
+    else if ( ucIICIndex == 2 ) {
+        IIC2_SDA_LOW;
+        FpgaIICDelay();
+        SetIICSCLHigh();
+        FpgaIICDelay();
+        IIC2_SDA_HIGH;
+    }
+#endif
+}
+
+//******************************************************************************
+// Prototype: 
+//  static UCHAR FpgaIICWriteByte(UCHAR Data)
+// Parameters:
+//  Data : Data
+// Return:
+//  ACK/NACK
+// Purpose:
+//  Write one byte data through software IIC channel
+// Notes:
+//  None
+//******************************************************************************
+static UCHAR FpgaIICWriteByte(UCHAR Data)
+{
+    idata UCHAR i, result;
+    code UCHAR Tbl[] = {BIT7, BIT6, BIT5, BIT4, BIT3, BIT2, BIT1, BIT0};
+    if ( ucIICIndex == 1 ) {
+        for (i=0 ; i<8 ;i++) {
+            FpgaIICDelay();
+            IIC_SCL_LOW;
+            FpgaIICDelay();
+            if (Data & Tbl[i]) {
+                IIC_SDA_HIGH;
+            }
+            else {
+                IIC_SDA_LOW;
+            }
+            FpgaIICDelay();
+            SetIICSCLHigh();
+        }
+        FpgaIICDelay();
+        IIC_SCL_LOW;
+        FpgaIICDelay();
+        IIC_SDA_LOW; //Avoid pulse
+        IIC_SDA_IN; //Release SDA bus
+        IIC_SDA_HIGH;
+        //9th clock
+        FpgaIICDelay();
+        SetIICSCLHigh();
+        FpgaIICDelay();
+        if (IIC_SDA_STATUS == LOW) {
+            result = ACK;
+        }
+        else {
+            i = 7;
+            while (IIC_SDA_STATUS && i) {
+                FpgaIICDelay();
+                i--;
+            }
+            if (i == 0) {
+                result = NACK;
+            }
+            else {
+                result = ACK;
+            }
+        }
+        IIC_SCL_LOW;
+        IIC_SDA_OUT;
+        IIC_SDA_LOW;
+        FpgaIICDelay();
+    }
+#if defined(FPGA_SCL_PORT2) && defined(FPGA_SDA_PORT2)
+    else if ( ucIICIndex == 2 ) {
+        for (i=0 ; i<8 ;i++) {
+            FpgaIICDelay();
+            IIC2_SCL_LOW;
+            FpgaIICDelay();
+            if (Data & Tbl[i]) {
+                IIC2_SDA_HIGH;
+            }
+            else {
+                IIC2_SDA_LOW;
+            }
+            FpgaIICDelay();
+            SetIICSCLHigh();
+        }
+        FpgaIICDelay();
+        IIC2_SCL_LOW;
+        FpgaIICDelay();
+        IIC2_SDA_LOW; //Avoid pulse
+        IIC2_SDA_IN; //Release SDA bus
+        IIC2_SDA_HIGH;
+        //9th clock
+        FpgaIICDelay();
+        SetIICSCLHigh();
+        FpgaIICDelay();
+        if (IIC2_SDA_STATUS == LOW) {
+            result = ACK;
+        }
+        else {
+            i = 7;
+            while (IIC2_SDA_STATUS && i) {
+                FpgaIICDelay();
+                i--;
+            }
+            if (i == 0) {
+                result = NACK;
+            }
+            else {
+                result = ACK;
+            }
+        }
+        IIC2_SCL_LOW;
+        IIC2_SDA_OUT;
+        IIC2_SDA_LOW;
+        FpgaIICDelay();
+    }
+#endif
+    return result;
+}
+
+//******************************************************************************
+// Prototype: 
+//  static UCHAR FpgaIICReadByte(UCHAR AckFlag)
+// Parameters:
+//  AckFlag : Send ACK or not
+// Return:
+//  Data
+// Purpose:
+//  Read one byte data through software IIC channel
+// Notes:
+//  None
+//******************************************************************************
+static UCHAR FpgaIICReadByte(UCHAR AckFlag)
+{
+    UCHAR i, result;
+    if ( ucIICIndex == 1 ) {
+        AckFlag &= BIT0;
+        IIC_SDA_IN;
+        IIC_SDA_HIGH;
+        for (i=0; i<8; i++) {
+            result <<= 1;
+            SetIICSCLHigh();
+            FpgaIICDelay();
+            if (IIC_SDA_STATUS == LOW) {
+                result &= 0xFE; //SDA = 0
+            }
+            else {
+                result |= 0x01; //SDA = 1
+            }
+            IIC_SCL_LOW;
+            FpgaIICDelay();
+        }
+        IIC_SDA_OUT;
+        if (AckFlag == ACK) {
+            IIC_SDA_LOW;
+        }
+        else {
+            IIC_SDA_HIGH;
+        }
+        FpgaIICDelay();
+        SetIICSCLHigh();
+        FpgaIICDelay();
+        IIC_SCL_LOW;
+        FpgaIICDelay();
+    }
+#if defined(FPGA_SCL_PORT2) && defined(FPGA_SDA_PORT2)
+    else if ( ucIICIndex == 2 ) {
+        AckFlag &= BIT0;
+        IIC2_SDA_IN;
+        IIC2_SDA_HIGH;
+        for (i=0; i<8; i++) {
+            result <<= 1;
+            SetIICSCLHigh();
+            FpgaIICDelay();
+            if (IIC2_SDA_STATUS == LOW) {
+                result &= 0xFE; //SDA = 0
+            }
+            else {
+                result |= 0x01; //SDA = 1
+            }
+            IIC2_SCL_LOW;
+            FpgaIICDelay();
+        }
+        IIC2_SDA_OUT;
+        if (AckFlag == ACK) {
+            IIC2_SDA_LOW;
+        }
+        else {
+            IIC2_SDA_HIGH;
+        }
+        FpgaIICDelay();
+        SetIICSCLHigh();
+        FpgaIICDelay();
+        IIC2_SCL_LOW;
+        FpgaIICDelay();
+    }
+#endif
+    return result;
+}
+
+#undef SCL_DIR_PORT
+#undef SCL_PORT
+#undef SDA_DIR_PORT
+#undef SDA_PORT
+#undef IIC_SCL_IN
+#undef IIC_SCL_OUT
+#undef IIC_SCL_HIGH
+#undef IIC_SCL_LOW
+#undef IIC_SCL_STATUS
+#undef IIC_SDA_IN
+#undef IIC_SDA_OUT
+#undef IIC_SDA_HIGH
+#undef IIC_SDA_LOW
+#undef IIC_SDA_STATUS
+
+#if defined(FPGA_SCL_PORT2) && defined(FPGA_SDA_PORT2)
+#undef SCL_DIR_PORT2
+#undef SCL_PORT2
+#undef SDA_DIR_PORT2
+#undef SDA_PORT2
+#undef IIC2_SCL_IN
+#undef IIC2_SCL_OUT
+#undef IIC2_SCL_HIGH
+#undef IIC2_SCL_LOW
+#undef IIC2_SCL_STATUS
+#undef IIC2_SDA_IN
+#undef IIC2_SDA_OUT
+#undef IIC2_SDA_HIGH
+#undef IIC2_SDA_LOW
+#undef IIC2_SDA_STATUS
+#endif
+
+//******************************************************************************
+// Prototype: 
+//  void FpgaWriteIICSeq(UCHAR DeviceAddr, UCHAR Addr, USHRT Length, UCHAR *Ptr)
+// Parameters:
+//  DeviceAddr : Device address
+//  Addr : Address
+//  Length : Length that you want to write
+//  Ptr : Pointer to the data array
+// Return:
+//  None
+// Purpose:
+//  Write data into devices on FPGA board
+// Notes:
+//  None
+//******************************************************************************
+void FpgaWriteIICSeq(UCHAR DeviceAddr, UCHAR Addr, USHRT Length, UCHAR *Ptr)
+{
+    USHRT i;
+
+    //IIC start condition
+    FpgaIICStart();
+
+    //Write the device address, retry if fail
+    for (i=0; i<10; i++) {
+        if (FpgaIICWriteByte(DeviceAddr) == ACK) {
+            break;
+        }
+        FpgaIICDelay();
+    }
+    if (i == 10) { //The device doesn't exist
+        FpgaIICStop();
+        return;
+    }
+
+    //Write address
+    FpgaIICWriteByte(Addr);
+
+    //Write bytes sequentially
+    i = 0;
+    while (i < Length) {
+        ResetWDTimer();
+        FpgaIICWriteByte(Ptr[i]);
+        i++;
+    }
+
+    //IIC stop condition
+    FpgaIICStop();
+}
+
+//******************************************************************************
+// Prototype: 
+//  void FpgaReadIICSeq(UCHAR DeviceAddr, UCHAR Addr, USHRT Length, UCHAR *Ptr)
+// Parameters:
+//  DeviceAddr : Device address
+//  Addr : Address
+//  Length : Length that you want to write
+//  Ptr : Pointer to the data array
+// Return:
+//  None
+// Purpose:
+//  Read data from devices on FPGA board
+// Notes:
+//  None
+//******************************************************************************
+void FpgaReadIICSeq(UCHAR DeviceAddr, UCHAR Addr, USHRT Length, UCHAR *Ptr)
+{
+    USHRT i;
+
+    //IIC start condition
+    FpgaIICStart();
+
+    //Write the device address, retry if fail
+    for (i=0; i<10; i++) {
+        if (FpgaIICWriteByte(DeviceAddr) == ACK) {
+            break;
+        }
+        FpgaIICDelay();
+    }
+    if (i == 10) { //The device doesn't exist
+        FpgaIICStop();
+        return;
+    }
+
+    //Write address
+    FpgaIICWriteByte(Addr);
+
+    //IIC start condition
+    FpgaIICStart();
+
+    //Write the device address(R), retry if fail
+    for (i=0; i<10; i++) {
+        if (FpgaIICWriteByte(DeviceAddr|BIT0) == ACK) {
+            break;
+        }
+        FpgaIICDelay();
+    }
+
+    i = 0;
+    while (i < Length) {
+        ResetWDTimer();
+        if (i == (Length-1) ) { //Last byte
+            Ptr[i] = FpgaIICReadByte(NACK);
+        }
+        else {
+            Ptr[i] = FpgaIICReadByte(ACK);
+        }
+        i++;
+    }
+
+    //IIC stop condition
+    FpgaIICStop();
+}
+
+//******************************************************************************
+// E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+//******************************************************************************
+//******************************************************************************
+// Prototype: 
+//  void SetIICIndex(UCHAR index)
+// Parameters:
+//  None
+// Return:
+//  None
+// Purpose:
+//  Set IIC 
+// Notes:
+//******************************************************************************
+void SetIICIndex(UCHAR index)
+{
+    ucIICIndex = index;
+}
+
+#endif

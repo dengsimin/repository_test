@@ -1,0 +1,1034 @@
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE INT
+OBJECT MODULE PLACED IN .\Bin\Int.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Lib\Int.c LARGE OPTIMIZE(8,SPEED) BROWSE INCDIR(.\App;.\App\OSD;.\App\Us
+                    -er;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NVT\Keypad;
+                    -.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_2560X1440,
+                    -FLASH_BANK=8) PRINT(.\Lst\Int.lst) TABS(2) OBJECT(.\Bin\Int.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          #include "ScalerProfile.h"
+  14          
+  15          //******************************************************************************
+  16          // M A C R O   D E F I N I T I O N S
+  17          //******************************************************************************
+  18          #if BACKLIGHT_ACTIVE == HIGH
+                  #define BLOffMacro(port) { UCHAR _temp_; \
+                                             _temp_ = Port##port; \
+                                             _temp_ |= RDP##port##_REG; \
+                                             _temp_ &= ~BACKLIGHT_BIT; \
+                                             Port##port = _temp_; }
+              #else
+  25              #define BLOffMacro(port) { UCHAR _temp_; \
+  26                                         _temp_ = Port##port; \
+  27                                         _temp_ |= RDP##port##_REG; \
+  28                                         _temp_ |= BACKLIGHT_BIT; \
+  29                                         Port##port = _temp_; }
+  30          #endif
+  31          #if BACKLIGHT_PORT == MCU_PORT_A
+                  #define FastBLOff() BLOffMacro(A)
+              #elif BACKLIGHT_PORT == MCU_PORT_B
+                  #define FastBLOff() BLOffMacro(B)
+              #elif BACKLIGHT_PORT == MCU_PORT_C
+  36              #define FastBLOff() BLOffMacro(C)
+  37          #elif BACKLIGHT_PORT == MCU_PORT_D
+                  #define FastBLOff() BLOffMacro(D)
+              #elif BACKLIGHT_PORT == MCU_PORT_E
+                  #define FastBLOff() BLOffMacro(E)
+              #elif BACKLIGHT_PORT == MCU_PORT_3
+                  #define FastBLOff() BLOffMacro(3)
+              #endif
+  44          
+  45          #if ENABLE_SCALER_LEDDRV == ON
+              #undef FastBLOff
+              #define FastBLOff() {SC_LEDDRIVER_ENABLE = 0x00;}
+              #endif
+  49          
+  50          //******************************************************************************
+  51          // G L O B A L   V A R I A B L E S
+  52          //******************************************************************************
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 2   
+
+  53          idata USHRT usMCUCLKDIVIDERLoop;
+  54          
+  55          //******************************************************************************
+  56          // S T A T I C   V A R I A B L E S
+  57          //******************************************************************************
+  58          static BOOL bModeChanged = TRUE;
+  59          static idata USHRT volatile usTimerTick_1ms;
+  60          #if ENABLE_SERIAL_INT == ON
+  61          static idata UCHAR ucUARTTxOut;
+  62          static idata UCHAR ucUARTTxIn;
+  63          static idata UCHAR ucUARTRxOut;
+  64          static idata UCHAR ucUARTRxIn;
+  65          static xdata UCHAR ucUARTTxBuffer[UART_TX_BUFFER_SIZE];
+  66          static xdata UCHAR ucUARTRxBuffer[UART_RX_BUFFER_SIZE];
+  67          static xdata UCHAR ucIsTransDisabled;
+  68          #endif
+  69          #if ENABLE_AUTO_CONTROL == ON
+              #define UART_COMMAND_SIZE 8
+              static UCHAR ucCommandPointer;
+              static UCHAR ucCommandBuffer[UART_COMMAND_SIZE];
+              static UCHAR ucCommandStatus;
+              #endif
+  75          #if ENABLE_USB_TYPE_C == ON
+              static BOOL bUSBCCHWReset = FALSE;
+              static UCHAR ucErrorFlag = 0x00;
+              #endif
+  79          //******************************************************************************
+  80          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  81          //******************************************************************************
+  82          extern BOOL bLowPowerMode;
+  83          extern BOOL bIsAPLLPowerDown;
+  84          extern idata UCHAR ucDdcciChannel;
+  85          extern BOOL bDDCCmdUpdate;
+  86          extern idata UCHAR ucDDCCiTxOut;
+  87          extern idata UCHAR ucDDCCiTxIn;
+  88          extern idata UCHAR ucDDCCiRxIn;
+  89          extern idata UCHAR ucDDCCiRxOut;
+  90          extern xdata UCHAR ucDDCCiTxBuffer[DDCCI_BUFFER_SIZE];
+  91          extern xdata UCHAR ucDDCCiRxBuffer[DDCCI_BUFFER_SIZE];
+  92          
+  93          #if (INPUT_INTERFACE&INPUT_MHL_MASK)
+              idata USHRT usTimerTickMHL = 0;
+              extern idata USHRT usCBUSTimeoutDAT;
+              extern idata UCHAR ucMHLConnState;
+              extern idata UCHAR ucCBusState;
+              extern xdata UCHAR ucCbusBuffer[40];
+              extern BOOL bStartOfFrame;
+              extern BOOL bDDCWriteFlag;    // David, HTC debug.
+              extern BOOL bPackPixelModeIntFlag;
+              extern BOOL bWaitACK;
+              extern idata USHRT usCBUSTimeoutACK;
+              #endif
+ 105          
+ 106          #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1)
+ 107          #if EN_AUX_STROBE_FUNC == ON // AUX strobe function 
+              #define AUXBUFLEN 20
+              idata UCHAR ucAuxStrobeIndex;
+              xdata UCHAR ucAuxStrobeBuf[AUXBUFLEN];
+              idata UCHAR ucDPEDIDPtr;
+              extern xdata UCHAR volatile EDID_SRAM_DP[];
+              extern xdata UCHAR bDP_AUX_DETECT;
+              #endif
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 3   
+
+ 115          #endif
+ 116          
+ 117          #if ENABLE_USB_TYPE_C == ON
+              extern BOOL bUSBCCMsgUpdate;
+              idata USHRT usTimerTickTypeC = 0;
+              #endif
+ 121          //******************************************************************************
+ 122          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+ 123          //******************************************************************************
+ 124          static char UART_Putchar(UCHAR c);
+ 125          
+ 126          //******************************************************************************
+ 127          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+ 128          //******************************************************************************
+ 129          
+ 130          //******************************************************************************
+ 131          // F U N C T I O N   B O D Y S
+ 132          //******************************************************************************
+ 133          
+ 134          /**************************************************************************//**
+ 135           * Mcu external interrupt 0 service routine.
+ 136           ******************************************************************************/
+ 137          void IntExt0(void) interrupt 0 using 1
+ 138          {
+ 139   1      #if ENABLE_LOW_PWR_MODE == ON
+ 140   1          SC_MCU_CLK_DIVIDER = 0x00;
+ 141   1      #endif
+ 142   1      
+ 143   1      #if IS_NT68850_SERIES 
+              #if ((INPUT_INTERFACE&INPUT_DP) && ENABLE_DP_AUX_MONITOR==ON)
+                  if(AUX_STROBE_CTL&BIT0) 
+                  {  
+                    move_aux_packet();
+                    return;
+                  }
+              #endif
+              #endif
+ 152   1      #if (IS_NT68810_SERIES || IS_NT68870_SERIES)
+ 153   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1)
+ 154   1          // Power Up DP AUX
+ 155   1          if(bLowPowerMode == TRUE) {  
+ 156   2              if ((SC_DP_AUX_DETECT&0xC0) != 0) {  // 0x101a
+ 157   3                  INTSC_EN &= ~BIT1;
+ 158   3      #if (INPUT_INTERFACE&INPUT_DP) && ENABLE_USB_TYPE_C == OFF
+ 159   3                  PortE = (PortE | RDPE_REG) & (~BIT6); // HPD Low   // 0xf004 ,0xf009
+ 160   3      #endif
+ 161   3      #if (INPUT_INTERFACE&INPUT_DP1)
+                          PortE = (PortE | RDPE_REG) & (~BIT7); // HPD Low
+              #endif
+ 164   3              }
+ 165   2          }
+ 166   1      #endif
+ 167   1      #else
+              #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1)
+                  // Power Up DP AUX
+                  if(bLowPowerMode == TRUE) {  
+                      if ((SC_DP_AUX_DETECT&0xC0) != 0) {// 0x101a
+                          INTSC_EN &= ~BIT1;// 0x0f24
+                          LDO_ADJ |= BIT7; //Power up APLL  //20130715_1006_SYS#3   0xf050// 0xf050
+                      #if ENABLE_CUT_POWER_ARCH == ON
+                          SC_POWER_CTRL1 |= BIT7;//power on 101[7]   0x101
+                          SC_CUT_POWER_CTRL |= BIT0;//power on b62[0]// 0xb62
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 4   
+
+                      #endif
+                          SC_HW_RST = 0x10; // 0xf04f
+                          SC_HW_RST = 0x11;
+                          SC_ADC_ZERO_POWER_CTRL = 0x83;    // 0xb57  
+                    
+                      #if ENABLE_CUT_POWER_ARCH == ON
+                          SC_POWER_CTRL1 |= BIT7; // 0x101
+                          SC_CUT_POWER_CTRL |= BIT2;  // 0xb62
+                          SC_CUT_POWER_CTRL |= BIT0;// 0xb62
+                          SC_ISOLATION_CONTROL = SCREB_B61_PU;
+                          SC_CUT_POWER_CTRL &= 0x07;// 0xb62
+                          SC_CUT_POWER_CTRL &= ~BIT1;// 0xb62
+                          SC_POWER_CTRL1 &= ~BIT7; // 0x101
+                      #endif
+              
+                          SC_POWER_CTRL1 |= BIT5; // 0x101
+                          SC_MCU_CLK_DIVIDER = 0x00;  // 0xb54
+              #if !(IS_NT68810_SERIES || IS_NT68870_SERIES)
+                          SC_MPLL_X2 &= ~(BIT4|BIT3); //SC_MPLL_X2 = 0x03;   // 0xb46
+              #endif
+                          SC_POWER_CTRL1 &= ~(BIT5|BIT1); // 0x101
+              
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                  #if DPHPD1_CTRLPIN == 1 || DPHPD2_CTRLPIN == 1
+                          PortE = (PortE | RDPE_REG) & (~BIT6); // HPD Low
+                          SC_MCU_IO_CTRL2 &= 0xF3; // output PE6/HPD1   // 0xc81
+                          DP_CTRL &= ~BIT4; // DP HPD_PAD disable   // 0xf0d2
+                  #endif
+                  #if DPHPD1_CTRLPIN == 2 || DPHPD2_CTRLPIN == 2
+                          PortE = (PortE | RDPE_REG) & (~BIT7); // HPD Low
+                          SC_MCU_IO_CTRL2 &= 0xFC; // output PE7/HPD2 // 0xc81
+                          DP_CTRL &= ~BIT5; // DP HPD_PAD disable // 0xf0d2
+                  #endif
+              #else
+                          PortD = (PortD | RDPD_REG) & (~BIT4); // HPD Low  // v20_130823_1815_SYS#6
+                          DP_CTRL &= ~BIT4; // DP HPD_PAD disable // 0xf0d2
+              #endif
+                          SC_TMDS_LINK_CLK_SEL = SCREG_1E7 | BIT0;  // dp_refclk select
+                          SC_DP_102F = REF_CLK*4/1000000;  // if 0x1E7[4:3] = 2'b00, dp_refclk = OSC clock*4
+                          
+                          DP_CLKOn();  
+                          DP_ConfigAUX2IICSpeed();
+                          
+              #if !(IS_NT68810_SERIES || IS_NT68870_SERIES)
+                          DP_InitPHY();
+              #endif
+              #if IS_NT68810_SERIES
+                          DP_InitPHY(_DPPP_PHY0);
+              #endif
+              #if IS_NT68870_SERIES
+              #if (INPUT_INTERFACE&INPUT_DP)
+                          DP_InitPHY(_DPPP_PHY0);
+              #endif
+              #if (INPUT_INTERFACE&INPUT_DP1)
+                          DP_InitPHY(_DPPP_PHY1);
+              #endif
+              #endif
+                          DP_InitDPCD();
+              
+                          SC_DP_AUX_CTRL = 0x31; // AUX En
+              
+                          DP_InitDPConfigPage();
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 5   
+
+              
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                  #if DPHPD1_CTRLPIN == 1 || DPHPD2_CTRLPIN == 1
+                          PortE = (PortE | RDPE_REG) | BIT6; // HPD High
+                          DP_CTRL |= BIT4; // DP HPD_PAD enable// 0xf0d2
+                          SC_MCU_IO_CTRL2 &= 0xF3; // output PE6/HPD1// 0xc81
+                  #endif
+                  #if DPHPD1_CTRLPIN == 2 || DPHPD2_CTRLPIN == 2
+                          PortE = (PortE | RDPE_REG) | BIT7; // HPD High
+                          DP_CTRL |= BIT5; // DP HPD_PAD enable// 0xf0d2
+                          SC_MCU_IO_CTRL2 &= 0xFC; // output PE7/HPD2// 0xc81
+                  #endif
+              #else
+                          PortD = (PortD | RDPD_REG) | BIT4; // HPD High
+                          DP_CTRL |= BIT4; // DP HPD_PAD enable// 0xf0d2
+              #endif
+                          SetDPLink();
+                      }
+                  }
+              #endif
+              #endif
+ 260   1      
+ 261   1      #if (INPUT_INTERFACE&INPUT_MHL_MASK)
+              #if IS_NT68870_SERIES
+                #if (INPUT_INTERFACE&INPUT_MHL0) || (INPUT_INTERFACE&INPUT_MHL1)  
+                  if ((MHL_SRC & BIT6) != 0) { // 0xF02D bit6 
+                  #elif (INPUT_INTERFACE&INPUT_MHL2) || (INPUT_INTERFACE&INPUT_MHL3)
+                  if ((MHL_SRC & BIT7) != 0) { // 0xF02D bit7 
+                #endif
+              #else
+                  if ((MHL_SRC & INT_MHL) != 0) { // 0xF02D bit7
+              #endif
+                      idata UCHAR i;
+                      SC_ADC_ZERO_POWER_CTRL |= (BIT7|BIT1);// 0xb57
+                      i = SC_CBUS_INT_FLAG;
+              #if ENABLE_INT_DISCOVERY == ON
+                      if ( i & DIS_INT_FLG ) {      // Discovery int flag =1
+                          CbusDiscoveryHandler();
+                  #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                    SC_CBUS_INT_FLAG = DIS_INT_FLG;
+                  #else
+              //            SC_CBUS_INT_EN |= DIS_INT_CLR;
+                      #endif
+                      }
+              #endif
+                      if ( i & TRANS_INT_FLG ) {      // Transaction interrupt
+                          if (MHL_GetMSCCmd()) {
+                              CbusMSCCmdHandler();
+                          }
+                          else if (MHL_GetDDCCmd()) {
+                              CbusDDCCmdHandler();
+                          }
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                    SC_CBUS_INT_FLAG = TRANS_INT_FLG;
+              #else
+                          SC_CBUS_INT_EN |= TRANS_INT_CLR;
+              #endif
+                      }
+              #if 1//def E_DEBUG
+                  if (i & LINK_INT_FLG) {     // Link layer interrupt
+                    if (SC_CBUS_LINK_INT_FLAG & CBUS_ARB_FAIL) {
+                      bCBusArbFailFlag = TRUE;
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 6   
+
+                    }
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                    SC_CBUS_INT_FLAG = LINK_INT_FLG;
+              #else
+                      SC_CBUS_INT_EN |= LINK_INT_CLR;
+              #endif
+                  }
+              #endif
+                  }
+              #endif
+ 311   1      
+ 312   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1)
+ 313   1      #if EN_AUX_STROBE_FUNC == ON // AUX strobe function 
+                if(DP_SRC & BIT7) {
+                      idata UCHAR i;
+                  // for INTS_SEL = command_end
+              //SC_DP_AUX_DETECT &= ~BIT0;//????????????????????????
+                  if (AUX_STROBE_CTL & BIT3) {
+                          ucAuxStrobeIndex = 0;
+                    while ((AUX_STROBE_FUN & BIT0) == 0) {
+                      if (ucAuxStrobeIndex < AUXBUFLEN) {
+                        ucAuxStrobeBuf[ucAuxStrobeIndex++] = AUX_STROBE_PORT;
+                        //*pDDCPtr1++ = ucAuxStrobeBuf[ucAuxStrobeIndex++];
+                      }
+                      else {// Read out data for empty
+                        i = AUX_STROBE_PORT;
+                      }       
+                    }
+                    AUX_STROBE_CTL |= BIT3;   // clear AUX_STROBE_INT
+                  }
+                  // decode AUX channel data.
+                  if ((ucAuxStrobeBuf[0] & BIT7) == 0) {    // I2C-over-AUX
+                    if ((ucAuxStrobeBuf[0] & (BIT5|BIT4)) == 0) { // Write
+                      if ((ucAuxStrobeBuf[2] == 0x37) && (ucAuxStrobeIndex > 4))  {// DDC_CI Write
+                        // Reserved for DDC_CI Write decode....
+                                  ucDdcciChannel = 4;
+              //                    ucDDCCiRxIn = 0;
+                                  bDDCCmdUpdate = TRUE;
+                        i = ucAuxStrobeBuf[3] + 1;
+                        for (ucAuxStrobeIndex=0; ucAuxStrobeIndex<i; ucAuxStrobeIndex++) {
+                                      ucDDCCiRxBuffer[ucDDCCiRxIn++] = ucAuxStrobeBuf[4+ucAuxStrobeIndex];
+                                      if (ucDDCCiRxIn > DDCCI_BUFFER_SIZE-1) {
+                                          ucDDCCiRxIn = 2;
+                                      }
+                                  }
+                      }
+                      else if (ucAuxStrobeBuf[2] == 0x50) { // EDID Write
+                        ucDPEDIDPtr = ucAuxStrobeBuf[4];
+                      }
+                      AUX_I2C_MANUAL = (AUX_I2C_MODE | AUX_I2C_FINSH);
+                    }
+                    else {    // Read
+                      if (ucAuxStrobeBuf[2] == 0x50) {  // EDID Read
+                        if (ucAuxStrobeIndex <= 3) {    // No length
+                          AUX_I2C_MANUAL = (AUX_I2C_MODE | AUX_I2C_FINSH);
+                        }
+                        else {
+                          i = ucAuxStrobeBuf[3] + 1;
+                          for (ucAuxStrobeIndex=0; ucAuxStrobeIndex<i; ucAuxStrobeIndex++) {
+                            AUX_I2C_MANUAL = (AUX_I2C_MODE);  // send ack
+                            AUX_I2C_DATA = EDID_SRAM_DP[ucDPEDIDPtr++];
+                          }
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 7   
+
+                          AUX_I2C_MANUAL = (AUX_I2C_MODE | AUX_I2C_FINSH);
+                        }
+                      }
+                      else if (ucAuxStrobeBuf[2] == 0x37) { // DDC_CI Read
+              //                    ucDdcciChannel = 4;
+                        if (ucAuxStrobeIndex <= 3) {    // No length
+                          AUX_I2C_MANUAL = (AUX_I2C_MODE | AUX_I2C_FINSH);
+                        }
+                        else {
+                          i = ucAuxStrobeBuf[3] + 1;
+              //                        ucDDCCiTxOut = 0;
+                          for (ucAuxStrobeIndex=0; ucAuxStrobeIndex<i; ucAuxStrobeIndex++) {
+                            AUX_I2C_MANUAL = (AUX_I2C_MODE);  // send ack
+                                          if (ucDDCCiTxOut != ucDDCCiTxIn) {
+                                AUX_I2C_DATA = ucDDCCiTxBuffer[ucDDCCiTxOut++];
+                                          }
+                                          else {
+                                              AUX_I2C_DATA = ucDDCCiTxBuffer[ucDDCCiTxOut];
+                                              ucDDCCiTxOut = 0;
+                                          }
+                          }
+                          AUX_I2C_MANUAL = (AUX_I2C_MODE | AUX_I2C_FINSH);
+                        }
+                        
+                      }
+                    }
+                  }
+                  ucAuxStrobeIndex = 0;
+                }
+                  else if (SC_DP_AUX_DETECT & BIT7) {// 0x101a
+                      SC_DP_AUX_DETECT |= BIT1;// 0x101a
+                      SC_DP_AUX_DETECT &= ~BIT1;// 0x101a
+                      bDP_AUX_DETECT = 1;// 0x101a
+              //  INTSC_EN &= ~BIT1;
+              //  AUX_STROBE_CTL = 0x00;
+                  }
+              #endif
+ 400   1      #endif
+ 401   1      
+ 402   1      // DDC0&2 ======================================================
+ 403   1          if ((INT_SRC & INT_IIC0) != 0) {
+ 404   2              ucDdcciChannel = 0;
+ 405   2              if (IIC0_INT_FLG & INTA) {
+ 406   3                  IIC0_INT_CLR = INTA;
+ 407   3                  if (IIC0_STATUS & DOWRITE) {  // Slave Addr || 0x01 ==> Read
+ 408   4                      IIC0_INT_CLR = (INTTX | CLR_TX_FIFO);
+ 409   4                      IIC0_TXDATA = ucDDCCiTxBuffer[0];
+ 410   4                      IIC0_INT_EN = (INTA | INTTX);
+ 411   4                      ucDDCCiTxOut = 1;
+ 412   4                  }
+ 413   3                  else {  // Slave Addr ==> Write
+ 414   4                      IIC0_INT_EN = (INTA | INTRX);
+ 415   4                      IIC0_CFG |= SEND_ACK;
+ 416   4                      ucDDCCiRxIn = 0;
+ 417   4                      bDDCCmdUpdate = TRUE;
+ 418   4                  }
+ 419   3              }
+ 420   2              while (IIC0_INT_FLG & INTTX) {
+ 421   3                  if (ucDDCCiTxOut != ucDDCCiTxIn) {
+ 422   4                      IIC0_TXDATA = ucDDCCiTxBuffer[ucDDCCiTxOut++];
+ 423   4                      IIC0_INT_CLR = INTTX;
+ 424   4                  }
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 8   
+
+ 425   3                  else {
+ 426   4                      IIC0_TXDATA = ucDDCCiTxBuffer[ucDDCCiTxOut];
+ 427   4                      IIC0_INT_CLR = INTTX;
+ 428   4                      ucDDCCiTxOut = 0;
+ 429   4                  }
+ 430   3              }
+ 431   2              while (IIC0_INT_FLG & INTRX) {
+ 432   3                  ucDDCCiRxBuffer[ucDDCCiRxIn++] = IIC0_RXDATA;
+ 433   3                  IIC0_INT_CLR = INTRX;
+ 434   3                  bDDCCmdUpdate = TRUE;
+ 435   3                  if (ucDDCCiRxIn > DDCCI_BUFFER_SIZE-1) {
+ 436   4                      ucDDCCiRxIn = 2;
+ 437   4                  }
+ 438   3              } 
+ 439   2              if (IIC0_INT_FLG & INTNAK) {
+ 440   3                  IIC0_INT_CLR = 0xFF;//INTNAK;
+ 441   3              }
+ 442   2              if (IIC0_INT_FLG & INTLOST) {
+ 443   3                  IIC0_INT_CLR = 0xFF;//INTLOST;
+ 444   3              }
+ 445   2          }
+ 446   1      
+ 447   1          if ((INT_SRC & INT_IIC2) != 0) {
+ 448   2              ucDdcciChannel = 2;
+ 449   2              if (IIC2_INT_FLG & INTA) {
+ 450   3                  IIC2_INT_CLR = INTA;
+ 451   3                  if (IIC2_STATUS & DOWRITE) {  // Slave Addr || 0x01 ==> Read
+ 452   4                      IIC2_INT_CLR = (INTTX | CLR_TX_FIFO);
+ 453   4                      IIC2_TXDATA = ucDDCCiTxBuffer[0];
+ 454   4                      IIC2_INT_EN = (INTA | INTTX);
+ 455   4                      ucDDCCiTxOut = 1;
+ 456   4                  }
+ 457   3                  else {  // Slave Addr ==> Write
+ 458   4                      IIC2_INT_EN = (INTA | INTRX);
+ 459   4                      IIC2_CFG |= SEND_ACK;
+ 460   4                      ucDDCCiRxIn = 0;
+ 461   4                      bDDCCmdUpdate = TRUE;
+ 462   4                  }
+ 463   3              }
+ 464   2              while (IIC2_INT_FLG & INTTX) {
+ 465   3                  if (ucDDCCiTxOut != ucDDCCiTxIn) {
+ 466   4                      IIC2_TXDATA = ucDDCCiTxBuffer[ucDDCCiTxOut++];
+ 467   4                      IIC2_INT_CLR = INTTX;
+ 468   4                  }
+ 469   3                  else {
+ 470   4                      IIC2_TXDATA = ucDDCCiTxBuffer[ucDDCCiTxOut];
+ 471   4                      IIC2_INT_CLR = INTTX;
+ 472   4                      ucDDCCiTxOut = 0;
+ 473   4                  }
+ 474   3              }
+ 475   2              while (IIC2_INT_FLG & INTRX) {
+ 476   3                  ucDDCCiRxBuffer[ucDDCCiRxIn++] = IIC2_RXDATA;
+ 477   3                  IIC2_INT_CLR = INTRX;
+ 478   3                  bDDCCmdUpdate = TRUE;
+ 479   3                  if (ucDDCCiRxIn > DDCCI_BUFFER_SIZE-1) {
+ 480   4                      ucDDCCiRxIn = 2;
+ 481   4                  }
+ 482   3              } 
+ 483   2              if (IIC2_INT_FLG & INTNAK) {
+ 484   3                  IIC2_INT_CLR = 0xFF;//INTNAK;
+ 485   3              }
+ 486   2              if (IIC2_INT_FLG & INTLOST) {
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 9   
+
+ 487   3                  IIC2_INT_CLR = 0xFF;//INTLOST;
+ 488   3              }
+ 489   2          }
+ 490   1          
+ 491   1      #if IS_NT68870_SERIES
+ 492   1          if ((INT_SRC & INT_IIC4) != 0) {
+ 493   2              ucDdcciChannel = 5;
+ 494   2              if (IIC4_INT_FLG & INTA) {
+ 495   3                  IIC4_INT_CLR = INTA;
+ 496   3                  if (IIC4_STATUS & DOWRITE) {  // Slave Addr || 0x01 ==> Read
+ 497   4                      IIC4_INT_CLR = (INTTX | CLR_TX_FIFO);
+ 498   4                      IIC4_TXDATA = ucDDCCiTxBuffer[0];
+ 499   4                      IIC4_INT_EN = (INTA | INTTX);
+ 500   4                      ucDDCCiTxOut = 1;
+ 501   4                  }
+ 502   3                  else {  // Slave Addr ==> Write
+ 503   4                      IIC4_INT_EN = (INTA | INTRX);
+ 504   4                      IIC4_CFG |= SEND_ACK;
+ 505   4                      ucDDCCiRxIn = 0;
+ 506   4                      bDDCCmdUpdate = TRUE;
+ 507   4                  }
+ 508   3              }
+ 509   2              while (IIC4_INT_FLG & INTTX) {
+ 510   3                  if (ucDDCCiTxOut != ucDDCCiTxIn) {
+ 511   4                      IIC4_TXDATA = ucDDCCiTxBuffer[ucDDCCiTxOut++];
+ 512   4                      IIC4_INT_CLR = INTTX;
+ 513   4                  }
+ 514   3                  else {
+ 515   4                      IIC4_TXDATA = ucDDCCiTxBuffer[ucDDCCiTxOut];
+ 516   4                      IIC4_INT_CLR = INTTX;
+ 517   4                      ucDDCCiTxOut = 0;
+ 518   4                  }
+ 519   3              }
+ 520   2              while (IIC4_INT_FLG & INTRX) {
+ 521   3                  ucDDCCiRxBuffer[ucDDCCiRxIn++] = IIC4_RXDATA;
+ 522   3                  IIC4_INT_CLR = INTRX;
+ 523   3                  bDDCCmdUpdate = TRUE;
+ 524   3                  if (ucDDCCiRxIn > DDCCI_BUFFER_SIZE-1) {
+ 525   4                      ucDDCCiRxIn = 2;
+ 526   4                  }
+ 527   3              } 
+ 528   2              if (IIC4_INT_FLG & INTNAK) {
+ 529   3                  IIC4_INT_CLR = 0xFF;//INTNAK;
+ 530   3              }
+ 531   2              if (IIC4_INT_FLG & INTLOST) {
+ 532   3                  IIC4_INT_CLR = 0xFF;//INTLOST;
+ 533   3              }
+ 534   2          }
+ 535   1      #endif
+ 536   1      #if 0 //ENABLE_HDMI == ON
+                  if (((INT_SRC & INT_SC) != 0) || ((INT_SRC & INT_HDMI) != 0)) {
+              #else
+ 539   1      
+ 540   1      // Scaler interrupt
+ 541   1          if ((INT_SRC & INT_SC) != 0) {
+ 542   2      #endif
+ 543   2      #if ENABLE_FAST_BK_OFF == ON
+                      FastBLOff();
+              #endif
+ 546   2              McuScalerIntDisable();
+ 547   2      #if 0 //ENABLE_HDMI == ON
+                      McuScalerHDMIIntDisable();
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 10  
+
+              #endif
+ 550   2              bModeChanged = TRUE;
+ 551   2          }
+ 552   1      #if ENABLE_LOW_PWR_MODE == ON
+ 553   1          usMCUCLKDIVIDERLoop = 0;
+ 554   1      #endif
+ 555   1      }
+ 556          
+ 557          /**************************************************************************//**
+ 558           * Mcu external interrupt 1 service routine.
+ 559           ******************************************************************************/
+ 560          void IntExt1(void) interrupt 2 using 3
+ 561          {
+ 562   1      #if ENABLE_USB_TYPE_C == ON
+                  idata UCHAR flag;
+                 
+                  // UFP Port MCU Interrupt
+                  if ((INT_USB_CC & INT0_USBCC) != 0) { // MCU USB CC Interrupt at Link0 UFP port flag up
+                      SramDebug(0xF804, 0xBB);
+              #if 1
+                      // Judge the interrupt type
+                      flag = SC_USBC_CC_INT_GROUP_1_FLAG;   // Get SOP, Hard_reset, Soft_reset
+                      if (flag != 0) {   // cmd only
+                          /* To add cmd only here */
+                      }
+              
+                      flag = SC_USBC_CC_INT_GROUP_2_FLAG;   // Get error flag for error handle
+                      if (flag !=0) {   // error handle
+                          /* To add error handle here */
+                          //USBCCErrorHandler();
+                          ucErrorFlag = flag;
+                      }
+              
+                      flag = SC_USBC_CC_INT_GROUP_3_FLAG;
+                      if (flag & PROTOCOL_GET_PD_Msg) {   // Get PD message
+                          /* To add USB CC protocol handle here */
+                          //USBCCGetDataMessage(UFP);
+                          if (SC_USBC_CC_INT_GROUP_2_FLAG & Incrrect_CRC) {
+                              /* */
+                          }
+                          else {
+                              //ucUSBCPRLRxState=PRL_Rx_Send_GoodCRC;// Hw Auto reply GoodCRC
+                          }
+              #if 0
+                          if (USBCC_GetData()) { // UFP get control & Data message
+                              SramDebug(0xF806, 0x88);
+                              USBCCGetMessageHandle();
+                          }
+                          SC_USBC_CC_INT_GROUP_3_FLAG|=PROTOCOL_GET_PD_Msg;   // Clear get PD message
+              #else
+                          if (SC_USBC_CC_INT_GROUP_1_FLAG && PROTOCOL_GET_CMD_SOP) {
+                              if (USBCC_GetData()) { // UFP get control & Data message
+                                  SramDebug(0xF806, 0x88);
+                                  USBCCGetMessageHandler();
+                              }
+                              SC_USBC_CC_INT_GROUP_3_FLAG|=PROTOCOL_GET_PD_Msg;   // Clear get PD message
+                              usTimerTickTypeC = GetTimerTickInt();
+                              bUSBCCMsgUpdate = TRUE;
+                          }
+                          else if(SC_USBC_CC_INT_GROUP_1_FLAG && PROTOCOL_GET_CMD_SOPP) {
+                              USBCCSoftwareResetInt(); // UFP software reset
+                          }
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 11  
+
+                          else {
+                              USBCCSoftwareResetInt(); // UFP software reset
+                          }
+                          if (SC_USBC_CC_INT_GROUP_1_FLAG && PROTOCOL_GET_CMD_HARD_RST) {//Get HW reset command
+                              bUSBCCHWReset = TRUE;
+                          }
+              #endif
+                      }
+                            
+              #endif
+                      // clear flag
+                      SC_DVI_CTRL_32F&=(~BIT4); // bit4=0 index of CCRTX0  
+                      SC_USBC_CC_INT_GROUP_0_FLAG=0xEF;   // don't clear get good CRC flag
+                      SC_USBC_CC_INT_GROUP_1_FLAG=0xFF;   // Get cmd flag
+                      SC_USBC_CC_INT_GROUP_2_FLAG=0xFF;   // error flag for error handle
+                      SC_USBC_CC_INT_GROUP_3_FLAG=0xFF;   // get PD VDM .. message
+                      
+                  }
+                  SramDebug(0xF805, 0xCC);
+              //==========================================================================USB typeC
+              #endif
+ 632   1          
+ 633   1      #if ENABLE_LOW_PWR_MODE == ON
+ 634   1          SC_MCU_CLK_DIVIDER = 0x00;
+ 635   1      #endif
+ 636   1      
+ 637   1          if ((INT_SRC & INT_IIC1) != 0) {
+ 638   2              ucDdcciChannel = 1;
+ 639   2              if (IIC1_INT_FLG & INTA) {
+ 640   3                  IIC1_INT_CLR = INTA;
+ 641   3                  if (IIC1_STATUS & DOWRITE) {  // Slave Addr || 0x01 ==> Read
+ 642   4                      IIC1_INT_CLR = (INTTX | CLR_TX_FIFO);
+ 643   4                      IIC1_TXDATA = ucDDCCiTxBuffer[0];
+ 644   4                      IIC1_INT_EN = (INTA | INTTX);
+ 645   4                      ucDDCCiTxOut = 1;
+ 646   4                  }
+ 647   3                  else {  // Slave Addr ==> Write
+ 648   4                      IIC1_INT_EN = (INTA | INTRX);
+ 649   4                      IIC1_CFG |= SEND_ACK;
+ 650   4                      ucDDCCiRxIn = 0;
+ 651   4                      bDDCCmdUpdate = TRUE;
+ 652   4                  }
+ 653   3              }
+ 654   2              while (IIC1_INT_FLG & INTTX) {
+ 655   3                  if (ucDDCCiTxOut != ucDDCCiTxIn) {
+ 656   4                      IIC1_TXDATA = ucDDCCiTxBuffer[ucDDCCiTxOut++];
+ 657   4                      IIC1_INT_CLR = INTTX;
+ 658   4                  }
+ 659   3                  else {
+ 660   4                      IIC1_TXDATA = ucDDCCiTxBuffer[ucDDCCiTxOut];
+ 661   4                      IIC1_INT_CLR = INTTX;
+ 662   4                      ucDDCCiTxOut = 0;
+ 663   4                  }
+ 664   3              }
+ 665   2              while (IIC1_INT_FLG & INTRX) {
+ 666   3                  ucDDCCiRxBuffer[ucDDCCiRxIn++] = IIC1_RXDATA;
+ 667   3                  IIC1_INT_CLR = INTRX;
+ 668   3                  bDDCCmdUpdate = TRUE;
+ 669   3                  if (ucDDCCiRxIn > DDCCI_BUFFER_SIZE-1) {
+ 670   4                      ucDDCCiRxIn = 2;
+ 671   4                  }
+ 672   3              } 
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 12  
+
+ 673   2              if (IIC1_INT_FLG & INTNAK) {
+ 674   3                  IIC1_INT_CLR = 0xFF;//INTNAK;
+ 675   3              }
+ 676   2              if (IIC1_INT_FLG & INTLOST) {
+ 677   3                  IIC1_INT_CLR = 0xFF;//INTLOST;
+ 678   3              }
+ 679   2          }
+ 680   1      
+ 681   1          if ((INT_SRC & INT_IIC3) != 0) {
+ 682   2              ucDdcciChannel = 3;
+ 683   2              if (IIC3_INT_FLG & INTA) {
+ 684   3                  IIC3_INT_CLR = INTA;
+ 685   3                  if (IIC3_STATUS & DOWRITE) {  // Slave Addr || 0x01 ==> Read
+ 686   4                      IIC3_INT_CLR = (INTTX | CLR_TX_FIFO);
+ 687   4                      IIC3_TXDATA = ucDDCCiTxBuffer[0];
+ 688   4                      IIC3_INT_EN = (INTA | INTTX);
+ 689   4                      ucDDCCiTxOut = 1;
+ 690   4                  }
+ 691   3                  else {  // Slave Addr ==> Write
+ 692   4                      IIC3_INT_EN = (INTA | INTRX);
+ 693   4                      IIC3_CFG |= SEND_ACK;
+ 694   4                      ucDDCCiRxIn = 0;
+ 695   4                      bDDCCmdUpdate = TRUE;
+ 696   4                  }
+ 697   3              }
+ 698   2              while (IIC3_INT_FLG & INTTX) {
+ 699   3                  if (ucDDCCiTxOut != ucDDCCiTxIn) {
+ 700   4                      IIC3_TXDATA = ucDDCCiTxBuffer[ucDDCCiTxOut++];
+ 701   4                      IIC3_INT_CLR = INTTX;
+ 702   4                  }
+ 703   3                  else {
+ 704   4                      IIC3_TXDATA = ucDDCCiTxBuffer[ucDDCCiTxOut];
+ 705   4                      IIC3_INT_CLR = INTTX;
+ 706   4                      ucDDCCiTxOut = 0;
+ 707   4                  }
+ 708   3              }
+ 709   2              while (IIC3_INT_FLG & INTRX) {
+ 710   3                  ucDDCCiRxBuffer[ucDDCCiRxIn++] = IIC3_RXDATA;
+ 711   3                  IIC3_INT_CLR = INTRX;
+ 712   3                  bDDCCmdUpdate = TRUE;
+ 713   3                  if (ucDDCCiRxIn > DDCCI_BUFFER_SIZE-1) {
+ 714   4                      ucDDCCiRxIn = 2;
+ 715   4                  }
+ 716   3              } 
+ 717   2              if (IIC3_INT_FLG & INTNAK) {
+ 718   3                  IIC3_INT_CLR = 0xFF;//INTNAK;
+ 719   3              }
+ 720   2              if (IIC3_INT_FLG & INTLOST) {
+ 721   3                  IIC3_INT_CLR = 0xFF;//INTLOST;
+ 722   3              }
+ 723   2          }
+ 724   1      #if ENABLE_LOW_PWR_MODE == ON
+ 725   1          usMCUCLKDIVIDERLoop = 0;
+ 726   1      #endif
+ 727   1      }
+ 728          
+ 729          /**************************************************************************//**
+ 730           * Mcu timer 0 interrupt service routine.
+ 731           ******************************************************************************/
+ 732          void IntTimer0(void) interrupt 1 using 2
+ 733          {
+ 734   1      #if ENABLE_LOW_PWR_MODE == ON
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 13  
+
+ 735   1      //    if (bLowPowerMode == TRUE) {//3MHz
+ 736   1          if (SC_MCU_CLK_DIVIDER == 0x22) {//3MHz
+ 737   2              TL0 = ucTL0_LOW_POWER_3M;
+ 738   2              TH0 = ucTH0_LOW_POWER_3M;
+ 739   2          }
+ 740   1          else if (bIsAPLLPowerDown == TRUE) {
+ 741   2      #else
+                  if (bIsAPLLPowerDown == TRUE) {
+              #endif    
+ 744   2              TL0 = ucTL0_LOW_POWER;
+ 745   2              TH0 = ucTH0_LOW_POWER;
+ 746   2          }
+ 747   1          else {
+ 748   2              TL0 = ucTL0_Normal_Power;
+ 749   2              TH0 = ucTH0_Normal_Power;
+ 750   2          }
+ 751   1          TR0 = 1; //Start Timer 0
+ 752   1      
+ 753   1          usTimerTick_1ms++;
+ 754   1      
+ 755   1      #if (INPUT_INTERFACE&INPUT_MHL_MASK)
+                  if ((ucMHLConnState == MHL_DISCOVERY_RDY) && (bCBUSAbort == 0)) {
+                      if ((usTimerTick_1ms - usTimerTickMHL) > SET_HPD_TIMER) {//SET_HPD_TIMER
+                          if (!((MHL_GetMSCCmd() || MHL_GetDDCCmd()))) {
+                              SC_ADC_ZERO_POWER_CTRL |= (BIT7|BIT1);// 0xb57
+                  //            MHLCbusTx(TX_DDC_CMD, CBUS_SET_HPD); //this is using 1
+                              MHL_WaitCBusReady();
+                              bTranCMD = 0;
+                              ucCmdIndex = 0;//index to cMSCCmd
+                              bCheckTimeout = 0;
+                              SC_CBUS_MSC_CMD = CBUS_SET_HPD;
+                              ucCBusState = CBUS_SETHPD;
+                              ucMHLConnState = MHL_SET_HPD;
+                              bWaitACK = 1;
+                              usCBUSTimeoutACK = usTimerTick_1ms;
+                  #if 1//def E_DEBUG
+                              if (bCBusArbFailFlag == TRUE) {
+                                  bCBusArbFailFlag = FALSE;
+                                  SC_CBUS_MSC_CMD = CBUS_SET_HPD;
+                              }
+                  #endif
+                          }
+                      }
+                  }
+              #endif
+ 780   1      }
+ 781          
+ 782          #if ENABLE_SERIAL_INT == ON
+ 783          /**************************************************************************//**
+ 784           * Mcu UART interrupt service routine.
+ 785           ******************************************************************************/
+ 786          void IntUART(void) interrupt 4 using 1
+ 787          {
+ 788   1          UCHAR i;
+ 789   1          
+ 790   1          if (RI == 1) {
+ 791   2              RI=0;
+ 792   2              i = SBUF;
+ 793   2              ucUARTRxBuffer[ucUARTRxIn] = i;
+ 794   2              if (++ucUARTRxIn > UART_RX_BUFFER_SIZE-1)
+ 795   2                  ucUARTRxIn = 0;
+ 796   2          }
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 14  
+
+ 797   1      
+ 798   1          if (TI == 1) {
+ 799   2              TI = 0;
+ 800   2              if (ucUARTTxIn != ucUARTTxOut) {
+ 801   3                  SBUF = ucUARTTxBuffer[ucUARTTxOut];
+ 802   3                  if (++ucUARTTxOut > UART_TX_BUFFER_SIZE-1)
+ 803   3                      ucUARTTxOut = 0;
+ 804   3              }
+ 805   2              else {
+ 806   3                  ucIsTransDisabled = 1;
+ 807   3              }
+ 808   2          }
+ 809   1      
+ 810   1      }
+ 811          
+ 812          /**************************************************************************//**
+ 813           * Put char into the TX buffer and enable UART transmission.
+ 814           ******************************************************************************/
+ 815          static char UART_Putchar(UCHAR c)
+ 816          {
+ 817   1          //If the buffer is full, return an error value.
+ 818   1          if (((ucUARTTxIn+1)%UART_TX_BUFFER_SIZE) == ucUARTTxOut) return -1;
+ 819   1      
+ 820   1          EA = 0;
+ 821   1          ucUARTTxBuffer[ucUARTTxIn] = c;
+ 822   1          if (++ucUARTTxIn > UART_TX_BUFFER_SIZE-1)
+ 823   1              ucUARTTxIn = 0;
+ 824   1          if (ucIsTransDisabled) {
+ 825   2              ucIsTransDisabled = 0;
+ 826   2              TI = 1;
+ 827   2          }
+ 828   1          EA = 1;
+ 829   1          
+ 830   1          return 0;
+ 831   1      }
+ 832          
+ 833          /**************************************************************************//**
+ 834           * The putchar function to replace the putchar in the standard library.
+ 835           * @param c Character.
+ 836           ******************************************************************************/
+ 837          char putchar(char c)
+ 838          {
+ 839   1          USHRT i;
+ 840   1          UCHAR k = 0;
+ 841   1          while (UART_Putchar(c) != 0) {
+ 842   2              for (i = 0; i < 1000; i++) {}
+ 843   2              if (++k > 10) {
+ 844   3                  TI = 1;
+ 845   3              }
+ 846   2          }
+ 847   1          ResetWDTimer();
+ 848   1          
+ 849   1          return (c);
+ 850   1      }
+ 851          #endif
+ 852          
+ 853          /**************************************************************************//**
+ 854           * Get the current value of timer tick.
+ 855           * @return Timer ticks.
+ 856           ******************************************************************************/
+ 857          USHRT GetTimerTick(void)
+ 858          {
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 15  
+
+ 859   1          idata USHRT timer;
+ 860   1      
+ 861   1          do {
+ 862   2              timer = usTimerTick_1ms;
+ 863   2          } while (timer != usTimerTick_1ms);
+ 864   1      
+ 865   1          return timer;
+ 866   1      }
+ 867          
+ 868          /**************************************************************************//**
+ 869           * Check the status of mode changed flag.
+ 870           * @return TRUE if mode changed flag is TRUE else FALSE.
+ 871           ******************************************************************************/
+ 872          BOOL CheckModeChangeFlag(void)
+ 873          {
+ 874   1          return bModeChanged;
+ 875   1      }
+ 876          
+ 877          /**************************************************************************//**
+ 878           * Clear the mode changed flag.
+ 879           ******************************************************************************/
+ 880          void ClearModeChangeFlag(void)
+ 881          {
+ 882   1          bModeChanged = FALSE;
+ 883   1      }
+ 884          
+ 885          /**************************************************************************//**
+ 886           * Set mode changed flag.
+ 887           * We use this function to force the system to perform the mode changed processes.
+ 888           ******************************************************************************/
+ 889          void SetModeChangeFlag(void)
+ 890          {
+ 891   1          bModeChanged = TRUE;
+ 892   1      }
+ 893          
+ 894          #if ENABLE_AUTO_CONTROL == ON
+              
+              extern void AT_Command(UCHAR cmd);
+              
+              void UART_Handler(void)
+              {
+              #define CMD_NUM 5
+              #define CMD_LEN 7
+              code UCHAR CommandTab[CMD_NUM][CMD_LEN] = {
+                  {".VGA1  "},
+                  {".HDMI2 "},
+                  {".DP    "},
+                  {".HDMI1 "},
+                  {".CTOTAL"},
+              };
+              UCHAR n, l;
+                  if (ucCommandPointer != ucUARTRxIn) {
+                      ucCommandBuffer[ucCommandPointer] = ucUARTRxBuffer[ucCommandPointer];
+              //        printf("%x\r\n", (USHRT)ucCommandBuffer[ucCommandPointer]);
+                      UART_Putchar(ucCommandBuffer[ucCommandPointer]);
+                      if ((ucCommandBuffer[ucCommandPointer] == 0x0D) || (ucCommandBuffer[ucCommandPointer] == 0x0A)) {
+                          for (n=0; n<CMD_NUM; n++) {
+                              for (l = 0; l < CMD_LEN; l++) {
+                                  if (ucCommandPointer > l) {
+              //                        printf("%x\r\n", (USHRT)CommandTab[n][l]);
+                                      if (ucCommandBuffer[l] != CommandTab[n][l]) {
+                                          break;
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 16  
+
+                                      }
+                                  }
+                                  else {
+                                      if (CommandTab[n][l] != 0x20) {
+                                          break;
+                                      }
+                                  }
+                              }
+                              if (l == CMD_LEN) {
+                                  AT_Command(n);
+                                  break;
+                              }
+                          }
+                          ucCommandPointer = 0;
+                          ucUARTRxIn = 0;
+                      }
+                      else {
+                          if (++ucCommandPointer > UART_COMMAND_SIZE - 1) {
+                              ucCommandPointer = 0;
+                              ucUARTRxIn = 0;
+                          }
+                      }
+                  }
+              }
+              
+              #endif
+ 947          
+ 948          #if (INPUT_INTERFACE&INPUT_MHL_MASK)
+              USHRT GetTimerTickInt() using 1
+              {
+                  return usTimerTick_1ms;
+              }
+              #endif
+ 954          
+ 955          #if ENABLE_USB_TYPE_C == ON
+              BOOL CheckUSBCCHWResetFlag(void)
+              {
+                  return bUSBCCHWReset;
+              }
+              
+              void ClearUSBCCHWResetFlag(void)
+              {
+                  bUSBCCHWReset = FALSE;
+              }
+              
+              UCHAR CheckUSBCCErrorFlag(void)
+              {
+                  return ucErrorFlag;
+              }
+              
+              void ClearUSBCCErrorFlag(void)
+              {
+                  ucErrorFlag = 0x00;
+              }
+              #endif
+ 976          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1514    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     73    ----
+C51 COMPILER V9.54   INT                                                                   01/06/2017 14:56:36 PAGE 17  
+
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =      8       2
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

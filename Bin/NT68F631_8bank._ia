@@ -1,0 +1,1 @@
+"Lib\NT68F631_8bank.a51" SET (LARGE) PRINT(.\Lst\NT68F631_8bank.lst) OBJECT(.\Bin\NT68F631_8bank.obj) EP

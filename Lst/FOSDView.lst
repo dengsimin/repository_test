@@ -1,0 +1,34 @@
+C51 COMPILER V9.54   FOSDVIEW                                                              01/06/2017 14:57:14 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE FOSDVIEW
+OBJECT MODULE PLACED IN .\Bin\FOSDView.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE App\OSD\FOSDView.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD
+                    -;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NV
+                    -T\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_2
+                    -560X1440,FLASH_BANK=8) PRINT(.\Lst\FOSDView.lst) TABS(2) OBJECT(.\Bin\FOSDView.obj)
+
+line level    source
+
+   1          #include "Include.h"
+   2          
+   3          #if FOSDTYPE == AOC_FactoryOSD
+   4          #include "FOSDView_AOC/FOSDView.c"
+   5          #elif FOSDTYPE == OTS_FactoryOSD
+              #include "FOSDView_OTS/FOSDView.c"
+              #endif
+   8          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   4227    ----
+   CONSTANT SIZE    =    609    ----
+   XDATA SIZE       =      5      24
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

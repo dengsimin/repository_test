@@ -1,0 +1,474 @@
+C51 COMPILER V9.54   SMOSDVIEW                                                             01/06/2017 14:57:04 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE SMOSDVIEW
+OBJECT MODULE PLACED IN .\Bin\SMOSDView.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE App\OSD\FOSDView_AOC\SMOSDView.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.
+                    -\App;.\App\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Compone
+                    -nt;.\Phy\SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_
+                    -MODULE,LVIEW_2560X1440,FLASH_BANK=8) PRINT(.\Lst\SMOSDView.lst) TABS(2) OBJECT(.\Bin\SMOSDView.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          //For BENQ Service Menu
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          
+  14          //******************************************************************************
+  15          // M A C R O   D E F I N I T I O N S
+  16          //******************************************************************************
+  17          typedef struct _LIGHTBAR_ {
+  18              UCHAR x;
+  19              UCHAR y;
+  20              UCHAR len;
+  21          } LightBar ;
+  22          
+  23          enum OSD_ServiceMenu {
+  24              mHDMI_HPD,
+  25              mDP_HPD,
+  26          #if ENABLE_SERVICEMENU_DVIHPD == ON    
+  27              mDVI_HPD,
+  28          #endif    
+  29              mLOGO,
+  30              mAUTOPOWER,    
+  31              mCABLE,    
+  32          };
+  33          
+  34          /*
+  35          #define SetFactUpdFlag()    {ucUpdateFlag = 1;}
+  36          #define ClearFactUpdFlag()  {ucUpdateFlag = 0;}
+  37          */
+  38          //******************************************************************************
+  39          // G L O B A L   V A R I A B L E S
+  40          //******************************************************************************
+  41          
+  42          //******************************************************************************
+  43          // S T A T I C   V A R I A B L E S
+  44          //******************************************************************************
+  45          static code UCHAR ucSMTitleText[]={17,"BENQ Service Page"};
+  46          static code UCHAR ucSMSnText[]={4,"S/N:"};
+  47          static code UCHAR ucSMModelText[]={11,"Model name:"};
+  48          static code UCHAR ucSMVenderText[]={7,"Vender:"};
+  49          static code UCHAR ucSMPanelText[]={6,"Panel:"};
+  50          static code UCHAR ucSMScalerText[]={7,"Scaler:"};
+  51          static code UCHAR ucSMVersionText[]={12,"F/W Version:"};
+  52          static code UCHAR ucSMMOTText[]={16,"Monitor On Time:"};
+C51 COMPILER V9.54   SMOSDVIEW                                                             01/06/2017 14:57:04 PAGE 2   
+
+  53          static code UCHAR ucSMBOTText[]={18,"Backlight On Time:"};
+  54          static code UCHAR ucSMHdmiHPDText[]={8,"HDMI HPD"};
+  55          static code UCHAR ucSMDviHPDText[]={7,"DVI HPD"};
+  56          static code UCHAR ucSMDpHPDText[]={6,"DP HPD"};
+  57          static code UCHAR ucSMLogoText[]={4,"Logo"};
+  58          static code UCHAR ucSMAutoPowerText[]={9,"AutoPower"};
+  59          static code UCHAR ucSMCableText[]={12,"DVI/HDMI 10M"};
+  60          static code UCHAR ucSMInfoText[]={44,"(Enter the service mode:Power On       Menu)"};
+  61          
+  62          static code UCHAR ucSMModel[]={sizeof(Model_TEXT)-1,Model_TEXT};
+  63          static code UCHAR ucSMVender[]={3,"TPV"};
+  64          static code UCHAR ucSMSn[]={4,"????"};
+  65          static code UCHAR ucSMPanel[]={sizeof(PANEL_NAME)-1,PANEL_NAME};
+  66          static code UCHAR ucSMScaler[]={sizeof(SCALER_TEXT)-1,SCALER_TEXT};
+  67          static code UCHAR ucSMVersion[]={15,'V',VERSION+'0',(REVERSION/10)+'0',(REVERSION%10)+'0',' ',DATE};
+  68          
+  69          static code UCHAR ucOnText[]={2,"On"};
+  70          static code UCHAR ucOffText[]={3,"Off"};
+  71          
+  72          code LightBar SMLBar[] = {
+  73              {1, OSD_SM_HdmiHPD_Y,7},
+  74              {1, OSD_SM_DpHPD_Y,7},
+  75          #if ENABLE_SERVICEMENU_DVIHPD == ON
+  76              {1, OSD_SM_DviHPD_Y,7},//DVI HPD
+  77          #endif    
+  78              {1, OSD_SM_Logo_Y,7},
+  79              {1, OSD_SM_AutoPower_Y,7},
+  80              {1, OSD_SM_Cable_Y,9},
+  81          };
+  82          
+  83          xdata UCHAR ucServiceMenuIndex;
+  84          //******************************************************************************
+  85          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  86          //******************************************************************************
+  87          
+  88          //******************************************************************************
+  89          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  90          //******************************************************************************
+  91          static void ServiceMenuSelect(void);
+  92          static void ServiceMenuUnSelect(void);
+  93          static void ServiceMenuShowHdmiHPD(void);
+  94          static void ServiceMenuShowDpHPD(void);
+  95          static void ServiceMenuShowDviHPD(void);
+  96          static void ServiceMenuShowLogo(void);
+  97          static void ServiceMenuShowAutoPower(void);
+  98          static void ServiceMenuShowCable(void);
+  99          
+ 100          //******************************************************************************
+ 101          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+ 102          //******************************************************************************
+ 103          
+ 104          //******************************************************************************
+ 105          // Prototype:
+ 106          //  UCHAR OSDFactoryUpdate(void)
+ 107          // Parameters:
+ 108          //  None
+ 109          // Return:
+ 110          //  None
+ 111          // Purpose:
+ 112          //  Return flag for informing system to save caldata
+ 113          // Notes:
+ 114          //  None
+C51 COMPILER V9.54   SMOSDVIEW                                                             01/06/2017 14:57:04 PAGE 3   
+
+ 115          //******************************************************************************
+ 116          
+ 117          void GetSerialNumber(UCHAR * buf)
+ 118          {
+ 119   1          UCHAR i;
+ 120   1          for (i=0;i<SystemData.SN_len;i++){    
+ 121   2                  buf[i] = SystemData.ucSN[i];
+ 122   2          }
+ 123   1      }
+ 124          //******************************************************************************
+ 125          // Prototype:
+ 126          //  void OSDShowFactory(void)
+ 127          // Parameters:
+ 128          //  None
+ 129          // Return:
+ 130          //  None
+ 131          // Purpose:
+ 132          //  Show Factory OSD
+ 133          // Notes:
+ 134          //  None
+ 135          //******************************************************************************
+ 136          
+ 137          
+ 138          void OSDShowServiceMenu(void)
+ 139          {
+ 140   1          UCHAR buff[20];
+ 141   1      #if !lrd_dis_benq
+                UCHAR MonitorPowerOnTimerM, PowerOnTimerM;
+              #endif    
+ 144   1          OSDAPI_TurnOffOSD();    
+ 145   1          OSDLoadFont(Service_font);
+ 146   1          OSDInitFrame(OSD_SM_W,OSD_SM_H,SM_FRAME_COLOR);
+ 147   1          OSDAPI_SetPosition(50,50);
+ 148   1          // ----------------------------------------
+ 149   1      
+ 150   1          OSDAPI_SetIndentIndex(2);
+ 151   1      
+ 152   1          OSDAPI_SetAlignType(OSD_ALIGN_CENTER);
+ 153   1          buff[0]    =SystemData.SN_len;
+ 154   1          GetSerialNumber(&buff[1]);
+ 155   1          ShowIndentString(FALSE,  0, 1,25,ucSMTitleText);
+ 156   1          ShowIndentString(FALSE,  0, 31,27,ucSMInfoText);
+ 157   1          
+ 158   1          OSDAPI_SetAlignType(OSD_ALIGN_LEFT);
+ 159   1      
+ 160   1          ShowIndentString(FALSE,  1, OSD_SM_Model_Y,1,ucSMModelText);
+ 161   1          ShowIndentString(FALSE,  1, OSD_SM_Sn_Y,1,ucSMSnText);    
+ 162   1          ShowIndentString(FALSE,  1, OSD_SM_Vender_Y,1,ucSMVenderText);
+ 163   1          ShowIndentString(FALSE,  1, OSD_SM_Panel_Y,1,ucSMPanelText);
+ 164   1          ShowIndentString(FALSE,  1, OSD_SM_Scaler_Y,1,ucSMScalerText);
+ 165   1          ShowIndentString(FALSE,  1, OSD_SM_Version_Y,1,ucSMVersionText);
+ 166   1          ShowIndentString(FALSE,  1, OSD_SM_MOT_Y,1,ucSMMOTText);
+ 167   1          ShowIndentString(FALSE,  1, OSD_SM_BOT_Y,1,ucSMBOTText);
+ 168   1          ShowIndentString(FALSE,  1, OSD_SM_HdmiHPD_Y,1,ucSMHdmiHPDText);
+ 169   1          ShowIndentString(FALSE,  1, OSD_SM_DpHPD_Y,1,ucSMDpHPDText);
+ 170   1      #if ENABLE_SERVICEMENU_DVIHPD == ON   
+ 171   1          ShowIndentString(FALSE,  1, OSD_SM_DviHPD_Y,1,ucSMDviHPDText);
+ 172   1      #endif
+ 173   1          ShowIndentString(FALSE,  1, OSD_SM_Logo_Y,1,ucSMLogoText);
+ 174   1          ShowIndentString(FALSE,  1, OSD_SM_AutoPower_Y,1,ucSMAutoPowerText);
+ 175   1          ShowIndentString(FALSE,  1, OSD_SM_Cable_Y,1,ucSMCableText);
+ 176   1      
+C51 COMPILER V9.54   SMOSDVIEW                                                             01/06/2017 14:57:04 PAGE 4   
+
+ 177   1          ShowIndentString(FALSE,  13, OSD_SM_Model_Y,1,ucSMModel);
+ 178   1          ShowIndentString(FALSE,  13, OSD_SM_Sn_Y,SystemData.SN_len, buff);    
+ 179   1          ShowIndentString(FALSE,  13, OSD_SM_Vender_Y,1,ucSMVender);
+ 180   1          ShowIndentString(FALSE,  13, OSD_SM_Panel_Y,1,ucSMPanel);
+ 181   1          ShowIndentString(FALSE,  13, OSD_SM_Scaler_Y,1,ucSMScaler);
+ 182   1          ShowIndentString(FALSE,  13, OSD_SM_Version_Y,1,ucSMVersion);
+ 183   1          #if !lrd_dis_benq
+                  if(SystemData.ucMonitorPowerOnTimerM >=30){
+                     MonitorPowerOnTimerM = 30;
+                  }
+                  else{
+                      MonitorPowerOnTimerM = 0;
+                  }
+                  if(SystemData.ucPowerOnTimerM >=30){
+                      PowerOnTimerM = 30;
+                  }
+                  else{
+                      PowerOnTimerM = 0;
+                  }
+                  sprintf(buff,"n%05d Hr %02d Min",SystemData.usMonitorPowerOnTimerH,(USHRT)MonitorPowerOnTimerM);    
+                  buff[0] = 15;    
+                  ShowIndentString(FALSE,  13, OSD_SM_MOT_Y,1,buff);
+                  sprintf(buff,"n%05d Hr %02d Min",SystemData.usPowerOnTimerH,(USHRT)PowerOnTimerM);    
+                  buff[0] = 15;        
+                  ShowIndentString(FALSE,  13, OSD_SM_BOT_Y,1,buff);
+                  #else
+ 203   1          sprintf(buff,"n%05d Hr %02d Min",SystemData.usMonitorPowerOnTimerH,(USHRT)SystemData.ucMonitorPowerOnT
+             -imerM);    
+ 204   1          buff[0] = 15;    
+ 205   1          ShowIndentString(FALSE,  13, OSD_SM_MOT_Y,1,buff);
+ 206   1          sprintf(buff,"n%05d Hr %02d Min",SystemData.usPowerOnTimerH,(USHRT)SystemData.ucPowerOnTimerM);    
+ 207   1          buff[0] = 15;        
+ 208   1          ShowIndentString(FALSE,  13, OSD_SM_BOT_Y,1,buff);
+ 209   1          #endif
+ 210   1          
+ 211   1          OSDAPI_WriteXYChar(FALSE, 21, 31, 1);
+ 212   1      
+ 213   1          ServiceMenuShowHdmiHPD();
+ 214   1          ServiceMenuShowDpHPD();
+ 215   1      #if ENABLE_SERVICEMENU_DVIHPD == ON       
+ 216   1          ServiceMenuShowDviHPD();
+ 217   1      #endif
+ 218   1          ServiceMenuShowLogo();
+ 219   1          ServiceMenuShowAutoPower();
+ 220   1          ServiceMenuShowCable();    
+ 221   1          
+ 222   1          ucServiceMenuIndex = mHDMI_HPD;
+ 223   1          ServiceMenuSelect();
+ 224   1      //=====================
+ 225   1       // OSDShowNum(20,OSD_SM_Cable_Y-2-2,(McuGetIOBit(DIGI1_CABLE_PORT, DIGI1_CABLE_BIT) == DIGI1_CABLE_ACTIVE
+             -)); //dvi
+ 226   1        
+ 227   1       // OSDShowNum(20,OSD_SM_Cable_Y-2,(McuGetIOBit(DP_CABLE_PORT, DP_CABLE_BIT) == DP_CABLE_ACTIVE)); //dp
+ 228   1       
+ 229   1       // OSDShowNum(20,OSD_SM_Cable_Y,(McuGetIOBit(DIGI3_CABLE_PORT, DIGI3_CABLE_BIT) == DIGI3_CABLE_ACTIVE));/
+             -/hdmi
+ 230   1      //====================
+ 231   1          OSDTurnOnOSD();
+ 232   1      }
+ 233          
+ 234          //******************************************************************************
+ 235          // Prototype:
+C51 COMPILER V9.54   SMOSDVIEW                                                             01/06/2017 14:57:04 PAGE 5   
+
+ 236          //  void OSDFactoryUp(void)
+ 237          // Parameters:
+ 238          //  None
+ 239          // Return:
+ 240          //  None
+ 241          // Purpose:
+ 242          //  None
+ 243          // Notes:
+ 244          //  None
+ 245          //******************************************************************************
+ 246          void OSDServiceMenuUp(void)
+ 247          {
+ 248   1          ServiceMenuUnSelect();
+ 249   1          if(--ucServiceMenuIndex > mCABLE)
+ 250   1              ucServiceMenuIndex = mCABLE;
+ 251   1          ServiceMenuSelect();
+ 252   1      
+ 253   1          
+ 254   1      }
+ 255          
+ 256          //******************************************************************************
+ 257          // Prototype:
+ 258          //  void OSDFactoryDown(void)
+ 259          // Parameters:
+ 260          //  None
+ 261          // Return:
+ 262          //  None
+ 263          // Purpose:
+ 264          //  None
+ 265          // Notes:
+ 266          //  None
+ 267          //******************************************************************************
+ 268          void OSDServiceMenuDown(void)
+ 269          {
+ 270   1          ServiceMenuUnSelect();
+ 271   1          if(++ucServiceMenuIndex > mCABLE)
+ 272   1              ucServiceMenuIndex = mHDMI_HPD;
+ 273   1          ServiceMenuSelect();
+ 274   1      }
+ 275          
+ 276          //******************************************************************************
+ 277          // Prototype:
+ 278          //  void OSDFactoryEnterItm(void)
+ 279          // Parameters:
+ 280          //  None
+ 281          // Return:
+ 282          //  None
+ 283          // Purpose:
+ 284          //  None
+ 285          // Notes:
+ 286          //  None
+ 287          //******************************************************************************
+ 288          void OSDServiceMenuAdjItm(void)
+ 289          {
+ 290   1          switch(ucServiceMenuIndex)
+ 291   1          {
+ 292   2              case mHDMI_HPD:
+ 293   2          SystemData.bHDMI_HPD = ~SystemData.bHDMI_HPD;
+ 294   2          ServiceMenuShowHdmiHPD();
+ 295   2          break;
+ 296   2          case mDP_HPD:
+ 297   2          SystemData.bDP_HPD = ~SystemData.bDP_HPD;
+C51 COMPILER V9.54   SMOSDVIEW                                                             01/06/2017 14:57:04 PAGE 6   
+
+ 298   2          ServiceMenuShowDpHPD();
+ 299   2          break;
+ 300   2      #if ENABLE_SERVICEMENU_DVIHPD == ON    
+ 301   2          case mDVI_HPD:
+ 302   2          SystemData.bDVI_HPD = ~SystemData.bDVI_HPD;
+ 303   2          ServiceMenuShowDviHPD();
+ 304   2          break;
+ 305   2      #endif    
+ 306   2          case mLOGO:
+ 307   2          SystemData.bShowLogo = ~SystemData.bShowLogo;
+ 308   2          ServiceMenuShowLogo();
+ 309   2          break;
+ 310   2          case mAUTOPOWER:
+ 311   2          SystemData.bAutoPower = ~SystemData.bAutoPower;
+ 312   2          ServiceMenuShowAutoPower();
+ 313   2          break;
+ 314   2          case mCABLE:
+ 315   2          SystemData.bCable = ~SystemData.bCable;
+ 316   2          ServiceMenuShowCable();
+ 317   2          break;
+ 318   2          default:
+ 319   2          break;
+ 320   2          };
+ 321   1          SetOSDUpdSysFlag();
+ 322   1      }
+ 323          
+ 324          void ServiceMenuShowHdmiHPD(void)
+ 325          {
+ 326   1          OSDAPI_SetIndentIndex(0xD5);
+ 327   1          OSDAPI_SetFontAttr(SM_ITEM_COLOR);
+ 328   1          if(SystemData.bHDMI_HPD)
+ 329   1          {
+ 330   2              ShowIndentString(TRUE,  13, OSD_SM_HdmiHPD_Y,1,ucOnText);
+ 331   2              OSDAPI_SetFontAttr(SM_FRAME_COLOR);
+ 332   2              ShowIndentString(TRUE,  17, OSD_SM_HdmiHPD_Y,1,ucOffText);
+ 333   2          }else{
+ 334   2              ShowIndentString(TRUE,  17, OSD_SM_HdmiHPD_Y,1,ucOffText);
+ 335   2              OSDAPI_SetFontAttr(SM_FRAME_COLOR);
+ 336   2              ShowIndentString(TRUE,  13, OSD_SM_HdmiHPD_Y,1,ucOnText);        
+ 337   2          }
+ 338   1      }
+ 339          
+ 340          void ServiceMenuShowDpHPD(void)
+ 341          {
+ 342   1          OSDAPI_SetIndentIndex(0xDA);
+ 343   1          OSDAPI_SetFontAttr(SM_ITEM_COLOR);
+ 344   1          if(SystemData.bDP_HPD)
+ 345   1          {
+ 346   2              ShowIndentString(TRUE,  13, OSD_SM_DpHPD_Y,1,ucOnText);
+ 347   2              OSDAPI_SetFontAttr(SM_FRAME_COLOR);
+ 348   2              ShowIndentString(TRUE,  17, OSD_SM_DpHPD_Y,1,ucOffText);
+ 349   2          }else{
+ 350   2              ShowIndentString(TRUE,  17, OSD_SM_DpHPD_Y,1,ucOffText);
+ 351   2              OSDAPI_SetFontAttr(SM_FRAME_COLOR);
+ 352   2              ShowIndentString(TRUE,  13, OSD_SM_DpHPD_Y,1,ucOnText);        
+ 353   2          }
+ 354   1      }
+ 355          #if ENABLE_SERVICEMENU_DVIHPD == ON
+ 356          void ServiceMenuShowDviHPD(void)
+ 357          {
+ 358   1          OSDAPI_SetIndentIndex(0xDF);
+ 359   1          OSDAPI_SetFontAttr(SM_ITEM_COLOR);
+C51 COMPILER V9.54   SMOSDVIEW                                                             01/06/2017 14:57:04 PAGE 7   
+
+ 360   1          if(SystemData.bDVI_HPD)
+ 361   1          {
+ 362   2              ShowIndentString(TRUE,  13, OSD_SM_DviHPD_Y,1,ucOnText);
+ 363   2              OSDAPI_SetFontAttr(SM_FRAME_COLOR);
+ 364   2              ShowIndentString(TRUE,  17, OSD_SM_DviHPD_Y,1,ucOffText);
+ 365   2          }else{
+ 366   2              ShowIndentString(TRUE,  17, OSD_SM_DviHPD_Y,1,ucOffText);
+ 367   2              OSDAPI_SetFontAttr(SM_FRAME_COLOR);
+ 368   2              ShowIndentString(TRUE,  13, OSD_SM_DviHPD_Y,1,ucOnText);        
+ 369   2          }
+ 370   1      }
+ 371          #endif
+ 372          void ServiceMenuShowLogo(void)
+ 373          {
+ 374   1          OSDAPI_SetIndentIndex(0xE4);
+ 375   1          OSDAPI_SetFontAttr(SM_ITEM_COLOR);
+ 376   1          if(SystemData.bShowLogo)
+ 377   1          {
+ 378   2              ShowIndentString(TRUE,  13, OSD_SM_Logo_Y,1,ucOnText);
+ 379   2              OSDAPI_SetFontAttr(SM_FRAME_COLOR);
+ 380   2              ShowIndentString(TRUE,  17, OSD_SM_Logo_Y,1,ucOffText);
+ 381   2          }else{
+ 382   2              ShowIndentString(TRUE,  17, OSD_SM_Logo_Y,1,ucOffText);
+ 383   2              OSDAPI_SetFontAttr(SM_FRAME_COLOR);
+ 384   2              ShowIndentString(TRUE,  13, OSD_SM_Logo_Y,1,ucOnText);        
+ 385   2          }
+ 386   1      }
+ 387          
+ 388          void ServiceMenuShowAutoPower(void)
+ 389          {
+ 390   1          OSDAPI_SetIndentIndex(0xE9);
+ 391   1          OSDAPI_SetFontAttr(SM_ITEM_COLOR);
+ 392   1          if(SystemData.bAutoPower)
+ 393   1          {
+ 394   2              ShowIndentString(TRUE,  13, OSD_SM_AutoPower_Y,1,ucOnText);
+ 395   2              OSDAPI_SetFontAttr(SM_FRAME_COLOR);
+ 396   2              ShowIndentString(TRUE,  17, OSD_SM_AutoPower_Y,1,ucOffText);
+ 397   2          }else{
+ 398   2              ShowIndentString(TRUE,  17, OSD_SM_AutoPower_Y,1,ucOffText);
+ 399   2              OSDAPI_SetFontAttr(SM_FRAME_COLOR);
+ 400   2              ShowIndentString(TRUE,  13, OSD_SM_AutoPower_Y,1,ucOnText);        
+ 401   2          }
+ 402   1      }
+ 403          
+ 404          void ServiceMenuShowCable(void)
+ 405          {
+ 406   1          OSDAPI_SetIndentIndex(0xEE);
+ 407   1          OSDAPI_SetFontAttr(SM_ITEM_COLOR);
+ 408   1          if(SystemData.bCable)
+ 409   1          {
+ 410   2              ShowIndentString(TRUE,  13, OSD_SM_Cable_Y,1,ucOnText);
+ 411   2              OSDAPI_SetFontAttr(SM_FRAME_COLOR);
+ 412   2              ShowIndentString(TRUE,  17, OSD_SM_Cable_Y,1,ucOffText);
+ 413   2          }else{
+ 414   2              ShowIndentString(TRUE,  17, OSD_SM_Cable_Y,1,ucOffText);
+ 415   2              OSDAPI_SetFontAttr(SM_FRAME_COLOR);
+ 416   2              ShowIndentString(TRUE,  13, OSD_SM_Cable_Y,1,ucOnText);        
+ 417   2          }
+ 418   1      }
+ 419          
+ 420          void ServiceMenuSelect(void)
+ 421          {
+C51 COMPILER V9.54   SMOSDVIEW                                                             01/06/2017 14:57:04 PAGE 8   
+
+ 422   1          OSDAPI_FillLineAttr(SMLBar[ucServiceMenuIndex].x, SMLBar[ucServiceMenuIndex].y,
+ 423   1                              SMLBar[ucServiceMenuIndex].len,SM_SELECT_COLOR);
+ 424   1      }
+ 425          
+ 426          void ServiceMenuUnSelect(void)
+ 427          {
+ 428   1          OSDAPI_FillLineAttr(SMLBar[ucServiceMenuIndex].x, SMLBar[ucServiceMenuIndex].y,
+ 429   1                              SMLBar[ucServiceMenuIndex].len, SM_FRAME_COLOR);
+ 430   1      }
+ 431          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1720    ----
+   CONSTANT SIZE    =    334    ----
+   XDATA SIZE       =      1      23
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

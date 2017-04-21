@@ -1,0 +1,1496 @@
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE SCALER_SYNC
+OBJECT MODULE PLACED IN .\Bin\Scaler_Sync.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Lib\NT68810 Series\Scaler_Sync.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.
+                    -\App;.\App\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Compone
+                    -nt;.\Phy\SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_
+                    -MODULE,LVIEW_2560X1440,FLASH_BANK=8) PRINT(.\Lst\Scaler_Sync.lst) TABS(2) OBJECT(.\Bin\Scaler_Sync.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          #include "ScalerProfile.h"
+  14          
+  15          //******************************************************************************
+  16          // M A C R O   D E F I N I T I O N S
+  17          //******************************************************************************
+  18          #define HSYNC_LOWER_BOUND   12   /*!< The lower bound of valid HSync frequency. The unit is KHz. */
+  19          #define HSYNC_UPPER_BOUND   200  /*!< The upper bound of valid HSync frequency. The unit is KHz. */
+  20          #define VSYNC_LOWER_BOUND   20   /*!< The lower bound of valid VSync frequency. The unit is Hz. */
+  21          #define VSYNC_UPPER_BOUND   200  /*!< The upper bound of valid VSync frequency. The unit is Hz. */
+  22          #define H_CNT_LOW_THLD      (8UL*REF_CLK/1000/HSYNC_UPPER_BOUND) /*!< The low threshold of valid HSync cou
+             -nter. */
+  23          #define H_CNT_HIGH_THLD     (8UL*REF_CLK/1000/HSYNC_LOWER_BOUND) /*!< The high threshold of valid HSync co
+             -unter. */
+  24          #define V_CNT_LOW_THLD      (1UL*REF_CLK/256/VSYNC_UPPER_BOUND)  /*!< The low threshold of valid VSync cou
+             -nter. */
+  25          #define V_CNT_HIGH_THLD     (1UL*REF_CLK/256/VSYNC_LOWER_BOUND)  /*!< The high threshold of valid VSync co
+             -unter. */
+  26          #define DIG_VALID_PIXEL_RATE 22
+  27          
+  28          //******************************************************************************
+  29          // G L O B A L   V A R I A B L E S
+  30          //******************************************************************************
+  31          xdata USHRT usHSyncFreq; /*!< HSync frequency. The unit is 0.1KHz. */
+  32          xdata USHRT usVSyncFreq; /*!< VSync frequency. The unit is 0.1Hz. */
+  33          xdata UCHAR ucZpInterface; /*!< Interface ID in the zero power mode. */
+  34          
+  35          //******************************************************************************
+  36          // S T A T I C   V A R I A B L E S
+  37          //******************************************************************************
+  38          
+  39          //******************************************************************************
+  40          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  41          //******************************************************************************
+  42          #if ENABLE_LOW_PWR_MODE == ON
+  43          extern idata USHRT usMCUCLKDIVIDERLoop;
+  44          #endif
+  45          
+  46          //******************************************************************************
+  47          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  48          //******************************************************************************
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 2   
+
+  49          static BOOL CheckSOG(void);
+  50          static BOOL ZpSyncDetect(void);
+  51          
+  52          //******************************************************************************
+  53          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  54          //******************************************************************************
+  55          
+  56          //******************************************************************************
+  57          // F U N C T I O N   B O D Y S
+  58          //******************************************************************************
+  59          
+  60          /**************************************************************************//**
+  61           * Initialize Sync-related registers.
+  62           ******************************************************************************/
+  63          void SyncInit(void)
+  64          {
+  65   1          SC_GI_SYNC_CTRL = 0x24;
+  66   1          SC_GI_SYNC_CTRL2 = 0xC0;
+  67   1          SC_GI_SYNC_CTRL3 = 0x42; // 0x199
+  68   1          SC_HPRE_THR_LO = 0x00;
+  69   1          SC_HPRE_THR_HI = 0x1F;
+  70   1          SC_VPRE_THR_LO = 0x13;
+  71   1          SC_VPRE_THR_HI = 0x42;
+  72   1          SC_HCNT_THR = 0x04;
+  73   1          SC_V_CHANG_CTRL = 0x24;
+  74   1      #if ENABLE_FREESYNC_DEMO == ON
+                  SC_SYNC_INT_EN1 = 0x1C;
+              #else
+  77   1          SC_SYNC_INT_EN1 = 0x3C;
+  78   1      #endif
+  79   1          SC_SYNC_INT_EN2 = 0x07;
+  80   1          SC_SYNC_INT_FLAG1 = 0x3F;
+  81   1          SC_SYNC_INT_FLAG2 = 0x1F;
+  82   1          SC_GI_FIELD_WIN = 0xB7;//0xB6;//0xC5;  // 0x198
+  83   1          SC_NEW_HSYNC_CTRL1 |= (BIT0 | BIT2);
+  84   1          SC_FAST_MUTE_CTRL = 0x4A;
+  85   1          SC_FIELD_POLARITY_CTRL = 0x02;
+  86   1      //    SC_VCR_CTRL = 0x10;
+  87   1      
+  88   1          EnableSyncProcFreeRun(FALSE);
+  89   1      }
+  90          
+  91          /**************************************************************************//**
+  92           * Get current input HSync frequency.
+  93           * The unit is 0.1KHz.
+  94           * @return Input HSync frequency.
+  95           ******************************************************************************/
+  96          USHRT GetInputHFreq(void)
+  97          {
+  98   1          USHRT cnt;
+  99   1      
+ 100   1          cnt = ReadShortScaler(&SC_GI_HCNT_LO) & 0x1FFF;
+ 101   1      
+ 102   1          // Valid HSync range : 12KHz < HS < 200KHz
+ 103   1          if ((cnt > H_CNT_HIGH_THLD) || (cnt < H_CNT_LOW_THLD)) {
+ 104   2              usHSyncFreq = 0xFFFF;
+ 105   2          }
+ 106   1          else {
+ 107   2              usHSyncFreq = (USHRT) ((8UL * REF_CLK / cnt + 50) / 100);
+ 108   2          }
+ 109   1      
+ 110   1          return usHSyncFreq;
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 3   
+
+ 111   1      }
+ 112          
+ 113          /**************************************************************************//**
+ 114           * Get current input VSync frequency.
+ 115           * The unit is 0.1Hz.
+ 116           * @return Input VSync frequency.
+ 117           ******************************************************************************/
+ 118          USHRT GetInputVFreq(void)
+ 119          {
+ 120   1          USHRT cnt;
+ 121   1      
+ 122   1          cnt = ReadShortScaler(&SC_GI_VCNT_LO) & 0x1FFF;
+ 123   1      
+ 124   1          // Valid VSync range : 20Hz < VS < 200Hz
+ 125   1          if ((cnt > V_CNT_HIGH_THLD) || (cnt < V_CNT_LOW_THLD)) {
+ 126   2              usVSyncFreq = 0xFFFF;
+ 127   2          }
+ 128   1          else {
+ 129   2              usVSyncFreq = (USHRT) ((10UL * REF_CLK / cnt + 128) / 256);
+ 130   2          }
+ 131   1      
+ 132   1          return usVSyncFreq;
+ 133   1      }
+ 134          
+ 135          /**************************************************************************//**
+ 136           * Get current input HSync/VSync polarity.
+ 137           * The unit is 0.1Hz.
+ 138           * @return Input HSync/VSync polarity.
+ 139           ******************************************************************************/
+ 140          UCHAR GetInputHVPolarity(void)
+ 141          {
+ 142   1          UCHAR polarity;
+ 143   1      
+ 144   1          switch (SC_GI_SYNC_STATUS & 0x03) {
+ 145   2              case 0x00:
+ 146   2                  polarity = HNVN;
+ 147   2                  break;
+ 148   2      
+ 149   2              case 0x01:
+ 150   2                  polarity = HPVN;
+ 151   2                  break;
+ 152   2      
+ 153   2              case 0x02:
+ 154   2                  polarity = HNVP;
+ 155   2                  break;
+ 156   2      
+ 157   2              case 0x03:
+ 158   2                  polarity = HPVP;
+ 159   2                  break;
+ 160   2          
+ 161   2              default:
+ 162   2                  polarity = HPVP;
+ 163   2                  break;
+ 164   2          }
+ 165   1      
+ 166   1          return polarity;
+ 167   1      }
+ 168          
+ 169          /**************************************************************************//**
+ 170           * Get current input HSync width.
+ 171           * The value is number of 12MHz.
+ 172           * @return Input HSync width.
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 4   
+
+ 173           ******************************************************************************/
+ 174          UCHAR GetInputHSyncWidth(void)
+ 175          {
+ 176   1          return SC_GI_HS_WID;
+ 177   1      }
+ 178          
+ 179          /**************************************************************************//**
+ 180           * Get current input VSync width.
+ 181           * The value is number of lines.
+ 182           * @return Input VSync width.
+ 183           ******************************************************************************/
+ 184          UCHAR GetInputVSyncWidth(void)
+ 185          {
+ 186   1          return SC_GI_VS_WID;
+ 187   1      }
+ 188          
+ 189          /**************************************************************************//**
+ 190           * Get current input VTotal
+ 191           * The value is number of 12MHz.
+ 192           * @return Input VTotal.
+ 193           ******************************************************************************/
+ 194          USHRT GetInputVTotal(void)
+ 195          {
+ 196   1          // Sometimes, we may get wrong vtotal during mode search because scaler does not update the vtotal yet
+             -.
+ 197   1          // To solve this issue, we always get vtotal from H/V sync calculation.
+ 198   1          // Jude 2011/10/18
+ 199   1      #if 1
+ 200   1          USHRT hcnt, vcnt;
+ 201   1      
+ 202   1          hcnt = ReadShortScaler(&SC_GI_HCNT_LO) & 0x1FFF;
+ 203   1          if ((hcnt > H_CNT_HIGH_THLD) || (hcnt < H_CNT_LOW_THLD)) {
+ 204   2              return 0;
+ 205   2          }
+ 206   1      
+ 207   1          vcnt = ReadShortScaler(&SC_GI_VCNT_LO) & 0x1FFF;
+ 208   1          if ((vcnt > V_CNT_HIGH_THLD) || (vcnt < V_CNT_LOW_THLD)) {
+ 209   2              return 0;
+ 210   2          }
+ 211   1      
+ 212   1          return (USHRT)((float)2048 * vcnt / hcnt + 0.5);
+ 213   1      #else
+                  USHRT hcnt, vcnt;
+                  UCHAR interface = GetCurrInputInterface();
+              
+                  hcnt = ReadShortScaler(&SC_GI_HCNT_LO) & 0x1FFF;
+                  if ((hcnt > H_CNT_HIGH_THLD) || (hcnt < H_CNT_LOW_THLD)) {
+                      return 0;
+                  }
+              
+                  vcnt = ReadShortScaler(&SC_GI_VCNT_LO) & 0x1FFF;
+                  if ((vcnt > V_CNT_HIGH_THLD) || (vcnt < V_CNT_LOW_THLD)) {
+                      return 0;
+                  }
+              
+                  // We can not get correct vtotal under DVI if signal is pure DE
+                  // or if sync-processor is in DE mode. To solve this issue, we
+                  // return vtotal by Hsync/Vsync when input is digital signal.
+                  if ((interface == DIGITAL_INPUT0) || (interface == DIGITAL_INPUT1)) {
+                      return (USHRT)((float)2048 * vcnt / hcnt + 0.5);
+                  }
+              
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 5   
+
+                  return ReadShortScaler(&SC_GRAPHIC_VTOTAL_COUNTER_LO) + 1;
+              #endif
+ 236   1      }
+ 237          
+ 238          /**************************************************************************//**
+ 239           * Setup Hync overflow mask to reduce mode change time.
+ 240           * @param on TRUE to setup overflow mask by HSync. FALSE to setup default overflow mask.
+ 241           ******************************************************************************/
+ 242          void SetupHSyncOverflowMask(UCHAR on)
+ 243          {
+ 244   1      #define HSYNC_BAND_LOW  ((float)REF_CLK/12000000*244)
+ 245   1      #define HSYNC_BAND_MID  ((float)REF_CLK/12000000*478)
+ 246   1      #define HSYNC_BAND_MAX  ((float)REF_CLK/12000000*947)
+ 247   1          UCHAR interface = GetCurrInputInterface();
+ 248   1          SC_INPUT_SELECT &= 0x0F;
+ 249   1      if ((interface != DISPLAY_PORT_INPUT) && (interface != DISPLAY_PORT_INPUT1) && (interface != DISPLAY_PORT_
+             -INPUT2) && (interface != DISPLAY_PORT_INPUT3)){ // Fix DP DE original mode bug
+ 250   2          SC_INPUT_SELECT |= 0x80; // Default overflow point 11.72KHz
+ 251   2      
+ 252   2          if (on) {
+ 253   3              if (usHSyncFreq > HSYNC_BAND_MAX) {
+ 254   4                  SC_INPUT_SELECT |= 0xF0; // overflow point 93.75KHz
+ 255   4              }
+ 256   3              else if (usHSyncFreq > HSYNC_BAND_MID) {
+ 257   4                  SC_INPUT_SELECT |= 0xE0; // overflow point 46.8KHz
+ 258   4              }
+ 259   3              else if (usHSyncFreq > HSYNC_BAND_LOW) {
+ 260   4                  SC_INPUT_SELECT |= 0xC0; // overflow point 23.4KHz
+ 261   4              }
+ 262   3          }
+ 263   2      }
+ 264   1      #undef HSYNC_BAND_LOW
+ 265   1      #undef HSYNC_BAND_MID
+ 266   1      #undef HSYNC_BAND_MAX
+ 267   1      }
+ 268          
+ 269          /**************************************************************************//**
+ 270           * Check current input sync status.
+ 271           * @return The value would be one of NO_SYNC/SEP_SYNC/COM_SYNC/SOG_SYNC/DIG_SYNC.
+ 272           ******************************************************************************/
+ 273          UCHAR CheckInputSync(void)
+ 274          {
+ 275   1          UCHAR curr_interface;
+ 276   1          UCHAR sync = NO_SYNC;
+ 277   1      
+ 278   1          if (IsZpMode() == TRUE) {
+ 279   2              if (ZpSyncDetect() == TRUE) {
+ 280   3                  curr_interface = GetCurrInputInterface();
+ 281   3      #if ENABLE_USB_TYPE_C == ON
+                          if (curr_interface == USB_TYPE_C_INTERFACE) {
+                              return NO_SYNC;
+                          }
+              #endif
+ 286   3      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INT
+             -ERFACE&INPUT_DP3)
+ 287   3                  if (((curr_interface == DISPLAY_PORT_INPUT) || (curr_interface == DISPLAY_PORT_INPUT1)
+ 288   3                    || (curr_interface == DISPLAY_PORT_INPUT2) || (curr_interface == DISPLAY_PORT_INPUT3)) && ((
+             -DP_CTRL & BIT4) == 0)) {// 0xf0d2
+ 289   4                      return NO_SYNC;
+ 290   4                  }
+ 291   3      #endif
+ 292   3                  return UNKNOWN_SYNC;
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 6   
+
+ 293   3              }
+ 294   2              else {
+ 295   3                  return NO_SYNC;
+ 296   3              }
+ 297   2          }
+ 298   1      
+ 299   1          curr_interface = GetCurrInputInterface();
+ 300   1          switch (curr_interface) {
+ 301   2              case ANALOG_SEP_INPUT0: //Composite signal's priority is higher than separate signal
+ 302   2                  //H/V present, Composite non-present, H/V non-overflow
+ 303   2                  if ((SC_GI_SYNC_STATUS & 0xF8) == 0x18) {
+ 304   3                      McuScalerIntEnable(); //MCU will response to scaler interrupt
+ 305   3                      sync = SEP_SYNC;
+ 306   3                  } //H/V/Com present, H/V non-overflow
+ 307   2                  else if ((SC_GI_SYNC_STATUS & 0xF8) == 0x38) {
+ 308   3                      McuScalerIntEnable(); //MCU will response to scaler interrupt
+ 309   3                      SetInputInterface(ANALOG_COM_INPUT0);
+ 310   3                      sync = COM_SYNC;
+ 311   3                  }
+ 312   2                  break;
+ 313   2      
+ 314   2              case ANALOG_SEP_INPUT1: ////Composite signal's priority is higher than seperate signal
+ 315   2                  //H/V present, Composite non-present, H/V non-overflow
+ 316   2                  if ((SC_GI_SYNC_STATUS & 0xF8) == 0x18) {
+ 317   3                      McuScalerIntEnable(); //MCU will response to scaler interrupt
+ 318   3                      sync = SEP_SYNC;
+ 319   3                  } //H/V/Com present, H/V non-overflow
+ 320   2                  else if ((SC_GI_SYNC_STATUS & 0xF8) == 0x38) {
+ 321   3                      McuScalerIntEnable(); //MCU will response to scaler interrupt
+ 322   3                      SetInputInterface(ANALOG_COM_INPUT1);
+ 323   3                      sync = COM_SYNC;
+ 324   3                  }
+ 325   2                  break;
+ 326   2      
+ 327   2              case ANALOG_COM_INPUT0:
+ 328   2              case ANALOG_COM_INPUT1:
+ 329   2                  //Composite present, H/V non-overflow
+ 330   2                  if ((SC_GI_SYNC_STATUS & 0xE8) == 0x28) {
+ 331   3                      McuScalerIntEnable(); //MCU will response to scaler interrupt
+ 332   3                      sync = COM_SYNC;
+ 333   3                  }
+ 334   2                  break;
+ 335   2      
+ 336   2              case ANALOG_SOG_INPUT0:
+ 337   2              case ANALOG_SOG_INPUT1:
+ 338   2              case ANALOG_YPBPR_INPUT0:
+ 339   2              case ANALOG_YPBPR_INPUT1:
+ 340   2                  //Composite present, H/V non-overflow
+ 341   2                  if ((SC_GI_SYNC_STATUS & 0xE0) == 0x20) {
+ 342   3                      // Check vtotal to avoid the bug of new h-polarity detection.
+ 343   3                      if (CheckSOG() == TRUE) {
+ 344   4                          McuScalerIntEnable(); //MCU will response to scaler interrupt
+ 345   4                          sync = SOG_SYNC;
+ 346   4                      }
+ 347   3                      else {
+ 348   4                          sync = NO_SYNC;
+ 349   4                      }
+ 350   3                  }
+ 351   2                  break;
+ 352   2      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INT
+             -ERFACE&INPUT_DP3)
+ 353   2              case DISPLAY_PORT_INPUT:
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 7   
+
+ 354   2              case DISPLAY_PORT_INPUT1:
+ 355   2              case DISPLAY_PORT_INPUT2:
+ 356   2              case DISPLAY_PORT_INPUT3:
+ 357   2          #if defined(ENABLE_FPGA_MODE)
+              //                #if DVI_MODE == DVI_DE_MODE
+                                  if ((SC_GI_SYNC_STATUS & 0xC0) == 0x00) {
+              //                #else
+              //                    if ((SC_GI_SYNC_STATUS & 0xF8) == 0x18) {
+              //                #endif
+                                      McuScalerIntEnable(); //MCU will response to scaler interrupt
+                                      sync = DIG_SYNC;
+                                  }
+                  #else
+ 367   2                  if ((SC_DP_10F2 & BIT6) != 0) {
+ 368   3                      if ((DP_GetClock() > 12)) {
+ 369   4      //                #if DVI_MODE == DVI_DE_MODE
+ 370   4                          if ((SC_GI_SYNC_STATUS & 0xC0) == 0x00) {  // 0x19a
+ 371   5      //                #else
+ 372   5      //                    if ((SC_GI_SYNC_STATUS & 0xF8) == 0x18) {
+ 373   5      //                #endif
+ 374   5                              McuScalerIntEnable(); //MCU will response to scaler interrupt
+ 375   5                              sync = DIG_SYNC;
+ 376   5                          }
+ 377   4                      }
+ 378   3                  }
+ 379   2          #endif
+ 380   2                  break;
+ 381   2      #endif
+ 382   2              case DIGITAL_INPUT0:
+ 383   2              case DIGITAL_INPUT1:
+ 384   2              case DIGITAL_INPUT2:
+ 385   2              case DIGITAL_INPUT3:
+ 386   2                  SC_HDMI_SOFTWARE_RESET |= BIT4;  // 0x605
+ 387   2      #if (INPUT_INTERFACE&INPUT_MHL_MASK)
+                          MHLSetInterface(curr_interface);
+              #endif
+ 390   2                  //Check SCDT
+ 391   2                  if ((curr_interface == DIGITAL_INPUT0) || (curr_interface == DIGITAL_INPUT1)){
+ 392   3                      TMDSDataAlign(_DPPP_PHY0);
+ 393   3      #if ENABLE_EMBEDED_TMDS_CLOCK_TRAINING == OFF
+ 394   3                      TMDSClockTraining(_DPPP_PHY0, FALSE);//TMDSImpedanceDetection();
+ 395   3      #endif
+ 396   3                  }
+ 397   2                  else {
+ 398   3                      TMDSDataAlign(_DPPP_PHY1);
+ 399   3      #if ENABLE_EMBEDED_TMDS_CLOCK_TRAINING == OFF
+ 400   3                      TMDSClockTraining(_DPPP_PHY1, FALSE);//TMDSImpedanceDetection();
+ 401   3      #endif
+ 402   3                  }
+ 403   2                  if ((SC_DVI_STATUS & BIT0) != 0) {
+ 404   3                      TMDSBandwidthDetection(FALSE);
+ 405   3                  #if ENABLE_HDMI == ON
+ 406   3                      // Always enable preamble detection during sync detection
+ 407   3                      HDMIEnablePreambleDetection(TRUE);
+ 408   3                      HDMIEnableAVC(TRUE);
+ 409   3                  #endif
+ 410   3                      if (TMDSClockStable() == TRUE ) {
+ 411   4                          TMDSBandwidthDetection(TRUE);
+ 412   4                      #if ENABLE_DVI_DUAL_LINK == ON
+ 413   4                          TMDS_DualLinkDetection();
+ 414   4                      #endif
+ 415   4                      #if ENABLE_HDMI == ON
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 8   
+
+ 416   4                          TMDSDeepColorDetection();
+ 417   4                      #endif
+ 418   4                          // Double check H/V present to avoid abnormal display
+ 419   4                          // under pure DE digital signal. TMDSBandwidthDetection
+ 420   4                          // must be prior to H/V present checking
+ 421   4                      #if DVI_MODE == DVI_DE_MODE
+                        #if IS_NT68870_SERIES
+                                  if (((SC_GI_SYNC_STATUS & 0xC0) == 0x00) && (CheckTMDSVCOValue() == TRUE) &&(CheckTMDS
+             -ErrorCounter()==TRUE)){
+                        #else
+                                  if (((SC_GI_SYNC_STATUS & 0xC0) == 0x00) && (CheckTMDSVCOValue() == TRUE)){
+                        #endif
+                              #else
+ 428   4                #if IS_NT68870_SERIES       
+ 429   4                          if (((SC_GI_SYNC_STATUS & 0xF8) == 0x18) && (CheckTMDSVCOValue() == TRUE) &&(CheckTMDS
+             -ErrorCounter()==TRUE)){
+ 430   5                #else
+                                  if (((SC_GI_SYNC_STATUS & 0xF8) == 0x18) && (CheckTMDSVCOValue() == TRUE)){         
+                                #endif
+ 433   5                      #endif
+ 434   5                              McuScalerIntEnable(); //MCU will response to scaler interrupt
+ 435   5                              sync = DIG_SYNC;
+ 436   5                              SC_HDMI_SOFTWARE_RESET &= ~BIT4; // 0x605
+ 437   5                          }
+ 438   4                      }
+ 439   3                  }
+ 440   2                  break;
+ 441   2      
+ 442   2              default:
+ 443   2                  sync = NO_SYNC;
+ 444   2                  break;
+ 445   2          }
+ 446   1      
+ 447   1          if ((GetInputHFreq() == 0xFFFF) || (GetInputVFreq() == 0xFFFF)) {
+ 448   2              sync = NO_SYNC;
+ 449   2          }
+ 450   1      
+ 451   1          // Remove the condition to solve the issue of no image display when switching timing from 56KHz to 47K
+             -Hz.
+ 452   1          // Jude 2011/09/28
+ 453   1          //if (sync == NO_SYNC) {
+ 454   1              // Recover the HSync overflow mask setting to default.
+ 455   1              SetupHSyncOverflowMask(FALSE);
+ 456   1          //}
+ 457   1      
+ 458   1          return sync;
+ 459   1      }
+ 460          
+ 461          /**************************************************************************//**
+ 462           * Check the input sync is SOG or not.
+ 463           * @return TRUE if input is SOG else FALSE.
+ 464           ******************************************************************************/
+ 465          static BOOL CheckSOG(void)
+ 466          {
+ 467   1      #define LIMIT_SOG_HS ((8UL * REF_CLK) /150000)    //640 H sync can't bigger than 150KHz
+ 468   1      #define LIMIT_SOG_VS ((ULONG)REF_CLK*10/256/915)    //512  V sync can't bigger than 91.5Hz
+ 469   1      #define LIMIT_SOG_HSWID_1 ((((ULONG)REF_CLK*4.98)/1000000)+0.5)    //60
+ 470   1      #define LIMIT_SOG_HSWID_2 ((((ULONG)REF_CLK*4.15)/1000000)+0.5)    //50
+ 471   1      #define LIMIT_SOG_HSWID_3 ((((ULONG)REF_CLK*2.49)/1000000)+0.5)    //30
+ 472   1      
+ 473   1          USHRT temp1, temp2;
+ 474   1      
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 9   
+
+ 475   1          //VSync width
+ 476   1          temp1 = SC_GI_VS_WID;
+ 477   1          if ((temp1 > 0x0F) || (temp1==0x00)) {
+ 478   2              return FALSE;
+ 479   2          }
+ 480   1          //HSync width
+ 481   1          temp1 = SC_GI_HS_WID;
+ 482   1          temp2 = ReadShortScaler(&SC_GI_HCNT_LO);
+ 483   1          if (temp1 > ((temp2 / 8) / 6)) { //HSync width is over 1/6 of HTotal
+ 484   2              return FALSE;
+ 485   2          }
+ 486   1          //HSync frequency
+ 487   1          temp1 = ReadShortScaler(&SC_GI_HCNT_LO);
+ 488   1          if ((temp1 < LIMIT_SOG_HS) || (temp1 == 0x1FFF)) {
+ 489   2              return FALSE;
+ 490   2          }
+ 491   1          //VSync frequency
+ 492   1          temp1 = ReadShortScaler(&SC_GI_VCNT_LO);
+ 493   1          if ((temp1 < LIMIT_SOG_VS) || (temp1 == 0x1FFF)) {
+ 494   2              return FALSE;
+ 495   2          }
+ 496   1          //VTotal
+ 497   1          temp1 = SC_GI_HS_WID;
+ 498   1          temp2 = ReadShortScaler(&SC_GRAPHIC_VTOTAL_COUNTER_LO)+1;
+ 499   1          if (temp2 < 200) {
+ 500   2              return FALSE;
+ 501   2          }
+ 502   1          if (temp2 < 380) { //576I SOG
+ 503   2              if (temp1 > LIMIT_SOG_HSWID_1) {
+ 504   3                  return FALSE;
+ 505   3              }
+ 506   2          }
+ 507   1          else if (temp2 < 730) {
+ 508   2              if (temp1 > LIMIT_SOG_HSWID_2) {
+ 509   3                  return FALSE;
+ 510   3              }
+ 511   2          }
+ 512   1          else {
+ 513   2              if (temp1 > LIMIT_SOG_HSWID_3) {
+ 514   3                  return FALSE;
+ 515   3              }
+ 516   2          }
+ 517   1          
+ 518   1          return TRUE;
+ 519   1          
+ 520   1      #undef LIMIT_SOG_HS
+ 521   1      #undef LIMIT_SOG_VS
+ 522   1      #undef LIMIT_SOG_HSWID_1
+ 523   1      #undef LIMIT_SOG_HSWID_2
+ 524   1      #undef LIMIT_SOG_HSWID_3
+ 525   1      }
+ 526          
+ 527          /**************************************************************************//**
+ 528           * Setup interlace settings.
+ 529           * Set interlace input enable (Reg0x020[2]) by SyncProcessor flag.
+ 530           ******************************************************************************/
+ 531          void SetupInterlace(void)
+ 532          {
+ 533   1          SC_GI_SYNC_CTRL3 &= ~BIT0; // 0x199
+ 534   1      
+ 535   1          //Set 0x020[2] and 0x020[6]
+ 536   1           if (IsInterlaceSyncPreset()) { //If input is interlaced
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 10  
+
+ 537   2              SC_GPORT_CTRL |= BIT2;
+ 538   2          }
+ 539   1          else {
+ 540   2              SC_GPORT_CTRL &= ~BIT2;
+ 541   2          }
+ 542   1      }
+ 543          
+ 544          /**************************************************************************//**
+ 545           * Check Interlace Sync Preset
+ 546           * @return TRUE if input is interlaced sync else FALSE.
+ 547           ******************************************************************************/
+ 548          BOOL IsInterlaceSyncPreset(void)
+ 549          {
+ 550   1      #if ENABLE_FREESYNC_DEMO == ON//YCT test freesync
+                  UCHAR currentinterface = GetCurrInputInterface(); 
+                  if ((currentinterface == DISPLAY_PORT_INPUT) || (currentinterface == DISPLAY_PORT_INPUT1)
+                   || (currentinterface == DISPLAY_PORT_INPUT2) || (currentinterface == DISPLAY_PORT_INPUT3)) {
+                  //If the input source is DP, check the status of interlace from DP MST VBID
+                      if ((SC_DP_MSA_VBID & BIT2) != 0) {
+                          return TRUE;
+                      }
+                      else {
+                          return FALSE;
+                      }
+                  }
+              #endif
+ 563   1      #if ENABLE_FREESYNC_HDMI_FUNC == ON
+                  //FreeSync Function do not support interlace timing.
+                  if (IsHDMIFreesync() == TRUE) {
+                      return FALSE;
+                  }
+              #endif
+ 569   1          if ((SC_GI_SYNC_STATUS & BIT2) != 0) { //If input is interlaced
+ 570   2              return TRUE;
+ 571   2          }
+ 572   1          else {
+ 573   2              return FALSE;
+ 574   2          }
+ 575   1      }
+ 576          
+ 577          /**************************************************************************//**
+ 578           * Check the current timing is interlace or not.
+ 579           * @return TRUE if input is interlaced else FALSE.
+ 580           ******************************************************************************/
+ 581          BOOL IsInterlaced(void)
+ 582          {
+ 583   1          if ((SC_GPORT_CTRL & BIT2) != 0) { //If input is interlaced
+ 584   2              return TRUE;
+ 585   2          }
+ 586   1          else {
+ 587   2              return FALSE;
+ 588   2          }
+ 589   1      }
+ 590          
+ 591          /**************************************************************************//**
+ 592           * Enable/disable sync processor free run mode
+ 593           * @param enable TRUE to enable sync processor free run mode else FALSE.
+ 594           ******************************************************************************/
+ 595          void EnableSyncProcFreeRun(UCHAR enable)
+ 596          {
+ 597   1      #define SYNC_PROC_H_FREERUN 67500
+ 598   1      #define SYNC_PROC_V_FREERUN 60
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 11  
+
+ 599   1      
+ 600   1          if (enable) {
+ 601   2              McuScalerIntDisable();
+ 602   2              ClearModeChangeFlag();
+ 603   2              WriteShortScaler(&SC_HREE_DIV_LO, REF_CLK / SYNC_PROC_H_FREERUN - 1);
+ 604   2              WriteShortScaler(&SC_VREE_DIV_LO, SYNC_PROC_H_FREERUN / SYNC_PROC_V_FREERUN - 1);
+ 605   2              WriteShortScaler(&SC_HSDDS_DIVIDER_LO, UserPanelData.usTypHTotal);
+ 606   2              SC_GI_SYNC_CTRL2 = 0xB2;
+ 607   2              SC_GI_SYNC_CTRL = 0x01;
+ 608   2              SC_PREPATTERN_CTRL1 |= BIT5;
+ 609   2          }
+ 610   1          else {
+ 611   2              SC_GI_SYNC_CTRL2 = 0xC0;
+ 612   2              switch(GetCurrInputInterface()) {
+ 613   3                  case ANALOG_SEP_INPUT0:
+ 614   3                  case ANALOG_SEP_INPUT1:
+ 615   3                      SC_GI_SYNC_CTRL = 0x20;
+ 616   3                      break;
+ 617   3                  case ANALOG_COM_INPUT0:
+ 618   3                  case ANALOG_SOG_INPUT0:
+ 619   3                  case ANALOG_YPBPR_INPUT0:
+ 620   3                  case ANALOG_COM_INPUT1:
+ 621   3                  case ANALOG_SOG_INPUT1:
+ 622   3                  case ANALOG_YPBPR_INPUT1:
+ 623   3                      SC_GI_SYNC_CTRL = 0x21;
+ 624   3                      break;
+ 625   3                  case DIGITAL_INPUT0:
+ 626   3                  case DIGITAL_INPUT1:
+ 627   3                  #if DVI_MODE == DVI_DE_MODE
+                              SC_GI_SYNC_CTRL = 0x20;
+                          #else
+ 630   3                      SC_GI_SYNC_CTRL = 0x90;
+ 631   3                  #endif
+ 632   3                      break;
+ 633   3      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INT
+             -ERFACE&INPUT_DP3)
+ 634   3                  case DISPLAY_PORT_INPUT:
+ 635   3                  case DISPLAY_PORT_INPUT1:
+ 636   3                  case DISPLAY_PORT_INPUT2:
+ 637   3                  case DISPLAY_PORT_INPUT3:
+ 638   3      //            #if DVI_MODE == DVI_DE_MODE
+ 639   3                      SC_GI_SYNC_CTRL = 0x20;
+ 640   3      //            #else
+ 641   3      //                SC_GI_SYNC_CTRL = 0x90;
+ 642   3      //            #endif
+ 643   3                      break;
+ 644   3      #endif
+ 645   3              }
+ 646   2              
+ 647   2              SC_PREPATTERN_CTRL1 &= ~BIT5;
+ 648   2              SetModeChangeFlag();
+ 649   2          }
+ 650   1      }
+ 651          
+ 652          #if (INPUT_INTERFACE&INPUT_VGA0) || (INPUT_INTERFACE&INPUT_YPbPr0)
+              /**************************************************************************//**
+               * Check the sync state of analog channel 0 under zero power mode.
+               * @return TRUE if input signal is present else FALSE.
+               ******************************************************************************/
+              BOOL ZpVGA0SyncDetect(void)
+              {
+                  SC_ADC_ZERO_POWER_CTRL = 0x89 | BIT1;    //enable CR R/W, SOG power// 0xb57
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 12  
+
+                  SC_INPUT_SELECT = 0x80;
+                  //SC_ADC_ZERO_POWER_CTRL = 0x89;    //enable CR R/W, SOG power// 0xb57
+              //    SC_SOG_SLICER_CTRL = SCREG_012_LP;    //SOG slicer en
+                  SC_ADC_IP_CTRL_1D80[_ADC_SOG_THRESHOLD] = 0xE0;//SOGTH
+                  SC_ADC_IP_CTRL_1D80[_ADC_MISC_CTRL_33] = 0xDE;
+                  SC_ADC_REG_1D |= BIT6;//870=0x1ec   
+                  SC_SOG_SLICER_EN = 0x08;
+              
+                  CNT_CTRL = 0x7f;     //rst counter
+                  CNT_CTRL = 0x0f;    //start counter
+                  Sleep(20);
+                  CNT_CTRL = 0x00;    //stop counter
+              
+                  SC_ADC_REG_1D &= ~BIT6;//870=0x1ec   
+              //    SC_SOG_SLICER_EN = 0x01;
+              //    SC_SOG_SLICER_CTRL = SCREG_012_PD;    //SOG slicer dis
+                  SC_ADC_IP_CTRL_1D80[_ADC_MISC_CTRL_33] = 0x5E;
+                  SC_ADC_ZERO_POWER_CTRL = 0x83;    //disable CR R/W, SOG power// 0xb57
+              
+                  if (((ucZpInterface==ANALOG_SEP_INPUT0) || (ucZpInterface==ANALOG_COM_INPUT0)) && ((HS_CNT_LB>10) || (
+             -HS_CNT_HB>0))) {
+                      CNT_CTRL = 0x8f;    //start counter
+                      Sleep(20);
+                      if ((ucZpInterface==ANALOG_SEP_INPUT0) && ((VS_CNT>0) && (VS_CNT<10))) { //Vsync detected
+                          ScalerPowerUp();
+                          SetInputInterface(ANALOG_SEP_INPUT0);
+                          return TRUE;
+                      }
+                      else if (ucZpInterface == ANALOG_COM_INPUT0) {//If we can not detect seperate sync
+                          //Composite sync detection
+                          SC_ADC_ZERO_POWER_CTRL = 0x89|BIT1; //Enable sync processor// 0xb57
+                          SchmittTriggerPowerOn();
+                          SC_ADC_CTRL = 0x10; //Select HSYNCI
+                          SC_GI_SYNC_CTRL = 0x61; //Composite Sync
+                          Sleep(50); //Waiting for sync processor flags
+                          if ((SC_GI_SYNC_STATUS & 0xE8) == 0x28) { //Composite present, H/V non-overflow
+                              // Check vtotal to avoid the bug of new h-polarity detection.
+                              if (GetInputVTotal() > 100) {
+                                  ScalerPowerUp();
+                                  SetInputInterface(ANALOG_COM_INPUT0);
+                                  return TRUE;
+                              }
+                          }
+                          SchmittTriggerPowerOff();
+                          SC_ADC_ZERO_POWER_CTRL = 0x83;    //disable CR R/W, SOG power// 0xb57
+                      }
+                  }
+              
+                  if (((ucZpInterface == ANALOG_SOG_INPUT0) || (ucZpInterface == ANALOG_YPBPR_INPUT0)) && 
+                      ((SOG_CNT_LB>10) || (SOG_CNT_HB>0))) {
+                      SC_ADC_ZERO_POWER_CTRL = 0x89|BIT1; //Enable sync processor// 0xb57
+              //        SC_SOG_SLICER_CTRL = SCREG_012_LP;
+              //        SC_SOG_SLICER_EN |= BIT3;
+                      SC_ADC_IP_CTRL_1D80[_ADC_MISC_CTRL_33] = 0xDE;
+                      SC_ADC_CTRL = 0x18; //Select SOGI
+                      SC_GI_SYNC_CTRL = 0x61; //Composite Sync
+                      Sleep(50); //Waiting for sync processor flags
+                      if ((SC_GI_SYNC_STATUS & 0xE0) == 0x20) { //Composite present, H/V non-overflow
+                          // Check vtotal to avoid the bug of new h-polarity detection.
+                          if (CheckSOG() && (GetInputVTotal() > 100)) {
+                              // ScalerPowerUp must be put in the following condition.
+                              // Can not be moved prior to the condition.
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 13  
+
+                              // Because of after ScalerPowerUp, the ucZpinterface will be changed to the original user 
+             -setting value.
+                              // And it may make the system fail to wakeup from power saving mode.
+                              // P.S. This issue will happen when ENABLE_CUT_POWER_ARCH is used.
+                              if (ucZpInterface == ANALOG_YPBPR_INPUT0) {
+                                  ScalerPowerUp();
+                                  SetInputInterface(ANALOG_YPBPR_INPUT0);
+                              }
+                              else {
+                                  ScalerPowerUp();
+                                  SetInputInterface(ANALOG_SOG_INPUT0);
+                              }
+                              return TRUE;
+                          }
+                      }
+              //        SC_SOG_SLICER_CTRL = SCREG_012_PD;
+              //        SC_SOG_SLICER_EN &= ~BIT3;
+                      SC_ADC_IP_CTRL_1D80[_ADC_SOG_THRESHOLD] = 0x00;//SOGTH
+                      SC_ADC_IP_CTRL_1D80[_ADC_MISC_CTRL_33] = 0x00;
+                      SC_ADC_ZERO_POWER_CTRL = 0x83;    //disable CR R/W, SOG power// 0xb57
+                  }
+              
+                  return FALSE;
+              }
+              #endif
+ 745          
+ 746          #if (INPUT_INTERFACE&INPUT_VGA1) || (INPUT_INTERFACE&INPUT_YPbPr1)
+              /**************************************************************************//**
+               * Check the sync state of analog channel 1 under zero power mode.
+               * @return TRUE if input signal is present else FALSE.
+               ******************************************************************************/
+              BOOL ZpVGA1SyncDetect(void)
+              {
+                  SC_ADC_ZERO_POWER_CTRL = 0x89 | BIT1;    //enable CR R/W, SOG power// 0xb57
+                  SC_INPUT_SELECT = 0x81;
+                  //SC_ADC_ZERO_POWER_CTRL = 0x89;    //enable CR R/W, SOG power// 0xb57
+                  SC_SOG_SLICER_CTRL = SCREG_012_LP;    //SOG slicer en
+                  SC_ADC_REG_1D |= BIT6;//870=0x1ec   
+                  SC_SOG_SLICER_EN = 0x08;
+              
+                  CNT_CTRL = 0xff;     //rst counter
+                  CNT_CTRL = 0x8f;    //start counter
+                  Sleep(20);
+                  CNT_CTRL = 0x80;    //stop counter
+              
+                  SC_ADC_REG_1D &= ~BIT6;//870=0x1ec   
+                  SC_SOG_SLICER_EN = 0x01;
+                  SC_SOG_SLICER_CTRL = SCREG_012_PD;    //SOG slicer dis
+                  SC_ADC_ZERO_POWER_CTRL = 0x83;    //disable CR R/W, SOG power// 0xb57
+                  if (((ucZpInterface==ANALOG_SEP_INPUT1) || (ucZpInterface==ANALOG_COM_INPUT1)) && ((HS_CNT_LB>10) || (
+             -HS_CNT_HB>0))) {
+                      CNT_CTRL = 0x8f;    //start counter
+                      Sleep(20);
+                      if ((ucZpInterface==ANALOG_SEP_INPUT1) && ((VS_CNT>0) && (VS_CNT<10))) { //Vsync detected
+                          ScalerPowerUp();
+                          SetInputInterface(ANALOG_SEP_INPUT1);
+                          return TRUE;
+                      }
+                      else if (ucZpInterface == ANALOG_COM_INPUT1) {//If we can not detect seperate sync
+                          //Composite sync detection
+                          SC_ADC_ZERO_POWER_CTRL = 0x89|BIT1; //Enable sync processor// 0xb57
+                          SchmittTriggerPowerOn();
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 14  
+
+                          SC_ADC_CTRL = 0x10; //Select HSYNCI
+                          SC_GI_SYNC_CTRL = 0x61; //Composite Sync
+                          Sleep(50); //Waiting for sync processor flags
+                          if ((SC_GI_SYNC_STATUS & 0xE8) == 0x28) { //Composite present, H/V non-overflow
+                              // Check vtotal to avoid the bug of new h-polarity detection.
+                              if (GetInputVTotal() > 100) {
+                                  ScalerPowerUp();
+                                  SetInputInterface(ANALOG_COM_INPUT1);
+                                  return TRUE;
+                              }
+                          }
+                          SchmittTriggerPowerOff();
+                          SC_ADC_ZERO_POWER_CTRL = 0x83;    //disable CR R/W, SOG power// 0xb57
+                      }
+                  }
+                  if (((ucZpInterface == ANALOG_SOG_INPUT1) || (ucZpInterface == ANALOG_YPBPR_INPUT1)) && 
+                      ((SOG_CNT_LB>10) || (SOG_CNT_HB>0))) {
+                      SC_ADC_ZERO_POWER_CTRL = 0x89|BIT1; //Enable sync processor// 0xb57
+                      SC_SOG_SLICER_CTRL = SCREG_012_LP;
+                      SC_SOG_SLICER_EN |= BIT3;
+                      SC_ADC_CTRL = 0x18; //Select SOGI
+                      SC_GI_SYNC_CTRL = 0x61; //Composite Sync
+                      Sleep(50); //Waiting for sync processor flags
+                      if ((SC_GI_SYNC_STATUS & 0xE0) == 0x20) { //Composite present, H/V non-overflow
+                          // Check vtotal to avoid the bug of new h-polarity detection.
+                          if (CheckSOG() && (GetInputVTotal() > 100)) {
+                              // ScalerPowerUp must be put in the following condition.
+                              // Can not be moved prior to the condition.
+                              // Because of after ScalerPowerUp, the ucZpinterface will be changed to the original user 
+             -setting value.
+                              // And it may make the system fail to wakeup from power saving mode.
+                              // P.S. This issue will happen when ENABLE_CUT_POWER_ARCH is used.
+                              if (ucZpInterface == ANALOG_YPBPR_INPUT1) {
+                                  ScalerPowerUp();
+                                  SetInputInterface(ANALOG_YPBPR_INPUT1);
+                              }
+                              else {
+                                  ScalerPowerUp();
+                                  SetInputInterface(ANALOG_SOG_INPUT1);
+                              }
+                              return TRUE;
+                          }
+                      }
+                      SC_SOG_SLICER_CTRL = SCREG_012_PD;
+                      SC_SOG_SLICER_EN &= ~BIT3;
+                      SC_ADC_ZERO_POWER_CTRL = 0x83;    //disable CR R/W, SOG power// 0xb57
+                  }
+                  return FALSE;
+              }
+              #endif
+ 830          
+ 831          #if (INPUT_INTERFACE&INPUT_DIG0)
+              /**************************************************************************//**
+               * Check the sync state of digital channel 0 under zero power mode.
+               * @return TRUE if input signal is present else FALSE.
+               ******************************************************************************/
+              BOOL ZpDVI0SyncDetect(void)
+              {
+                  // For improving the issue of unabling to wake up from DPSM mode over some specific TMDS source
+                  // Jude 2011/11/07
+                  SC_ADC_ZERO_POWER_CTRL = 0x83;// 0xb57
+                  SC_INPUT_SELECT = 0x82;
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 15  
+
+                  HDCP_MUX = DIGITAL_INPUT0_HDCP_MUX;
+                  //SC_ADC_ZERO_POWER_CTRL = 0x81;
+              //    SC_DVI_CTRL_333 = SCREG_333_LP0;
+              //    SC_DVI_CTRL_334 = SCREG_334_PU;
+              //    SC_DVI_CTRL_336 = SCREG_336_LP0;
+              //    SC_DVI_CTRL_330 = DEFAULT_CLKIMP3;
+              //    Sleep(2);
+              #if (INPUT_INTERFACE&INPUT_MHL0)
+                  if ( !MHL_IsCDSenseFlagOn() ) {
+                      MHL_SetCbusCH1();
+                      MHLCBus2Off();
+                      MHLCBus1On();
+                      MHLCDSense2Off();
+                      MHLCDSense1On();
+                  }
+                  else if ( MHL_IsCDSenseFlagOn() && MHL_GetCbusCH() == MHL_CBUS_CH1 ) {
+                      //#if IS_NT68850_SERIES
+                      //SC_CBUS_RESISTOR_CTRL = 0x33; // due to nt68850: MHL Cdsense effect HDMI Impedance, remove after
+             - cut2
+                      //#endif
+                      MHLCBus2Off();
+                      MHLCBus1On();
+                      MHLCDSense2Off();
+                      MHLCDSense1On();
+                      if (MHL_IsDiscoveryFlagOn()) {
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                    SC_CBUS_INT_FLAG = DIS_INT_FLG;
+              #else
+                          SC_CBUS_INT_EN |= DIS_INT_CLR;
+              #endif
+                          MHLCBus1Off();
+                          SetInputInterface(DIGITAL_INPUT0);
+                          return TRUE;
+                      }
+                      else if (MHL_IsDisconnFlagOn() ) {
+                          SetCbusConnectStatus(MHL_NONE);
+                          ucIsMHLSrcConnected[0] = 0;
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                    SC_CBUS_INT_FLAG = DIS_INT_FLG;
+              #else
+                          SC_CBUS_INT_EN |= DIS_INT_CLR;
+              #endif
+                      }
+                  }
+                  //#if IS_NT68850_SERIES
+                  //SC_CBUS_RESISTOR_CTRL = 0x38; // due to nt68850: MHL Cdsense effect HDMI Impedance, remove after cut
+             -2
+                  //Sleep(2);
+                  //#endif
+              #endif
+              
+                  if ((SC_DVI_STATUS & BIT0) != 0) {
+              #if defined(ENABLE_FPGA_MODE)
+                      if (SC_TMDS_CLOCK_DET > DIG_VALID_PIXEL_RATE) {
+              #else
+                      if (TMDS_GetClock() > DIG_VALID_PIXEL_RATE) {
+              #endif
+              //           if (ZpHVpresentDetect() == TRUE){
+                              ScalerPowerUp();
+                              SetInputInterface(DIGITAL_INPUT0);
+                              SYSAPI_PerformHPDOff(FALSE);// HDMI wake up set hot plug Pin off(Low) one time.
+                              Sleep(500);
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 16  
+
+                              SYSAPI_PerformHPDOn();
+                              return TRUE;
+              //            }
+                      }
+                  }
+                  SC_ADC_ZERO_POWER_CTRL = 0x83;// 0xb57
+                  return FALSE;
+              }
+              #endif
+ 911          
+ 912          #if (INPUT_INTERFACE&INPUT_DIG1)
+ 913          /**************************************************************************//**
+ 914           * Check the sync state of digital channel 1 under zero power mode.
+ 915           * @return TRUE if input signal is present else FALSE.
+ 916           ******************************************************************************/
+ 917          BOOL ZpDVI1SyncDetect(void)
+ 918          {
+ 919   1          // For improving the issue of unabling to wake up from DPSM mode over some specific TMDS source
+ 920   1          // Jude 2011/11/07
+ 921   1          SC_ADC_ZERO_POWER_CTRL = 0x83;// 0xb57
+ 922   1          SC_INPUT_SELECT = 0x82;
+ 923   1          HDCP_MUX = DIGITAL_INPUT1_HDCP_MUX;
+ 924   1          //SC_ADC_ZERO_POWER_CTRL = 0x81;
+ 925   1      //    SC_DVI_CTRL_333 = SCREG_333_LP1;
+ 926   1      //    SC_DVI_CTRL_334 = SCREG_334_PU;
+ 927   1      //    SC_DVI_CTRL_336 = SCREG_336_LP1;
+ 928   1      //    SC_DVI_CTRL_330 = DEFAULT_CLKIMP3;
+ 929   1      //    Sleep(2);
+ 930   1      #if (INPUT_INTERFACE&INPUT_MHL1)
+                  if ( !MHL_IsCDSenseFlagOn() ) {
+                      MHL_SetCbusCH2();
+                      MHLCBus1Off();
+                      MHLCBus2On();
+                      MHLCDSense1Off();
+                      MHLCDSense2On();
+                  }
+                  else if ( MHL_IsCDSenseFlagOn() && MHL_GetCbusCH() == MHL_CBUS_CH2 ) {
+                      MHLCBus1Off();
+                      MHLCBus2On();
+                      MHLCDSense1Off();
+                      MHLCDSense2On();
+                      if (MHL_IsDiscoveryFlagOn()) {
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                    SC_CBUS_INT_FLAG = DIS_INT_FLG;
+              #else
+                          SC_CBUS_INT_EN |= DIS_INT_CLR;
+              #endif
+                          MHLCBus2Off();            
+                          SetInputInterface(DIGITAL_INPUT1);
+                          return TRUE;
+                      }
+                      else if (MHL_IsDisconnFlagOn()) {
+                          SetCbusConnectStatus(MHL_NONE);
+                          ucIsMHLSrcConnected[1] = 0;
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                    SC_CBUS_INT_FLAG = DIS_INT_FLG;
+              #else
+                          SC_CBUS_INT_EN |= DIS_INT_CLR;
+              #endif
+                      }
+                  }
+              #endif
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 17  
+
+ 964   1      
+ 965   1          if ((SC_DVI_STATUS & BIT0) != 0) {
+ 966   2      #if defined(ENABLE_FPGA_MODE)
+                      if (TMDS_GetClock() > DIG_VALID_PIXEL_RATE) {
+              #else
+ 969   2              if (TMDS_GetClock() > DIG_VALID_PIXEL_RATE) {
+ 970   3      #endif
+ 971   3      //           if (ZpHVpresentDetect() == TRUE){
+ 972   3                      ScalerPowerUp();
+ 973   3                      SetInputInterface(DIGITAL_INPUT1);
+ 974   3                      SYSAPI_PerformHPDOff(FALSE);// HDMI wake up set hot plug Pin off(Low) one time.
+ 975   3                      Sleep(500);
+ 976   3                      SYSAPI_PerformHPDOn();
+ 977   3                      return TRUE;
+ 978   3      //           }
+ 979   3              }
+ 980   2          }
+ 981   1          SC_ADC_ZERO_POWER_CTRL = 0x83;// 0xb57
+ 982   1          return FALSE;
+ 983   1      }
+ 984          #endif
+ 985          
+ 986          #if (INPUT_INTERFACE&INPUT_DIG2)
+ 987          /**************************************************************************//**
+ 988           * Check the sync state of digital channel 1 under zero power mode.
+ 989           * @return TRUE if input signal is present else FALSE.
+ 990           ******************************************************************************/
+ 991          BOOL ZpDVI2SyncDetect(void)
+ 992          {
+ 993   1          // For improving the issue of unabling to wake up from DPSM mode over some specific TMDS source
+ 994   1          // Jude 2011/11/07
+ 995   1          SC_ADC_ZERO_POWER_CTRL = 0x83;// 0xb57
+ 996   1          SC_INPUT_SELECT = 0x82;
+ 997   1          HDCP_MUX = DIGITAL_INPUT2_HDCP_MUX;
+ 998   1          //SC_ADC_ZERO_POWER_CTRL = 0x81;
+ 999   1      //    SC_DVI_CTRL_333 = SCREG_333_LP1;
+1000   1      //    SC_DVI_CTRL_334 = SCREG_334_PU;
+1001   1      //    SC_DVI_CTRL_336 = SCREG_336_LP1;
+1002   1      //    SC_DVI_CTRL_330 = DEFAULT_CLKIMP3;
+1003   1      //    Sleep(2);
+1004   1      #if (INPUT_INTERFACE&INPUT_MHL2)
+                  if ( !MHL_IsCDSenseFlagOn() ) {
+                      MHL_SetCbusCH2();
+                      MHLCBus1Off();
+                      MHLCBus2On();
+                      MHLCDSense1Off();
+                      MHLCDSense2On();
+                  }
+                  else if ( MHL_IsCDSenseFlagOn() && MHL_GetCbusCH() == MHL_CBUS_CH2 ) {
+                      MHLCBus1Off();
+                      MHLCBus2On();
+                      MHLCDSense1Off();
+                      MHLCDSense2On();
+                      if (MHL_IsDiscoveryFlagOn()) {
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                    SC_CBUS_INT_FLAG = DIS_INT_FLG;
+              #else
+                          SC_CBUS_INT_EN |= DIS_INT_CLR;
+              #endif
+                          MHLCBus2Off();            
+                          SetInputInterface(DIGITAL_INPUT2);
+                          return TRUE;
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 18  
+
+                      }
+                      else if (MHL_IsDisconnFlagOn()) {
+                          SetCbusConnectStatus(MHL_NONE);
+                          ucIsMHLSrcConnected[1] = 0;
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                    SC_CBUS_INT_FLAG = DIS_INT_FLG;
+              #else
+                          SC_CBUS_INT_EN |= DIS_INT_CLR;
+              #endif
+                      }
+                  }
+              #endif
+1038   1      
+1039   1          if ((SC_DVI_STATUS & BIT0) != 0) {
+1040   2      #if defined(ENABLE_FPGA_MODE)
+                      if (TMDS_GetClock() > DIG_VALID_PIXEL_RATE) {
+              #else
+1043   2              if (TMDS_GetClock() > DIG_VALID_PIXEL_RATE) {
+1044   3      #endif
+1045   3      //           if (ZpHVpresentDetect() == TRUE){
+1046   3                      ScalerPowerUp();
+1047   3                      SetInputInterface(DIGITAL_INPUT2);
+1048   3                      SYSAPI_PerformHPDOff(FALSE);// HDMI wake up set hot plug Pin off(Low) one time.
+1049   3                      Sleep(500);
+1050   3                      SYSAPI_PerformHPDOn();
+1051   3                      return TRUE;
+1052   3      //           }
+1053   3              }
+1054   2          }
+1055   1          SC_ADC_ZERO_POWER_CTRL = 0x83;
+1056   1          return FALSE;
+1057   1      }
+1058          #endif
+1059          
+1060          #if (INPUT_INTERFACE&INPUT_DIG3)
+1061          /**************************************************************************//**
+1062           * Check the sync state of digital channel 1 under zero power mode.
+1063           * @return TRUE if input signal is present else FALSE.
+1064           ******************************************************************************/
+1065          BOOL ZpDVI3SyncDetect(void)
+1066          {
+1067   1          // For improving the issue of unabling to wake up from DPSM mode over some specific TMDS source
+1068   1          // Jude 2011/11/07
+1069   1          SC_ADC_ZERO_POWER_CTRL = 0x83;
+1070   1          SC_INPUT_SELECT = 0x82;
+1071   1          HDCP_MUX = DIGITAL_INPUT3_HDCP_MUX;
+1072   1          //SC_ADC_ZERO_POWER_CTRL = 0x81;
+1073   1      //    SC_DVI_CTRL_333 = SCREG_333_LP1;
+1074   1      //    SC_DVI_CTRL_334 = SCREG_334_PU;
+1075   1      //    SC_DVI_CTRL_336 = SCREG_336_LP1;
+1076   1      //    SC_DVI_CTRL_330 = DEFAULT_CLKIMP3;
+1077   1      //    Sleep(2);
+1078   1      #if (INPUT_INTERFACE&INPUT_MHL3)
+                  if ( !MHL_IsCDSenseFlagOn() ) {
+                      MHL_SetCbusCH2();
+                      MHLCBus1Off();
+                      MHLCBus2On();
+                      MHLCDSense1Off();
+                      MHLCDSense2On();
+                  }
+                  else if ( MHL_IsCDSenseFlagOn() && MHL_GetCbusCH() == MHL_CBUS_CH2 ) {
+                      MHLCBus1Off();
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 19  
+
+                      MHLCBus2On();
+                      MHLCDSense1Off();
+                      MHLCDSense2On();
+                      if (MHL_IsDiscoveryFlagOn()) {
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                    SC_CBUS_INT_FLAG = DIS_INT_FLG;
+              #else
+                          SC_CBUS_INT_EN |= DIS_INT_CLR;
+              #endif
+                          MHLCBus2Off();            
+                          SetInputInterface(DIGITAL_INPUT3);
+                          return TRUE;
+                      }
+                      else if (MHL_IsDisconnFlagOn()) {
+                          SetCbusConnectStatus(MHL_NONE);
+                          ucIsMHLSrcConnected[1] = 0;
+              #if IS_NT68810_SERIES || IS_NT68870_SERIES
+                    SC_CBUS_INT_FLAG = DIS_INT_FLG;
+              #else
+                          SC_CBUS_INT_EN |= DIS_INT_CLR;
+              #endif
+                      }
+                  }
+              #endif
+1112   1      
+1113   1          if ((SC_DVI_STATUS & BIT0) != 0) {
+1114   2      #if defined(ENABLE_FPGA_MODE)
+                      if (TMDS_GetClock() > DIG_VALID_PIXEL_RATE) {
+              #else
+1117   2              if (TMDS_GetClock() > DIG_VALID_PIXEL_RATE) {
+1118   3      #endif
+1119   3      //           if (ZpHVpresentDetect() == TRUE){
+1120   3                      ScalerPowerUp();
+1121   3                      SetInputInterface(DIGITAL_INPUT3);
+1122   3                      SYSAPI_PerformHPDOff(FALSE);// HDMI wake up set hot plug Pin off(Low) one time.
+1123   3                      Sleep(500);
+1124   3                      SYSAPI_PerformHPDOn();
+1125   3                      return TRUE;
+1126   3      //           }
+1127   3              }
+1128   2          }
+1129   1          SC_ADC_ZERO_POWER_CTRL = 0x83;
+1130   1          return FALSE;
+1131   1      }
+1132          #endif
+1133          
+1134          #if (INPUT_INTERFACE&INPUT_DP)
+1135          /**************************************************************************//**
+1136           * Check the sync state of display port under zero power mode.
+1137           * @return TRUE if input signal is present else FALSE.
+1138           ******************************************************************************/
+1139          BOOL ZpDPSyncDetect(void)
+1140          {
+1141   1          SC_ADC_ZERO_POWER_CTRL = 0x83;
+1142   1      #if ENABLE_USB_TYPE_C == ON
+                  if (IsUSBCCVBusAttach() == TRUE) {
+                      ScalerPowerUp();
+                      SetInputInterface(DISPLAY_PORT_INPUT);
+                      return TRUE;
+                  }
+              #else
+1149   1          if (IsDPAUXDetect() || GetDPLink() == TRUE) {
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 20  
+
+1150   2      #if ENABLE_DP_HPD == ON
+1151   2              DPHPDOff();
+1152   2      #endif
+1153   2              ClrDPLink();
+1154   2              ClearDPAUXDetect();
+1155   2              ScalerPowerUp();
+1156   2              SetInputInterface(DISPLAY_PORT_INPUT);
+1157   2      //        DPHPDOn();
+1158   2              SetGlobalTimer(GLOBAL_TMR_HPD, HPD_LOW_PERIOD+DP_HPD_LOW_PERIOD);
+1159   2              return TRUE;
+1160   2          }
+1161   1      #endif
+1162   1          return FALSE;
+1163   1      }
+1164          #endif    
+1165          #if (INPUT_INTERFACE&INPUT_DP1)
+              /**************************************************************************//**
+               * Check the sync state of display port under zero power mode.
+               * @return TRUE if input signal is present else FALSE.
+               ******************************************************************************/
+              BOOL ZpDPSyncDetect1(void)
+              {
+                  SC_ADC_ZERO_POWER_CTRL = 0x83;
+                  if (IsDPAUXDetect() || GetDPLink() == TRUE) {
+                      DP1HPDOff();
+                      ClrDPLink();
+                      ClearDPAUXDetect();
+                      ScalerPowerUp();
+                      SetInputInterface(DISPLAY_PORT_INPUT1);
+              //        DP1HPDOn();
+                      SetGlobalTimer(GLOBAL_TMR_HPD, HPD_LOW_PERIOD+DP_HPD_LOW_PERIOD);
+                      return TRUE;
+                  }
+              
+                  return FALSE;
+              }
+              #endif
+1187          
+1188          #if (INPUT_INTERFACE&INPUT_DP2)
+              /**************************************************************************//**
+               * Check the sync state of display port under zero power mode.
+               * @return TRUE if input signal is present else FALSE.
+               ******************************************************************************/
+              BOOL ZpDPSyncDetect2(void)
+              {
+                  SC_ADC_ZERO_POWER_CTRL = 0x83;
+                  if (IsDPAUXDetect() || GetDPLink() == TRUE) {
+                      DP2HPDOff();
+                      ClrDPLink();
+                      ClearDPAUXDetect();
+                      ScalerPowerUp();
+                      SetInputInterface(DISPLAY_PORT_INPUT2);
+              //        DP2HPDOn();
+                      SetGlobalTimer(GLOBAL_TMR_HPD, HPD_LOW_PERIOD+DP_HPD_LOW_PERIOD);
+                      return TRUE;
+                  }
+              
+                  return FALSE;
+              }
+              #endif
+1210          
+1211          #if (INPUT_INTERFACE&INPUT_DP3)
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 21  
+
+              /**************************************************************************//**
+               * Check the sync state of display port under zero power mode.
+               * @return TRUE if input signal is present else FALSE.
+               ******************************************************************************/
+              BOOL ZpDPSyncDetect3(void)
+              {
+                  SC_ADC_ZERO_POWER_CTRL = 0x83;
+                  if (IsDPAUXDetect() || GetDPLink() == TRUE) {
+                      DP3HPDOff();
+                      ClrDPLink();
+                      ClearDPAUXDetect();
+                      ScalerPowerUp();
+                      SetInputInterface(DISPLAY_PORT_INPUT3);
+              //        DP3HPDOn();
+                      SetGlobalTimer(GLOBAL_TMR_HPD, HPD_LOW_PERIOD+DP_HPD_LOW_PERIOD);
+                      return TRUE;
+                  }
+              
+                  return FALSE;
+              }
+              #endif
+1233          
+1234          /**************************************************************************//**
+1235           * Check the sync state under zero power mode.
+1236           * @return TRUE if input signal is present else FALSE.
+1237           ******************************************************************************/
+1238          static BOOL ZpSyncDetect(void)
+1239          {
+1240   1          BOOL result = FALSE;
+1241   1          if (UserData.bAutoSyncSource == TRUE) {//auto source select
+1242   2          #if (INPUT_INTERFACE&INPUT_DP)
+1243   2              if (ZpDPSyncDetect() == TRUE) {
+1244   3                  return TRUE;
+1245   3              }
+1246   2          #endif
+1247   2          #if (INPUT_INTERFACE&INPUT_DP1)
+                      if (ZpDPSyncDetect1() == TRUE) {
+                          return TRUE;
+                      }
+                  #endif
+1252   2              
+1253   2          #if (INPUT_INTERFACE&INPUT_DP2)
+                      if (ZpDPSyncDetect2() == TRUE) {
+                          return TRUE;
+                      }
+                  #endif
+1258   2              
+1259   2          #if (INPUT_INTERFACE&INPUT_DP3)
+                      if (ZpDPSyncDetect3() == TRUE) {
+                          return TRUE;
+                      }
+                  #endif
+1264   2          }
+1265   1      
+1266   1          switch (ucZpInterface&PORT_MASK) {
+1267   2            #if (INPUT_INTERFACE&INPUT_VGA0) || (INPUT_INTERFACE&INPUT_YPbPr0)
+                      case ANALOG_SEP_INPUT0&PORT_MASK:
+                      case ANALOG_YPBPR_INPUT0&PORT_MASK:
+                          result = ZpVGA0SyncDetect();
+                          break;
+                    #endif
+1273   2      
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 22  
+
+1274   2            #if (INPUT_INTERFACE&INPUT_VGA1) || (INPUT_INTERFACE&INPUT_YPbPr1)
+                      case ANALOG_SEP_INPUT1&PORT_MASK:
+                      case ANALOG_YPBPR_INPUT1&PORT_MASK:
+                          result = ZpVGA1SyncDetect();
+                          break;
+                    #endif
+1280   2      
+1281   2            #if (INPUT_INTERFACE&INPUT_DIG0)
+                      case DIGITAL_INPUT0&PORT_MASK:
+                          result = ZpDVI0SyncDetect();
+                          break;
+                    #endif
+1286   2      
+1287   2            #if (INPUT_INTERFACE&INPUT_DIG1)
+1288   2              case DIGITAL_INPUT1&PORT_MASK:
+1289   2                  result = ZpDVI1SyncDetect();
+1290   2                  break;
+1291   2            #endif
+1292   2      
+1293   2            #if (INPUT_INTERFACE&INPUT_DIG2)
+1294   2              case DIGITAL_INPUT2&PORT_MASK:
+1295   2                  result = ZpDVI2SyncDetect();
+1296   2                  break;
+1297   2            #endif
+1298   2              
+1299   2            #if (INPUT_INTERFACE&INPUT_DIG3)
+1300   2              case DIGITAL_INPUT3&PORT_MASK:
+1301   2                  result = ZpDVI3SyncDetect();
+1302   2                  break;
+1303   2            #endif
+1304   2              
+1305   2            #if (INPUT_INTERFACE&INPUT_DP)
+1306   2              case DISPLAY_PORT_INPUT&PORT_MASK:
+1307   2                  result = ZpDPSyncDetect();
+1308   2                  break;
+1309   2            #endif
+1310   2            #if (INPUT_INTERFACE&INPUT_DP1)
+                      case DISPLAY_PORT_INPUT1&PORT_MASK:
+                          result = ZpDPSyncDetect1();
+                          break;
+                    #endif
+1315   2            #if (INPUT_INTERFACE&INPUT_DP2)
+                      case DISPLAY_PORT_INPUT2&PORT_MASK:
+                          result = ZpDPSyncDetect2();
+                          break;
+                    #endif
+1320   2            #if (INPUT_INTERFACE&INPUT_DP3)
+                      case DISPLAY_PORT_INPUT3&PORT_MASK:
+                          result = ZpDPSyncDetect3();
+                          break;
+                    #endif
+1325   2          }
+1326   1      
+1327   1          return result;
+1328   1      }
+1329          
+1330          /**************************************************************************//**
+1331           * Delay time of 'n' frames.
+1332           * @param n Number of frames. The max n is 10.
+1333           ******************************************************************************/
+1334          void DelayVTime(UCHAR n) small
+1335          {
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 23  
+
+1336   1          USHRT temp, delay;
+1337   1      
+1338   1          // We limit n as smaller than 10.
+1339   1          if (n > 10) {
+1340   2              n = 10;
+1341   2          }
+1342   1      
+1343   1          // If the input vsync freq is abnormal, we force the delay time as 20ms
+1344   1          if ((usVSyncFreq < ((USHRT) VSYNC_LOWER_BOUND * 10)) ||
+1345   1              (usVSyncFreq > ((USHRT) VSYNC_UPPER_BOUND * 10))) {
+1346   2              delay = 20 * n;
+1347   2          }
+1348   1          else {
+1349   2              delay = (ULONG) 10000 * n / usVSyncFreq + 1;
+1350   2          }
+1351   1      
+1352   1          temp = GetTimerTick();
+1353   1          while ((GetTimerTick() - temp) < delay) {
+1354   2              ResetWDTimer();
+1355   2          }
+1356   1      }
+1357          #if ENABLE_FREESYNC_DEMO == ON
+              BOOL IsFreeSyncMode(void)
+              {
+                  UCHAR temp;
+                  UCHAR currentinterface = GetCurrInputInterface();
+                  temp = 0;
+                  if ((currentinterface == DISPLAY_PORT_INPUT) || (currentinterface == DISPLAY_PORT_INPUT1)
+                   || (currentinterface == DISPLAY_PORT_INPUT2) || (currentinterface == DISPLAY_PORT_INPUT3)) {
+                      SC_DP_DEBUG |= BIT7;// 0x1030
+                      if ((SC_DP_DPCD_00107 & BIT7) != 0) {
+                          temp = 1;
+                      }
+                      SC_DP_DEBUG &= ~BIT7;// 0x1030
+                  }
+                  else if ((currentinterface == DIGITAL_INPUT0) || (currentinterface == DIGITAL_INPUT1) || (currentinter
+             -face == DIGITAL_INPUT2) || (currentinterface == DIGITAL_INPUT3)) {
+                      if((SC_CTRL_PACKET[0] == 0x83) && (SC_CTRL_PACKET[1] == 0x01) && (SC_CTRL_PACKET[2] == 0x08)
+                       &&(SC_CTRL_PACKET[4] == 0x1A) && (SC_CTRL_PACKET[5] == 0x00) && (SC_CTRL_PACKET[6] == 0x00) && ((
+             -SC_CTRL_PACKET[9] & BIT0) == BIT0)) {
+                          temp = 1;
+                      }
+                  }
+                  if (temp == 1) {
+                      return TRUE;
+                  }
+                  return FALSE; 
+              }
+              #endif
+1383          
+1384          #if ENABLE_FREESYNC_HDMI_FUNC == ON
+              /**************************************************************************//**
+               Note:IsFreesync is effective after FreesyncDetect.
+               ******************************************************************************/
+              BOOL IsHDMIFreesync(void)
+              {
+                  UCHAR currentinterface = GetCurrInputInterface(); 
+                  if ((currentinterface == DIGITAL_INPUT0) || (currentinterface == DIGITAL_INPUT1) || (currentinterface 
+             -== DIGITAL_INPUT2) || (currentinterface == DIGITAL_INPUT3)) {
+                      if((SC_CTRL_PACKET[0] == 0x83) && (SC_CTRL_PACKET[1] == 0x01) && (SC_CTRL_PACKET[2] == 0x08)
+                       &&(SC_CTRL_PACKET[4] == 0x1A) && (SC_CTRL_PACKET[5] == 0x00) && (SC_CTRL_PACKET[6] == 0x00) && ((
+             -SC_CTRL_PACKET[9] & BIT0) == BIT0)) {
+C51 COMPILER V9.54   SCALER_SYNC                                                           01/06/2017 14:56:49 PAGE 24  
+
+                          return TRUE;
+                      }
+                  }    
+                  
+                  return FALSE; 
+              }
+              #endif
+1401          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2106    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      5      15
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

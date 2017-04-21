@@ -1,0 +1,2470 @@
+; .\Bin\Fe2p_API.SRC generated from: Lib\NT68810 Series\Fe2p_API.c
+; COMPILER INVOKED BY:
+;        D:\Keil_v5\C51\BIN\C51.EXE Lib\NT68810 Series\Fe2p_API.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_2560X1440,FLASH_BANK=8) PRINT(.\Lst\Fe2p_API.lst) TABS(2) SRC(.\Bin\Fe2p_API.SRC)
+
+$NOMOD51
+
+NAME	FE2P_API
+
+P0	DATA	080H
+P1	DATA	090H
+P2	DATA	0A0H
+P3	DATA	0B0H
+AC	BIT	0D0H.6
+EA	BIT	0A8H.7
+IE	DATA	0A8H
+EXF2	BIT	0C8H.6
+ES	BIT	0A8H.4
+IP	DATA	0B8H
+RI	BIT	098H.0
+CY	BIT	0D0H.7
+TI	BIT	098H.1
+RCAP2H	DATA	0CBH
+PS	BIT	0B8H.4
+SP	DATA	081H
+OV	BIT	0D0H.2
+RCAP2L	DATA	0CAH
+RCLK	BIT	0C8H.5
+TCLK	BIT	0C8H.4
+P00	BIT	080H.0
+P10	BIT	090H.0
+P01	BIT	080H.1
+SBUF	DATA	099H
+PCON	DATA	087H
+P20	BIT	0A0H.0
+P11	BIT	090H.1
+P02	BIT	080H.2
+P30	BIT	0B0H.0
+P21	BIT	0A0H.1
+P12	BIT	090H.2
+P03	BIT	080H.3
+P31	BIT	0B0H.1
+P22	BIT	0A0H.2
+P13	BIT	090H.3
+P04	BIT	080H.4
+SCON	DATA	098H
+P32	BIT	0B0H.2
+P23	BIT	0A0H.3
+P14	BIT	090H.4
+P05	BIT	080H.5
+TMOD	DATA	089H
+TCON	DATA	088H
+P33	BIT	0B0H.3
+P24	BIT	0A0H.4
+P15	BIT	090H.5
+P06	BIT	080H.6
+P34	BIT	0B0H.4
+P25	BIT	0A0H.5
+P16	BIT	090H.6
+P07	BIT	080H.7
+P35	BIT	0B0H.5
+P26	BIT	0A0H.6
+P17	BIT	090H.7
+P36	BIT	0B0H.6
+P27	BIT	0A0H.7
+P37	BIT	0B0H.7
+IE0	BIT	088H.1
+IE1	BIT	088H.3
+B	DATA	0F0H
+ACC	DATA	0E0H
+ET0	BIT	0A8H.1
+CT2	BIT	0C8H.1
+ET1	BIT	0A8H.3
+TF0	BIT	088H.5
+ET2	BIT	0A8H.5
+TF1	BIT	088H.7
+RB8	BIT	098H.2
+TF2	BIT	0C8H.7
+TH0	DATA	08CH
+EX0	BIT	0A8H.0
+IT0	BIT	088H.0
+TH1	DATA	08DH
+EX1	BIT	0A8H.2
+TB8	BIT	098H.3
+IT1	BIT	088H.2
+TH2	DATA	0CDH
+P	BIT	0D0H.0
+SM0	BIT	098H.7
+TL0	DATA	08AH
+SM1	BIT	098H.6
+TL1	DATA	08BH
+SM2	BIT	098H.5
+TL2	DATA	0CCH
+PT0	BIT	0B8H.1
+PT1	BIT	0B8H.3
+RS0	BIT	0D0H.3
+PT2	BIT	0B8H.5
+TR0	BIT	088H.4
+RS1	BIT	0D0H.4
+TR1	BIT	088H.6
+PX0	BIT	0B8H.0
+TR2	BIT	0C8H.2
+PX1	BIT	0B8H.2
+DPH	DATA	083H
+DPL	DATA	082H
+EXEN2	BIT	0C8H.3
+CPRL2	BIT	0C8H.0
+REN	BIT	098H.4
+T2CON	DATA	0C8H
+F0	BIT	0D0H.5
+PSW	DATA	0D0H
+?PR?FLASH_InitProtection?FE2P_API        SEGMENT CODE 
+?PR?_FLASH_ProtectOff?FE2P_API           SEGMENT CODE 
+?XD?_FLASH_ProtectOff?FE2P_API           SEGMENT XDATA OVERLAYABLE 
+?PR?FLASH_ProtectOn?FE2P_API             SEGMENT CODE 
+?PR?FE2P_RamInitialize?FE2P_API          SEGMENT CODE 
+?PR?FE2P_CheckValidBlock?FE2P_API        SEGMENT CODE 
+?XD?FE2P_CheckValidBlock?FE2P_API        SEGMENT XDATA OVERLAYABLE 
+?PR?_FE2P_NvramWrite?FE2P_API            SEGMENT CODE 
+?XD?_FE2P_NvramWrite?FE2P_API            SEGMENT XDATA OVERLAYABLE 
+?PR?_FE2P_NvramRead?FE2P_API             SEGMENT CODE 
+?XD?_FE2P_NvramRead?FE2P_API             SEGMENT XDATA OVERLAYABLE 
+?PR?FE2P_SaveToFlash?FE2P_API            SEGMENT CODE 
+?XD?FE2P_SaveToFlash?FE2P_API            SEGMENT XDATA OVERLAYABLE 
+?PR?FLASH_WP_ON?FE2P_API                 SEGMENT CODE 
+?PR?FLASH_WP_OFF?FE2P_API                SEGMENT CODE 
+?PR?RecordTimeScale?FE2P_API             SEGMENT CODE 
+?XD?RecordTimeScale?FE2P_API             SEGMENT XDATA OVERLAYABLE 
+?PR?EraseTimeScale?FE2P_API              SEGMENT CODE 
+?PR?DecodeTimeScale?FE2P_API             SEGMENT CODE 
+?XD?DecodeTimeScale?FE2P_API             SEGMENT XDATA OVERLAYABLE 
+?C_INITSEG           SEGMENT CODE 
+?CO?FE2P_API         SEGMENT CODE 
+?XD?FE2P_API         SEGMENT XDATA 
+?BI?FE2P_API         SEGMENT BIT 
+?PR?FE2P_API         SEGMENT CODE 
+	EXTRN	CODE (_PMC_Sector_Unlock)
+	EXTRN	XDATA (SystemData)
+	EXTRN	CODE (Fe2p_WriteEnable)
+	EXTRN	CODE (_McuSetIOBit)
+	EXTRN	CODE (_Fe2p_SectorErase)
+	EXTRN	CODE (PMC_Sector_Lock)
+	EXTRN	CODE (_NvramInitialize)
+	EXTRN	CODE (_Fe2p_PageRead)
+	EXTRN	XDATA (?_Fe2p_PageRead?BYTE)
+	EXTRN	XDATA (CLR_WDT)
+	EXTRN	CODE (_Fe2p_Set_SPI_CMD_buffer_addr)
+	EXTRN	CODE (_Fe2p_PageWrite)
+	EXTRN	XDATA (?_Fe2p_PageWrite?BYTE)
+	EXTRN	CODE (_Fe2p_SetProtect)
+	EXTRN	CODE (_Fe2p_ByteRead)
+	EXTRN	CODE (_Fe2p_Init)
+	EXTRN	CODE (_Fe2p_SetOffset)
+	EXTRN	CODE (_Fe2p_ByteWrite)
+	EXTRN	CODE (Fe2p_Get_Lib_Ver)
+	EXTRN	CODE (Fe2p_RDSR)
+	EXTRN	CODE (?C?CLDPTR)
+	EXTRN	CODE (?C?IILDX)
+	EXTRN	CODE (?C?CSTPTR)
+	EXTRN	CODE (?C?LIMUL)
+	EXTRN	CODE (?C?LSTXDATA)
+	EXTRN	CODE (?C?ULCMP)
+	EXTRN	CODE (?C?ULDIV)
+	EXTRN	CODE (?C?LMUL)
+	PUBLIC	DecodeTimeScale
+	PUBLIC	EraseTimeScale
+	PUBLIC	RecordTimeScale
+	PUBLIC	FE2P_SaveToFlash
+	PUBLIC	_FE2P_NvramRead
+	PUBLIC	_FE2P_NvramWrite
+	PUBLIC	FE2P_CheckValidBlock
+	PUBLIC	FE2P_RamInitialize
+
+	XSEG  AT  0A800H
+  ucFE2P_Buffer:   DS   2048
+
+	RSEG  ?XD?_FE2P_NvramWrite?FE2P_API
+?_FE2P_NvramWrite?BYTE:
+       Addr?545:   DS   2
+	ORG  2
+     Length?546:   DS   2
+	ORG  4
+        Ptr?547:   DS   3
+	ORG  7
+          i?548:   DS   2
+
+	RSEG  ?XD?FE2P_CheckValidBlock?FE2P_API
+?FE2P_CheckValidBlock?BYTE:
+        Dat?444:   DS   1
+
+	RSEG  ?XD?FE2P_SaveToFlash?FE2P_API
+?FE2P_SaveToFlash?BYTE:
+     offset?753:   DS   2
+	ORG  2
+ old_offset?754:   DS   2
+	ORG  4
+          i?755:   DS   2
+
+	RSEG  ?XD?DecodeTimeScale?FE2P_API
+?DecodeTimeScale?BYTE:
+      temp?1261:   DS   4
+	ORG  4
+    offset?1262:   DS   2
+	ORG  6
+        ch?1263:   DS   1
+
+	RSEG  ?XD?_FLASH_ProtectOff?FE2P_API
+?_FLASH_ProtectOff?BYTE:
+     offset?141:   DS   2
+	ORG  2
+ucFe2p_RDSR?142:   DS   1
+
+	RSEG  ?XD?RecordTimeScale?FE2P_API
+?RecordTimeScale?BYTE:
+    offset?1057:   DS   2
+	ORG  2
+        ch?1059:   DS   1
+	ORG  3
+      temp?1060:   DS   4
+
+	RSEG  ?XD?_FE2P_NvramRead?FE2P_API
+?_FE2P_NvramRead?BYTE:
+       Addr?649:   DS   2
+	ORG  2
+     Length?650:   DS   2
+	ORG  4
+          i?652:   DS   2
+
+	RSEG  ?XD?FE2P_API
+ucFE2P_Valid_Block:   DS   1
+      ucFlashID:   DS   1
+
+	RSEG  ?BI?FE2P_API
+     bFE2P_Save:   DBIT   1
+
+	RSEG  ?CO?FE2P_API
+ucFE2PAutoDetectInfo:
+	DB	055H
+	DB	0AAH
+	DB	066H
+	DB	099H
+	DB	044H
+	DB	04CH
+	DB	045H
+	DB	04EH
+	DB	004H
+	DB	057H
+	DB	050H
+	DB	004H
+	DB	004H
+	DB	000H
+
+scaleTab?1056:
+	DB	0FEH
+	DB	0FCH
+	DB	0F8H
+	DB	0F0H
+	DB	0E0H
+	DB	0C0H
+	DB	080H
+	DB	000H
+
+
+	RSEG  ?C_INITSEG
+	DB	041H
+	DW	ucFlashID
+	DB	000H
+
+; /******************************************************************************/
+; /*                       Novatek MicroElectronics Corp.                       */
+; /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+; /*                         HsinChu 300, Taiwan, R.O.C.                        */
+; /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+; /*                            All Rights Reserved                             */
+; /******************************************************************************/
+; 
+; //******************************************************************************
+; // I N C L U D E   F I L E S
+; //******************************************************************************
+; #include "Include.h"
+; 
+; #if ENABLE_FE2P == ON
+; 
+; //******************************************************************************
+; // M A C R O   D E F I N I T I O N S
+; //******************************************************************************
+; #define FE2P_BUFFER_ADDR FE2P_SRAM_ADDR  /*!< The base address of FE2P buffer in the sram. */
+; #define VALID_FLAG_ADDR  0x7FF           /*!< Mask for the address */
+; #define BLOCK0           0x0000          /*!< The address of block 0 */
+; #define BLOCK1           0x1800          /*!< The address of block 1 */
+; #define BLOCK2           0x0800          /*!< The address of block 2 */
+; #define BLOCK3           0x2000          /*!< The address of block 3 */
+; #define BLOCK4           0x1000          /*!< The address of block 4 */
+; #define BLOCK5           0x2800          /*!< The address of block 5 */
+; #define BLOCK6           0x3000          /*!< The address of block 6 */
+; #define BLOCK7           0x3800          /*!< The address of block 7 */
+; #define FE2P_SAVE_TIME   100             /*!< Delay time to save data from sram to flash. Current setting is 1s(100x10ms). */
+; #define MAXBLOCK         5               /*!<
+;                                           *   The max number of valid blocks.
+;                                           *   If flash is 2banks, the number is 1.
+;                                           *   If flash is 4banks, the number is 5.
+;                                           *   The block 6 and block 7 are used for POT when flash is 4banks.
+;                                           */
+; #define TIMEBLOCK        BLOCK6          /*!< POT block. The block can be 0/2/4/6. So far, we use 6 as default. */
+; #define TIME_FLAG_ADDR   0x0FFF          /*!< The valid tag for POT block */
+; 
+; //******************************************************************************
+; // G L O B A L   V A R I A B L E S
+; //******************************************************************************
+; 
+; //******************************************************************************
+; // S T A T I C   V A R I A B L E S
+; //******************************************************************************
+; static BOOL  bFE2P_Save;                 /*!<
+;                                           * The flag of "save the data from sram to flash".
+;                                           * The flag will be raised after system perform FE2P_NvramWrite.
+;                                           * The flag will be cleared after system perform FE2P_SaveToFlash.
+;                                           */
+; static xdata UCHAR ucFE2P_Valid_Block;   /*!<
+;                                           * This is the id of current valid block.
+;                                           * After FE2P_SaveToFlash, the id will be assigned as the id of next valid block.
+;                                           */
+; static xdata UCHAR ucFE2P_Buffer[2048] _at_ FE2P_BUFFER_ADDR; /*!< The FE2P buffer in the sram. The buffer is located at FE2P_BUFFER_ADDR */
+; static xdata UCHAR ucFlashID = UNKNOWN_FLASH; /*!< Flash ID after system performs Fe2p_Init. */
+; 
+; /*!
+;  * The start address of a block which we choose under directly FE2P mode. The unit is 4KB.
+;  */
+; #define DAOF (FE2P_DIRECTMODE_OFFSET/4096)
+; #define DLEN (FE2P_DIRECTMODE_LEN/4)
+; 
+; #if ENABLE_DIRECT_FE2P == ON
+; /*!
+;  * The key words for FE2P mode identification.
+;  * EasyWrite will search the key words in the HEX code(or binary code) and turn on/off direct FE2P protection.
+;  */
+; static code UCHAR ucFE2PDirectModeOffset[] = {0x55, 0xaa, 0x66, 0x99, 'D', 'A', 'O', 'F', DAOF, 0x54};
+; #endif
+; /*!
+;  * Fe2p information for easyWrite tool auto detect function.
+;  */
+; static code UCHAR ucFE2PAutoDetectInfo[] = {0x55, 0xaa, 0x66, 0x99, 'D', 'L', 'E', 'N', DLEN,'W','P',FLASH_WP_PORT,FLASH_WP_BIT,FLASH_WP_ACTIVE};
+; 
+; //******************************************************************************
+; // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+; //******************************************************************************
+; 
+; //******************************************************************************
+; // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+; //******************************************************************************
+; static UCHAR FE2P_CheckValidBlock(void);
+; static void FLASH_WP_ON(void);
+; static void FLASH_WP_OFF(void);
+; static void FLASH_InitProtection(void);
+; static void FLASH_ProtectOff(USHRT offset);
+; static void FLASH_ProtectOn(void);
+; 
+; //******************************************************************************
+; // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+; //******************************************************************************
+; 
+; //******************************************************************************
+; // F U N C T I O N   B O D Y S
+; //******************************************************************************
+; 
+; /**************************************************************************//**
+;  * Initialize the Flash protection (set status register and address).
+;  ******************************************************************************/
+
+	RSEG  ?PR?FE2P_API
+Com008B:
+L?0140:
+	USING	0
+	MOV  	R3,#03CH
+	MOV  	DPTR,#temp?1261
+L?0141:
+	CLR  	A
+	MOV  	R2,A
+	MOV  	R1,A
+	MOV  	R0,A
+L?0142:
+	MOVX 	A,@DPTR
+	MOV  	R4,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R5,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R6,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	RET  	
+L?0144:
+	USING	0
+L?0145:
+	MOV  	R3,#01H
+	MOV  	R2,#HIGH (ucFE2P_Buffer)
+	MOV  	R1,#LOW (ucFE2P_Buffer)
+	MOV  	DPTR,#?_Fe2p_PageRead?BYTE+05H
+L?0146:
+	MOV  	A,#08H
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	CLR  	A
+	MOVX 	@DPTR,A
+	MOV  	R7,A
+	RET  	
+L?0149:
+	USING	0
+	MOV  	DPTR,#offset?753
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	CLR  	A
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	RET  	
+L?0150:
+	USING	0
+	MOV  	R0,AR4
+	MOV  	R1,AR5
+	MOV  	R2,AR6
+	MOV  	R3,AR7
+	MOVX 	A,@DPTR
+	MOV  	R7,A
+	CLR  	A
+	MOV  	R4,A
+	MOV  	R5,A
+	MOV  	R6,A
+	MOV  	A,R3
+	ADD  	A,R7
+	MOV  	R7,A
+	MOV  	A,R6
+	ADDC 	A,R2
+L?0151:
+	MOV  	R6,A
+	MOV  	A,R5
+	ADDC 	A,R1
+	MOV  	R5,A
+	MOV  	A,R4
+	ADDC 	A,R0
+	MOV  	R4,A
+	RET  	
+L?0152:
+	USING	0
+	MOV  	DPTR,#offset?753
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	CLR  	A
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	RET  	
+L?0153:
+	USING	0
+L?0154:
+	MOV  	DPTR,#CLR_WDT
+	MOV  	A,#055H
+	MOVX 	@DPTR,A
+	RET  	
+L?0157:
+	USING	0
+	MOV  	DPTR,#offset?753
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	CLR  	A
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	RET  	
+L?0158:
+	USING	0
+L?0159:
+	MOV  	DPTR,#temp?1261
+	LJMP 	?C?LSTXDATA
+L?0160:
+	USING	0
+	MOV  	A,R6
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOV  	A,R7
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOV  	A,R4
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOV  	A,R5
+	MOVX 	@DPTR,A
+	RET  	
+L?0161:
+	USING	0
+	MOVX 	A,@DPTR
+	MOV  	R0,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R1,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R2,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R3,A
+	RET  	
+L?0162:
+	USING	0
+	MOV  	R4,A
+L?0163:
+	MOV  	DPTR,#temp?1060
+	LJMP 	?C?LSTXDATA
+L?0164:
+	USING	0
+	MOV  	R7,A
+L?0165:
+	CLR  	A
+	MOV  	R3,#01EH
+	MOV  	R2,A
+	MOV  	R1,A
+	MOV  	R0,A
+	RET  	
+L?0166:
+	USING	0
+L?0167:
+	MOVX 	A,@DPTR
+	MOV  	R6,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R7,A
+	CLR  	C
+	RET  	
+L?0168:
+	USING	0
+	ADD  	A,#0FFH
+	MOV  	R7,A
+	MOVX 	A,@DPTR
+	ADDC 	A,#07H
+	MOV  	R6,A
+	CLR  	A
+	MOV  	R3,A
+	RET  	
+; END OF Com008B
+
+; static void FLASH_InitProtection(void)
+
+	RSEG  ?PR?FLASH_InitProtection?FE2P_API
+FLASH_InitProtection:
+	USING	0
+			; SOURCE LINE # 101
+; {
+			; SOURCE LINE # 102
+;     // Use the follow coding way to avoid compile warning when ENABLE_DIRECT_FE2P is OFF
+;     UCHAR opt = ENABLE_DIRECT_FE2P;
+			; SOURCE LINE # 104
+;---- Variable 'opt?040' assigned to Register 'R7' ----
+	CLR  	A
+	MOV  	R7,A
+; 
+;     if (opt == ON) {
+			; SOURCE LINE # 106
+	CJNE 	A,#01H,?C0001
+;         Fe2p_SetOffset(FE2P_DIRECTMODE_OFFSET);
+			; SOURCE LINE # 107
+	MOV  	R6,#0C0H
+	MOV  	R5,#03H
+	MOV  	R4,A
+	LCALL	_Fe2p_SetOffset
+;     }
+			; SOURCE LINE # 108
+?C0001:
+; 
+;     FLASH_ProtectOn();
+			; SOURCE LINE # 110
+	LJMP 	FLASH_ProtectOn
+; END OF FLASH_InitProtection
+
+; }
+; 
+; /**************************************************************************//**
+;  * Turn off Flash protection.
+;  * Pull low the protection control pin and disable SR protection.
+;  * @param offset The offset of blocks to be protected off.
+;  ******************************************************************************/
+; static void FLASH_ProtectOff(USHRT offset)
+
+	RSEG  ?PR?_FLASH_ProtectOff?FE2P_API
+_FLASH_ProtectOff:
+	USING	0
+			; SOURCE LINE # 118
+	MOV  	DPTR,#offset?141
+	MOV  	A,R6
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOV  	A,R7
+	MOVX 	@DPTR,A
+; {
+			; SOURCE LINE # 119
+;     UCHAR ucFe2p_RDSR = Fe2p_RDSR();
+			; SOURCE LINE # 120
+	LCALL	Fe2p_RDSR
+	MOV  	DPTR,#ucFe2p_RDSR?142
+	MOV  	A,R7
+	MOVX 	@DPTR,A
+; 
+;     switch (ucFlashID) {
+			; SOURCE LINE # 122
+	MOV  	DPTR,#ucFlashID
+	MOVX 	A,@DPTR
+	ADD  	A,#0EBH
+	JZ   	?C0005
+	ADD  	A,#0E2H
+	JZ   	?C0006
+	ADD  	A,#0E6H
+	JZ   	?C0007
+	ADD  	A,#039H
+	JNZ  	?C0009
+;         case PMC_LD1M:
+			; SOURCE LINE # 123
+;         case PMC_LD2M:
+			; SOURCE LINE # 124
+?C0005:
+;             PMC_Sector_Lock();
+			; SOURCE LINE # 125
+	LCALL	PMC_Sector_Lock
+;             PMC_Sector_Unlock(offset & 0xF000);
+			; SOURCE LINE # 126
+	MOV  	DPTR,#offset?141
+	MOVX 	A,@DPTR
+	ANL  	A,#0F0H
+	MOV  	R6,A
+	INC  	DPTR
+	MOV  	R7,#00H
+	LJMP 	_PMC_Sector_Unlock
+;             break;
+			; SOURCE LINE # 127
+; #if ENABLE_DIRECT_FE2P == ON
+;         case AMIC_2M:
+;             if ((ucFe2p_RDSR & BIT7) != 0x00) {
+;                 FLASH_WP_OFF();
+;             }
+; 
+;             Fe2p_SetProtect(0x64);
+;             break;
+; #endif
+;         case MXIC_2M_2026:
+			; SOURCE LINE # 137
+?C0006:
+;             //if ((Fe2p_RDSR() & BIT7) != 0x00) {//v03_120317_1358_SYS#1
+;                 FLASH_WP_OFF();
+			; SOURCE LINE # 139
+	LJMP 	FLASH_WP_OFF
+;            // }
+;             break;
+			; SOURCE LINE # 141
+;         case WINB_4M_W25X41CL:
+			; SOURCE LINE # 142
+?C0007:
+;             if ((ucFe2p_RDSR & BIT7) != 0x00) {
+			; SOURCE LINE # 143
+	MOV  	DPTR,#ucFe2p_RDSR?142
+	MOVX 	A,@DPTR
+	JNB  	ACC.7,?C0008
+;                 FLASH_WP_OFF();
+			; SOURCE LINE # 144
+	LCALL	FLASH_WP_OFF
+;             }
+			; SOURCE LINE # 145
+?C0008:
+;             ucFe2p_RDSR &= ~(BIT4|BIT3|BIT2); 
+			; SOURCE LINE # 146
+	MOV  	DPTR,#ucFe2p_RDSR?142
+	MOVX 	A,@DPTR
+	ANL  	A,#0E3H
+	MOV  	R7,A
+	MOVX 	@DPTR,A
+;             Fe2p_SetProtect(ucFe2p_RDSR);          
+			; SOURCE LINE # 147
+;             break;           
+			; SOURCE LINE # 148
+	SJMP 	?C0118
+;         default:
+			; SOURCE LINE # 149
+?C0009:
+;             if ((ucFe2p_RDSR & BIT7) != 0x00) {
+			; SOURCE LINE # 150
+	MOV  	DPTR,#ucFe2p_RDSR?142
+	MOVX 	A,@DPTR
+	JNB  	ACC.7,?C0010
+;                 FLASH_WP_OFF();
+			; SOURCE LINE # 151
+	LCALL	FLASH_WP_OFF
+;             }
+			; SOURCE LINE # 152
+?C0010:
+; 
+;             Fe2p_SetProtect(0x00); //Samuel-2010-03-29: For flash data protection
+			; SOURCE LINE # 154
+	CLR  	A
+	MOV  	R7,A
+?C0118:
+	LCALL	_Fe2p_SetProtect
+;             break;
+			; SOURCE LINE # 155
+;     }
+			; SOURCE LINE # 156
+; }
+			; SOURCE LINE # 157
+?C0011:
+	RET  	
+; END OF _FLASH_ProtectOff
+
+; 
+; /**************************************************************************//**
+;  * Turn on the Flash protection.
+;  * Pull up the protection control pin and enable SR protection.
+;  ******************************************************************************/
+; static void FLASH_ProtectOn(void)
+
+	RSEG  ?PR?FLASH_ProtectOn?FE2P_API
+FLASH_ProtectOn:
+	USING	0
+			; SOURCE LINE # 163
+; {
+			; SOURCE LINE # 164
+;     switch (ucFlashID) {
+			; SOURCE LINE # 165
+	MOV  	DPTR,#ucFlashID
+	MOVX 	A,@DPTR
+	ADD  	A,#0EBH
+	JZ   	?C0014
+	ADD  	A,#0E2H
+	JZ   	?C0012
+	ADD  	A,#0E6H
+	JZ   	?C0016
+	ADD  	A,#039H
+	JNZ  	?C0019
+;         case PMC_LD1M:
+			; SOURCE LINE # 166
+;         case PMC_LD2M:
+			; SOURCE LINE # 167
+?C0014:
+;             PMC_Sector_Lock();
+			; SOURCE LINE # 168
+	LCALL	PMC_Sector_Lock
+;             break;
+			; SOURCE LINE # 169
+	SJMP 	?C0012
+;         case MXIC_2M_2026:
+			; SOURCE LINE # 170
+;             break;
+			; SOURCE LINE # 171
+;         case WINB_4M_W25X41CL:
+			; SOURCE LINE # 172
+?C0016:
+;             if ((Fe2p_RDSR() & BIT7) != 0x00) {
+			; SOURCE LINE # 173
+	LCALL	Fe2p_RDSR
+	MOV  	A,R7
+	JNB  	ACC.7,?C0017
+;                 FLASH_WP_OFF();
+			; SOURCE LINE # 174
+	LCALL	FLASH_WP_OFF
+;             }
+			; SOURCE LINE # 175
+?C0017:
+;             Fe2p_SetProtect(0xFC);
+			; SOURCE LINE # 176
+	MOV  	R7,#0FCH
+;             break;
+			; SOURCE LINE # 177
+	SJMP 	?C0119
+;         case AMIC_2M:
+			; SOURCE LINE # 178
+;         default:
+			; SOURCE LINE # 179
+?C0019:
+;             if ((Fe2p_RDSR() & BIT7) != 0x00) {
+			; SOURCE LINE # 180
+	LCALL	Fe2p_RDSR
+	MOV  	A,R7
+	JNB  	ACC.7,?C0020
+;                 FLASH_WP_OFF();
+			; SOURCE LINE # 181
+	LCALL	FLASH_WP_OFF
+;             }
+			; SOURCE LINE # 182
+?C0020:
+;             Fe2p_SetProtect(0x9C); //Samuel-2010-03-29: For flash data protection
+			; SOURCE LINE # 183
+	MOV  	R7,#09CH
+?C0119:
+	LCALL	_Fe2p_SetProtect
+;             break;
+			; SOURCE LINE # 184
+;     }
+			; SOURCE LINE # 185
+?C0012:
+;     FLASH_WP_ON(); //Samuel-2008-08-14: Enable Flash Write Protection After FE2P Write
+			; SOURCE LINE # 186
+	LJMP 	FLASH_WP_ON
+; END OF FLASH_ProtectOn
+
+; }
+; 
+; /**************************************************************************//**
+;  * Initialize FE2P variables and load whole configurations from flash to sram.
+;  ******************************************************************************/
+; void FE2P_RamInitialize(void)
+
+	RSEG  ?PR?FE2P_RamInitialize?FE2P_API
+FE2P_RamInitialize:
+	USING	0
+			; SOURCE LINE # 192
+; {
+			; SOURCE LINE # 193
+;     USHRT i;
+;     //Fe2p Initial value
+;     bFE2P_Save = FALSE;
+			; SOURCE LINE # 196
+	CLR  	bFE2P_Save
+;     ucFE2P_Valid_Block = 0;
+			; SOURCE LINE # 197
+	CLR  	A
+	MOV  	DPTR,#ucFE2P_Valid_Block
+	MOVX 	@DPTR,A
+;     for (i = 0; i < 2048; i++) {
+			; SOURCE LINE # 198
+;---- Variable 'i?343' assigned to Register 'R6/R7' ----
+?C0022:
+;         ucFE2P_Buffer[i] = 0xFF;
+			; SOURCE LINE # 199
+	MOV  	R6,#08H
+	MOV  	R7,#00H
+	MOV  	DPTR,#ucFE2P_Buffer
+	MOV  	A,#0FFH
+?C0112:
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	DJNZ 	R7,?C0112
+	DJNZ 	R6,?C0112
+;     }
+			; SOURCE LINE # 200
+?C0023:
+; 
+;     ResetWDTimer();
+			; SOURCE LINE # 202
+	LCALL	L?0153
+;     Fe2p_Set_SPI_CMD_buffer_addr(FE2P_CMD_BUFFER_ADDR);
+			; SOURCE LINE # 203
+	MOV  	R7,#080H
+	MOV  	R6,#0F8H
+	LCALL	_Fe2p_Set_SPI_CMD_buffer_addr
+; 
+;     ucFlashID = Fe2p_Init(2);
+			; SOURCE LINE # 205
+	MOV  	R7,#02H
+	LCALL	_Fe2p_Init
+	MOV  	DPTR,#ucFlashID
+	MOV  	A,R7
+	MOVX 	@DPTR,A
+;     if (ucFlashID == UNKNOWN_FLASH) { //Samuel-2010-03-29: For flash data protection
+			; SOURCE LINE # 206
+	JNZ  	?C0025
+?C0026:
+;         //If we found an unknown flash, force WDT happened.
+;         while (bFE2P_Save == 0) {};
+			; SOURCE LINE # 208
+	JNB  	bFE2P_Save,?C0026
+?C0027:
+;     }
+			; SOURCE LINE # 209
+?C0025:
+; 
+;     FLASH_InitProtection();
+			; SOURCE LINE # 211
+	LCALL	FLASH_InitProtection
+;     Fe2p_Get_Lib_Ver();
+			; SOURCE LINE # 212
+	LCALL	Fe2p_Get_Lib_Ver
+; 
+;     ucFE2P_Valid_Block = FE2P_CheckValidBlock();
+			; SOURCE LINE # 214
+	LCALL	FE2P_CheckValidBlock
+	MOV  	DPTR,#ucFE2P_Valid_Block
+	MOV  	A,R7
+	MOVX 	@DPTR,A
+;     if (ucFE2P_Valid_Block > MAXBLOCK) {
+			; SOURCE LINE # 215
+	SETB 	C
+	SUBB 	A,#05H
+	JC   	?C0028
+;         ucFE2P_Valid_Block = 0;
+			; SOURCE LINE # 216
+	CLR  	A
+	MOVX 	@DPTR,A
+;         NvramInitialize(NVRAM_UPDATE_ALL);
+			; SOURCE LINE # 217
+	MOV  	R7,#01H
+	LJMP 	_NvramInitialize
+;     }
+			; SOURCE LINE # 218
+?C0028:
+;     else {
+			; SOURCE LINE # 219
+;         if (ucFE2P_Valid_Block == 0) {
+			; SOURCE LINE # 220
+	MOV  	DPTR,#ucFE2P_Valid_Block
+	MOVX 	A,@DPTR
+	JNZ  	?C0030
+;             Fe2p_PageRead(BLOCK0, ucFE2P_Buffer, 2048); //block0 first 2k
+			; SOURCE LINE # 221
+	LCALL	L?0144
+	MOV  	R6,A
+;         }
+			; SOURCE LINE # 222
+	LJMP 	?C0126
+?C0030:
+;         else if (ucFE2P_Valid_Block == 1) {
+			; SOURCE LINE # 223
+	MOV  	DPTR,#ucFE2P_Valid_Block
+	MOVX 	A,@DPTR
+	CJNE 	A,#01H,?C0032
+;             Fe2p_PageRead(BLOCK1, ucFE2P_Buffer, 2048); //block1 first 2k
+			; SOURCE LINE # 224
+	LCALL	L?0144
+	MOV  	R6,#018H
+?C0120:
+;         }
+			; SOURCE LINE # 225
+	LJMP 	?C0126
+?C0032:
+;         else if (ucFE2P_Valid_Block == 2) {
+			; SOURCE LINE # 226
+	MOV  	DPTR,#ucFE2P_Valid_Block
+	MOVX 	A,@DPTR
+	CJNE 	A,#02H,?C0034
+;             Fe2p_PageRead(BLOCK2, ucFE2P_Buffer, 2048); //block0 second 2k
+			; SOURCE LINE # 227
+	LCALL	L?0145
+	MOV  	R6,#08H
+?C0121:
+;         }
+			; SOURCE LINE # 228
+	SJMP 	?C0126
+?C0034:
+;         else if (ucFE2P_Valid_Block == 3) {
+			; SOURCE LINE # 229
+	MOV  	DPTR,#ucFE2P_Valid_Block
+	MOVX 	A,@DPTR
+	CJNE 	A,#03H,?C0036
+;             Fe2p_PageRead(BLOCK3, ucFE2P_Buffer, 2048); //block0 second 2k
+			; SOURCE LINE # 230
+	LCALL	L?0145
+	MOV  	R6,#020H
+?C0122:
+;         }
+			; SOURCE LINE # 231
+	SJMP 	?C0126
+?C0036:
+;         else if (ucFE2P_Valid_Block == 4) {
+			; SOURCE LINE # 232
+	MOV  	DPTR,#ucFE2P_Valid_Block
+	MOVX 	A,@DPTR
+	CJNE 	A,#04H,?C0038
+;             Fe2p_PageRead(BLOCK4, ucFE2P_Buffer, 2048); //block0 second 2k
+			; SOURCE LINE # 233
+	LCALL	L?0145
+	MOV  	R6,#010H
+?C0123:
+;         }
+			; SOURCE LINE # 234
+	SJMP 	?C0126
+?C0038:
+;         else if (ucFE2P_Valid_Block == 5) {
+			; SOURCE LINE # 235
+	MOV  	DPTR,#ucFE2P_Valid_Block
+	MOVX 	A,@DPTR
+	CJNE 	A,#05H,?C0040
+;             Fe2p_PageRead(BLOCK5, ucFE2P_Buffer, 2048); //block0 second 2k
+			; SOURCE LINE # 236
+	LCALL	L?0145
+	MOV  	R6,#028H
+?C0124:
+;         }
+			; SOURCE LINE # 237
+	SJMP 	?C0126
+?C0040:
+;         else if (ucFE2P_Valid_Block == 6) {
+			; SOURCE LINE # 238
+	MOV  	DPTR,#ucFE2P_Valid_Block
+	MOVX 	A,@DPTR
+	MOV  	R3,#01H
+	MOV  	R2,#HIGH (ucFE2P_Buffer)
+	MOV  	R1,#LOW (ucFE2P_Buffer)
+	MOV  	DPTR,#?_Fe2p_PageRead?BYTE+05H
+	CJNE 	A,#06H,?C0042
+;             Fe2p_PageRead(BLOCK6, ucFE2P_Buffer, 2048); //block0 second 2k
+			; SOURCE LINE # 239
+	LCALL	L?0146
+	MOV  	R6,#030H
+?C0125:
+;         }
+			; SOURCE LINE # 240
+	SJMP 	?C0126
+?C0042:
+;         else {
+			; SOURCE LINE # 241
+;             Fe2p_PageRead(BLOCK7, ucFE2P_Buffer, 2048); //block1 second 2k
+			; SOURCE LINE # 242
+	LCALL	L?0146
+	MOV  	R6,#038H
+?C0126:
+	LCALL	_Fe2p_PageRead
+;         }
+			; SOURCE LINE # 243
+;     }
+			; SOURCE LINE # 244
+; }
+			; SOURCE LINE # 245
+?C0044:
+	RET  	
+; END OF FE2P_RamInitialize
+
+; 
+; #if ENABLE_FE2P == ON && USE_INTERNAL_EDID == 1
+; #if MD_ENABLE_AO_DETECT == ON
+; void FE2P_LoadDDC(void)
+; {
+; //    USHRT i;
+;     //Fe2p Initial value
+;     bFE2P_Save = FALSE;
+;     ucFE2P_Valid_Block = 0;
+; //    for (i = 0; i < 768; i++) {
+; //        ucFE2P_Buffer[i] = 0xFF;
+; //    }
+; 
+;     ResetWDTimer();
+;     Fe2p_Set_SPI_CMD_buffer_addr(FE2P_CMD_BUFFER_ADDR);
+; 
+;     ucFlashID = PMC_2M;//Fe2p_Init(2);
+; /*
+;     if (ucFlashID == UNKNOWN_FLASH) { //Samuel-2010-03-29: For flash data protection
+;         //If we found an unknown flash, force WDT happened.
+;         while (bFE2P_Save == 0) {};
+;     }
+; */
+;     //FLASH_InitProtection();
+; #if ENABLE_DIRECT_FE2P == ON
+;     Fe2p_SetOffset(FE2P_DIRECTMODE_OFFSET);
+; #endif
+;     Fe2p_Get_Lib_Ver();
+; 
+;     ucFE2P_Valid_Block = FE2P_CheckValidBlock();
+; //    ucFE2P_Valid_Block = 0;
+;     if (ucFE2P_Valid_Block > MAXBLOCK) {
+;         ucFE2P_Valid_Block = 0;
+;         NvramInitialize(NVRAM_UPDATE_ALL);
+;     }
+;     else {
+; //        McuSetIOBit(MCU_PORT_C, BIT6, LOW);
+;         if (ucFE2P_Valid_Block == 0) {
+; //            Fe2p_PageRead(BLOCK0+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+; //            Fe2p_PageRead(BLOCK0+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+; //            Fe2p_PageRead(BLOCK0+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;             Fe2p_CustomCmdRead(BLOCK0+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+;             Fe2p_CustomCmdRead(BLOCK0+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+;             Fe2p_CustomCmdRead(BLOCK0+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;         }
+;         else if (ucFE2P_Valid_Block == 1) {
+; //            Fe2p_PageRead(BLOCK1+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+; //            Fe2p_PageRead(BLOCK1+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+; //            Fe2p_PageRead(BLOCK1+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;             Fe2p_CustomCmdRead(BLOCK1+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+;             Fe2p_CustomCmdRead(BLOCK1+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+;             Fe2p_CustomCmdRead(BLOCK1+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;         }
+;         else if (ucFE2P_Valid_Block == 2) {
+; //            Fe2p_PageRead(BLOCK2+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+; //            Fe2p_PageRead(BLOCK2+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+; //            Fe2p_PageRead(BLOCK2+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;             Fe2p_CustomCmdRead(BLOCK2+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+;             Fe2p_CustomCmdRead(BLOCK2+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+;             Fe2p_CustomCmdRead(BLOCK2+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;         }
+;         else if (ucFE2P_Valid_Block == 3) {
+; //            Fe2p_PageRead(BLOCK3+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+; //            Fe2p_PageRead(BLOCK3+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+; //            Fe2p_PageRead(BLOCK3+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;             Fe2p_CustomCmdRead(BLOCK3+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+;             Fe2p_CustomCmdRead(BLOCK3+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+;             Fe2p_CustomCmdRead(BLOCK3+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;         }
+;         else if (ucFE2P_Valid_Block == 4) {
+; //            Fe2p_PageRead(BLOCK4+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+; //            Fe2p_PageRead(BLOCK4+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+; //            Fe2p_PageRead(BLOCK4+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;             Fe2p_CustomCmdRead(BLOCK4+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+;             Fe2p_CustomCmdRead(BLOCK4+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+;             Fe2p_CustomCmdRead(BLOCK4+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;         }
+;         else if (ucFE2P_Valid_Block == 5) {
+; //            Fe2p_PageRead(BLOCK5+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+; //            Fe2p_PageRead(BLOCK5+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+; //            Fe2p_PageRead(BLOCK5+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;             Fe2p_CustomCmdRead(BLOCK5+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+;             Fe2p_CustomCmdRead(BLOCK5+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+;             Fe2p_CustomCmdRead(BLOCK5+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;         }
+;         else if (ucFE2P_Valid_Block == 6) {
+; //            Fe2p_PageRead(BLOCK6+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+; //            Fe2p_PageRead(BLOCK6+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+; //            Fe2p_PageRead(BLOCK6+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;             Fe2p_CustomCmdRead(BLOCK6+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+;             Fe2p_CustomCmdRead(BLOCK6+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+;             Fe2p_CustomCmdRead(BLOCK6+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;         }
+;         else {
+; //            Fe2p_PageRead(BLOCK7+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+; //            Fe2p_PageRead(BLOCK7+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+; //            Fe2p_PageRead(BLOCK7+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;             Fe2p_CustomCmdRead(BLOCK7+NVRAM_VGA_EDID_ADDR, EDID_SRAM_BUFF0, NVRAM_VGA_EDID_AREA); //block0 VGA
+;             Fe2p_CustomCmdRead(BLOCK7+NVRAM_DVI_EDID_ADDR, EDID_SRAM_BUFF1, NVRAM_DVI_EDID_AREA); //block0 DVI
+;             Fe2p_CustomCmdRead(BLOCK7+NVRAM_HDMI_EDID_ADDR, EDID_SRAM_BUFF3, NVRAM_HDMI_EDID_AREA); //block0 HDMI
+;         }
+; //        McuSetIOBit(MCU_PORT_C, BIT6, HIGH);
+;     }
+; }
+; #endif
+; #endif
+; /**************************************************************************//**
+;  * Check FE2P blocks is valid or not.
+;  * @return The first valid block (The value is one of 0 to 7). If there is no valid block, the value will be 0xFF.
+;  ******************************************************************************/
+; UCHAR FE2P_CheckValidBlock(void)
+
+	RSEG  ?PR?FE2P_CheckValidBlock?FE2P_API
+FE2P_CheckValidBlock:
+	USING	0
+			; SOURCE LINE # 356
+; {
+			; SOURCE LINE # 357
+;     UCHAR Dat;
+;     Fe2p_ByteRead(VALID_FLAG_ADDR, &Dat);
+			; SOURCE LINE # 359
+	MOV  	R6,#07H
+;     if (Dat == 0x55) {
+			; SOURCE LINE # 360
+	LCALL	L?0143
+	CJNE 	A,#055H,?C0045
+;         return 0;
+			; SOURCE LINE # 361
+	MOV  	R7,#00H
+	RET  	
+;     }
+			; SOURCE LINE # 362
+?C0045:
+; 
+;     Fe2p_ByteRead(VALID_FLAG_ADDR + BLOCK1, &Dat);
+			; SOURCE LINE # 364
+	MOV  	R6,#01FH
+;     if (Dat == 0x55) {
+			; SOURCE LINE # 365
+	LCALL	L?0143
+	CJNE 	A,#055H,?C0047
+;         return 1;
+			; SOURCE LINE # 366
+	MOV  	R7,#01H
+	RET  	
+;     }
+			; SOURCE LINE # 367
+?C0047:
+; 
+;     Fe2p_ByteRead(VALID_FLAG_ADDR + BLOCK2, &Dat);
+			; SOURCE LINE # 369
+	MOV  	R6,#0FH
+;     if (Dat == 0x55) {
+			; SOURCE LINE # 370
+	LCALL	L?0147
+	CJNE 	A,#055H,?C0048
+;         return 2;
+			; SOURCE LINE # 371
+	MOV  	R7,#02H
+	RET  	
+;     }
+			; SOURCE LINE # 372
+?C0048:
+; 
+;     Fe2p_ByteRead(VALID_FLAG_ADDR + BLOCK3, &Dat);
+			; SOURCE LINE # 374
+	MOV  	R6,#027H
+;     if (Dat == 0x55) {
+			; SOURCE LINE # 375
+	LCALL	L?0147
+	CJNE 	A,#055H,?C0049
+;         return 3;
+			; SOURCE LINE # 376
+	MOV  	R7,#03H
+	RET  	
+;     }
+			; SOURCE LINE # 377
+?C0049:
+; 
+;     Fe2p_ByteRead(VALID_FLAG_ADDR + BLOCK4, &Dat);
+			; SOURCE LINE # 379
+	MOV  	R6,#017H
+;     if (Dat == 0x55) {
+			; SOURCE LINE # 380
+	LCALL	L?0148
+	CJNE 	A,#055H,?C0050
+;         return 4;
+			; SOURCE LINE # 381
+	MOV  	R7,#04H
+	RET  	
+;     }
+			; SOURCE LINE # 382
+?C0050:
+; 
+;     Fe2p_ByteRead(VALID_FLAG_ADDR + BLOCK5, &Dat);
+			; SOURCE LINE # 384
+	MOV  	R6,#02FH
+;     if (Dat == 0x55) {
+			; SOURCE LINE # 385
+	LCALL	L?0148
+	CJNE 	A,#055H,?C0051
+;         return 5;
+			; SOURCE LINE # 386
+	MOV  	R7,#05H
+	RET  	
+;     }
+			; SOURCE LINE # 387
+?C0051:
+; 
+;     Fe2p_ByteRead(VALID_FLAG_ADDR + BLOCK6, &Dat);
+			; SOURCE LINE # 389
+	MOV  	R6,#037H
+;     if (Dat == 0x55) {
+			; SOURCE LINE # 390
+	LCALL	L?0156
+	CJNE 	A,#055H,?C0052
+;         return 6;
+			; SOURCE LINE # 391
+	MOV  	R7,#06H
+	RET  	
+;     }
+			; SOURCE LINE # 392
+?C0052:
+; 
+;     Fe2p_ByteRead(VALID_FLAG_ADDR + BLOCK7, &Dat);
+			; SOURCE LINE # 394
+	MOV  	R6,#03FH
+;     if (Dat == 0x55) {
+			; SOURCE LINE # 395
+	LCALL	L?0156
+	CJNE 	A,#055H,?C0053
+;         return 7;
+			; SOURCE LINE # 396
+	MOV  	R7,#07H
+	RET  	
+;     }
+			; SOURCE LINE # 397
+?C0053:
+;     return 0xFF; //FE2P block damage
+			; SOURCE LINE # 398
+	MOV  	R7,#0FFH
+; }
+			; SOURCE LINE # 399
+?C0046:
+	RET  	
+L?0143:
+	MOV  	R3,#01H
+	MOV  	R2,#HIGH (Dat?444)
+	MOV  	R1,#LOW (Dat?444)
+	MOV  	R7,#0FFH
+	LCALL	_Fe2p_ByteRead
+	MOV  	DPTR,#Dat?444
+	MOVX 	A,@DPTR
+	RET  	
+L?0147:
+	MOV  	R3,#01H
+	MOV  	R2,#HIGH (Dat?444)
+	MOV  	R1,#LOW (Dat?444)
+	MOV  	R7,#0FFH
+	LCALL	_Fe2p_ByteRead
+	MOV  	DPTR,#Dat?444
+	MOVX 	A,@DPTR
+	RET  	
+L?0148:
+	MOV  	R3,#01H
+	MOV  	R2,#HIGH (Dat?444)
+	MOV  	R1,#LOW (Dat?444)
+	MOV  	R7,#0FFH
+	LCALL	_Fe2p_ByteRead
+	MOV  	DPTR,#Dat?444
+	MOVX 	A,@DPTR
+	RET  	
+L?0156:
+	MOV  	R3,#01H
+	MOV  	R2,#HIGH (Dat?444)
+	MOV  	R1,#LOW (Dat?444)
+	MOV  	R7,#0FFH
+	LCALL	_Fe2p_ByteRead
+	MOV  	DPTR,#Dat?444
+	MOVX 	A,@DPTR
+	RET  	
+; END OF FE2P_CheckValidBlock
+
+; 
+; /**************************************************************************//**
+;  * Write data to FE2P sram
+;  * @param Addr   The address where the data is stored.
+;  * @param Length Number of data to be written.
+;  * @param Ptr    The pointer to data
+;  ******************************************************************************/
+; void FE2P_NvramWrite(USHRT Addr, USHRT Length, UCHAR *Ptr)
+
+	RSEG  ?PR?_FE2P_NvramWrite?FE2P_API
+_FE2P_NvramWrite:
+	USING	0
+			; SOURCE LINE # 407
+	MOV  	DPTR,#Addr?545
+	LCALL	L?0160
+	INC  	DPTR
+	MOV  	A,R3
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOV  	A,R2
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOV  	A,R1
+	MOVX 	@DPTR,A
+; {
+			; SOURCE LINE # 408
+;     USHRT i;
+;     for (i = 0; i < Length; i++) {
+			; SOURCE LINE # 410
+	CLR  	A
+	INC  	DPTR
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOVX 	@DPTR,A
+?C0054:
+	MOV  	DPTR,#Length?546
+	MOVX 	A,@DPTR
+	MOV  	R6,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R7,A
+	MOV  	DPTR,#i?548
+	MOVX 	A,@DPTR
+	MOV  	R4,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R5,A
+	CLR  	C
+	SUBB 	A,R7
+	MOV  	A,R4
+	SUBB 	A,R6
+	JNC  	?C0055
+;         ucFE2P_Buffer[Addr + i] = *Ptr;
+			; SOURCE LINE # 411
+	MOV  	DPTR,#Ptr?547
+	MOVX 	A,@DPTR
+	MOV  	R3,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R2,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R1,A
+	LCALL	?C?CLDPTR
+	MOV  	R7,A
+	MOV  	DPTR,#Addr?545+01H
+	MOVX 	A,@DPTR
+	ADD  	A,R5
+	MOV  	R5,A
+	MOV  	DPTR,#Addr?545
+	MOVX 	A,@DPTR
+	ADDC 	A,R4
+	MOV  	R4,A
+	MOV  	A,#LOW (ucFE2P_Buffer)
+	ADD  	A,R5
+	MOV  	DPL,A
+	MOV  	A,#HIGH (ucFE2P_Buffer)
+	ADDC 	A,R4
+	MOV  	DPH,A
+	MOV  	A,R7
+	MOVX 	@DPTR,A
+;         Ptr++;
+			; SOURCE LINE # 412
+	MOV  	DPTR,#Ptr?547+01H
+	CLR  	A
+	MOV  	B,#01H
+	LCALL	?C?IILDX
+;     }
+			; SOURCE LINE # 413
+	MOV  	DPTR,#i?548+01H
+	MOVX 	A,@DPTR
+	INC  	A
+	MOVX 	@DPTR,A
+	JNZ  	?C0054
+	MOV  	DPTR,#i?548
+	MOVX 	A,@DPTR
+	INC  	A
+	MOVX 	@DPTR,A
+?C0113:
+	SJMP 	?C0054
+?C0055:
+;     bFE2P_Save = 1;
+			; SOURCE LINE # 414
+	SETB 	bFE2P_Save
+; }
+			; SOURCE LINE # 415
+	RET  	
+; END OF _FE2P_NvramWrite
+
+; 
+; /**************************************************************************//**
+;  * Read data from FE2P sram
+;  * @param Addr     The address where the data is stored.
+;  * @param Length   Number of data to be read.
+;  * @param[out] Ptr The pointer to buffer
+;  ******************************************************************************/
+; void FE2P_NvramRead(USHRT Addr, USHRT Length, UCHAR *Ptr)
+
+	RSEG  ?PR?_FE2P_NvramRead?FE2P_API
+_FE2P_NvramRead:
+	USING	0
+			; SOURCE LINE # 423
+	MOV  	DPTR,#Addr?649
+	LCALL	L?0160
+;---- Variable 'Ptr?651' assigned to Register 'R1/R2/R3' ----
+; {
+			; SOURCE LINE # 424
+;     USHRT i;
+;     for (i = 0; i < Length; i++) {
+			; SOURCE LINE # 426
+	CLR  	A
+	INC  	DPTR
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOVX 	@DPTR,A
+?C0058:
+	MOV  	DPTR,#Length?650
+	LCALL	L?0166
+	MOV  	DPTR,#i?652+01H
+	MOVX 	A,@DPTR
+	SUBB 	A,R7
+	MOV  	DPTR,#i?652
+	MOVX 	A,@DPTR
+	SUBB 	A,R6
+	JNC  	?C0061
+;         *Ptr = ucFE2P_Buffer[Addr + i];
+			; SOURCE LINE # 427
+	MOVX 	A,@DPTR
+	MOV  	R6,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R7,A
+	MOV  	DPTR,#Addr?649+01H
+	MOVX 	A,@DPTR
+	ADD  	A,R7
+	MOV  	R7,A
+	MOV  	DPTR,#Addr?649
+	MOVX 	A,@DPTR
+	ADDC 	A,R6
+	MOV  	R6,A
+	MOV  	A,#LOW (ucFE2P_Buffer)
+	ADD  	A,R7
+	MOV  	DPL,A
+	MOV  	A,#HIGH (ucFE2P_Buffer)
+	ADDC 	A,R6
+	MOV  	DPH,A
+	MOVX 	A,@DPTR
+	LCALL	?C?CSTPTR
+;         Ptr++;
+			; SOURCE LINE # 428
+	MOV  	A,#01H
+	ADD  	A,R1
+	MOV  	R1,A
+	CLR  	A
+	ADDC 	A,R2
+	MOV  	R2,A
+;     }
+			; SOURCE LINE # 429
+	MOV  	DPTR,#i?652+01H
+	MOVX 	A,@DPTR
+	INC  	A
+	MOVX 	@DPTR,A
+	JNZ  	?C0058
+	MOV  	DPTR,#i?652
+	MOVX 	A,@DPTR
+	INC  	A
+	MOVX 	@DPTR,A
+?C0114:
+	SJMP 	?C0058
+; }
+			; SOURCE LINE # 430
+?C0061:
+	RET  	
+; END OF _FE2P_NvramRead
+
+; 
+; /**************************************************************************//**
+;  * Dump all the user configurations from sram to flash.
+;  ******************************************************************************/
+; void FE2P_SaveToFlash(void)
+
+	RSEG  ?PR?FE2P_SaveToFlash?FE2P_API
+FE2P_SaveToFlash:
+	USING	0
+			; SOURCE LINE # 435
+; {
+			; SOURCE LINE # 436
+;     USHRT offset, old_offset, i;
+; 
+;     if (bFE2P_Save == 0) {
+			; SOURCE LINE # 439
+	JB   	bFE2P_Save,$ + 6H
+	LJMP 	?C0063
+;         return;
+;     }
+			; SOURCE LINE # 441
+?C0062:
+;     bFE2P_Save = 0;
+			; SOURCE LINE # 442
+	CLR  	bFE2P_Save
+; #if MD_ENABLE_STRESS_TEST_KEY == ON
+;     return;
+; #endif
+;     if (ucFE2P_Valid_Block > MAXBLOCK) {
+			; SOURCE LINE # 446
+	MOV  	DPTR,#ucFE2P_Valid_Block
+	MOVX 	A,@DPTR
+	SETB 	C
+	SUBB 	A,#05H
+	JC   	?C0064
+;         ucFE2P_Valid_Block = MAXBLOCK;
+			; SOURCE LINE # 447
+	MOV  	A,#05H
+	MOVX 	@DPTR,A
+;     }
+			; SOURCE LINE # 448
+?C0064:
+;     if (ucFE2P_Valid_Block == 0) {
+			; SOURCE LINE # 449
+	MOV  	DPTR,#ucFE2P_Valid_Block
+	MOVX 	A,@DPTR
+	MOV  	R7,A
+	JNZ  	?C0065
+;         offset = BLOCK1; //Save to block 1
+			; SOURCE LINE # 450
+	MOV  	A,#018H
+;         old_offset = BLOCK0;
+			; SOURCE LINE # 451
+	LCALL	L?0149
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOVX 	@DPTR,A
+;     }
+			; SOURCE LINE # 452
+	SJMP 	?C0066
+?C0065:
+;     else if (ucFE2P_Valid_Block == 1) {
+			; SOURCE LINE # 453
+	MOV  	A,R7
+	CJNE 	A,#01H,?C0067
+;         offset = BLOCK2; //Save to block 2
+			; SOURCE LINE # 454
+	MOV  	A,#08H
+;         old_offset = BLOCK1;
+			; SOURCE LINE # 455
+	LCALL	L?0149
+	MOV  	A,#018H
+;     }
+			; SOURCE LINE # 456
+	SJMP 	?C0129
+?C0067:
+;     else if (ucFE2P_Valid_Block == 2) {
+			; SOURCE LINE # 457
+	MOV  	A,R7
+	CJNE 	A,#02H,?C0069
+;         offset = BLOCK3; //Save to block 3
+			; SOURCE LINE # 458
+	MOV  	A,#020H
+;         old_offset = BLOCK2;
+			; SOURCE LINE # 459
+	LCALL	L?0152
+	MOV  	A,#08H
+?C0128:
+;     }
+			; SOURCE LINE # 460
+	SJMP 	?C0129
+?C0069:
+;     else if (ucFE2P_Valid_Block == 3) {
+			; SOURCE LINE # 461
+	MOV  	A,R7
+	CJNE 	A,#03H,?C0071
+;         offset = BLOCK4; //Save to block 4
+			; SOURCE LINE # 462
+	MOV  	A,#010H
+;         old_offset = BLOCK3;
+			; SOURCE LINE # 463
+	LCALL	L?0152
+	MOV  	A,#020H
+;     }
+			; SOURCE LINE # 464
+	SJMP 	?C0131
+?C0071:
+;     else if (ucFE2P_Valid_Block == 4) {
+			; SOURCE LINE # 465
+	MOV  	A,R7
+	CJNE 	A,#04H,?C0073
+;         offset = BLOCK5; //Save to block 5
+			; SOURCE LINE # 466
+	MOV  	A,#028H
+;         old_offset = BLOCK4;
+			; SOURCE LINE # 467
+	LCALL	L?0157
+	MOV  	A,#010H
+?C0130:
+;     }
+			; SOURCE LINE # 468
+	SJMP 	?C0131
+?C0073:
+;     else if (ucFE2P_Valid_Block == 5) {
+			; SOURCE LINE # 469
+	MOV  	A,R7
+	CJNE 	A,#05H,?C0075
+;         offset = BLOCK6; //Save to block 6
+			; SOURCE LINE # 470
+	MOV  	A,#030H
+;         old_offset = BLOCK5;
+			; SOURCE LINE # 471
+	LCALL	L?0157
+	MOV  	A,#028H
+;     }
+			; SOURCE LINE # 472
+	SJMP 	?C0132
+?C0075:
+;     else if (ucFE2P_Valid_Block == 6) {
+			; SOURCE LINE # 473
+	MOV  	A,R7
+	CJNE 	A,#06H,?C0077
+;         offset = BLOCK7; //Save to block 7
+			; SOURCE LINE # 474
+	MOV  	DPTR,#offset?753
+	MOV  	A,#038H
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	CLR  	A
+	MOVX 	@DPTR,A
+;         old_offset = BLOCK6;
+			; SOURCE LINE # 475
+	INC  	DPTR
+	MOV  	A,#030H
+;     }
+			; SOURCE LINE # 476
+	SJMP 	?C0127
+?C0077:
+;     else {
+			; SOURCE LINE # 477
+;         offset = BLOCK0; //Save to block 0
+			; SOURCE LINE # 478
+	CLR  	A
+	MOV  	DPTR,#offset?753
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOVX 	@DPTR,A
+;         old_offset = BLOCK7;
+			; SOURCE LINE # 479
+	INC  	DPTR
+	MOV  	A,#038H
+?C0127:
+?C0129:
+?C0131:
+?C0132:
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	CLR  	A
+	MOVX 	@DPTR,A
+;     }
+			; SOURCE LINE # 480
+?C0066:
+; 
+;     if (ucFE2P_Valid_Block == MAXBLOCK) {
+			; SOURCE LINE # 482
+	MOV  	A,R7
+	CJNE 	A,#05H,?C0079
+;         offset = BLOCK0; //Save to block 0
+			; SOURCE LINE # 483
+	CLR  	A
+	MOV  	DPTR,#offset?753
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOVX 	@DPTR,A
+;     }
+			; SOURCE LINE # 484
+?C0079:
+; 
+;     ResetWDTimer();
+			; SOURCE LINE # 486
+	LCALL	L?0153
+; 
+;     FLASH_ProtectOff(offset);
+			; SOURCE LINE # 488
+	MOV  	DPTR,#offset?753
+	MOVX 	A,@DPTR
+	MOV  	R6,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R7,A
+	LCALL	_FLASH_ProtectOff
+; 
+;     if ((offset & 0x0FFF) == 0x0000) {
+			; SOURCE LINE # 490
+	MOV  	DPTR,#offset?753
+	MOVX 	A,@DPTR
+	ANL  	A,#0FH
+	MOV  	R6,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	ORL  	A,R6
+	JNZ  	?C0080
+;         Fe2p_WriteEnable();
+			; SOURCE LINE # 491
+;         Fe2p_SectorErase(offset, 0); //100~150ms
+			; SOURCE LINE # 492
+	LCALL	L?0155
+	CLR  	A
+	MOV  	R5,A
+	LCALL	_Fe2p_SectorErase
+;     }
+			; SOURCE LINE # 493
+?C0080:
+;     for (i = 0; i < 2048; i += 0x100) {
+			; SOURCE LINE # 494
+	CLR  	A
+	MOV  	DPTR,#i?755
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOVX 	@DPTR,A
+?C0081:
+	CLR  	C
+	MOV  	DPTR,#i?755
+	MOVX 	A,@DPTR
+	SUBB 	A,#08H
+	JNC  	?C0082
+;         ResetWDTimer();
+			; SOURCE LINE # 495
+	LCALL	L?0154
+;         Fe2p_WriteEnable();
+			; SOURCE LINE # 496
+;         Fe2p_PageWrite(i + offset, FE2P_BUFFER_ADDR + i, 0x100, 0); //256bytes 3~4.5ms
+			; SOURCE LINE # 497
+	LCALL	L?0155
+	MOV  	DPTR,#i?755
+	MOVX 	A,@DPTR
+	MOV  	R4,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R5,A
+	ADD  	A,R7
+	MOV  	R7,A
+	MOV  	A,R4
+	ADDC 	A,R6
+	MOV  	R6,A
+	CLR  	A
+	ADD  	A,R5
+	MOV  	R5,A
+	MOV  	A,R4
+	ADDC 	A,#0A8H
+	MOV  	R4,A
+	CLR  	A
+	MOV  	DPTR,#?_Fe2p_PageWrite?BYTE+05H
+	MOVX 	@DPTR,A
+	MOV  	R3,A
+	LCALL	_Fe2p_PageWrite
+;     }
+			; SOURCE LINE # 498
+	MOV  	DPTR,#i?755+01H
+	MOVX 	A,@DPTR
+	ADD  	A,#00H
+	MOVX 	@DPTR,A
+	MOV  	DPTR,#i?755
+	MOVX 	A,@DPTR
+	ADDC 	A,#01H
+	MOVX 	@DPTR,A
+	SJMP 	?C0081
+?C0082:
+;     Fe2p_WriteEnable();
+			; SOURCE LINE # 499
+	LCALL	Fe2p_WriteEnable
+;     Fe2p_ByteWrite(VALID_FLAG_ADDR + offset, 0x55, 0); //Set new valid flag
+			; SOURCE LINE # 500
+	MOV  	DPTR,#offset?753+01H
+	MOVX 	A,@DPTR
+	MOV  	DPTR,#offset?753
+	LCALL	L?0168
+	MOV  	R5,#055H
+	LCALL	_Fe2p_ByteWrite
+; 
+;     FLASH_ProtectOff(old_offset);
+			; SOURCE LINE # 502
+	MOV  	DPTR,#old_offset?754
+	MOVX 	A,@DPTR
+	MOV  	R6,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R7,A
+	LCALL	_FLASH_ProtectOff
+; 
+;     Fe2p_WriteEnable();
+			; SOURCE LINE # 504
+	LCALL	Fe2p_WriteEnable
+;     Fe2p_ByteWrite(VALID_FLAG_ADDR + old_offset, 0x00, 0); //Clear old valid flag
+			; SOURCE LINE # 505
+	MOV  	DPTR,#old_offset?754+01H
+	MOVX 	A,@DPTR
+	MOV  	DPTR,#old_offset?754
+	LCALL	L?0168
+	MOV  	R5,A
+	LCALL	_Fe2p_ByteWrite
+;     //ucFE2P_Valid_Block = (ucFE2P_Valid_Block+1) % 4;
+;     if (ucFE2P_Valid_Block++ >= MAXBLOCK) {
+			; SOURCE LINE # 507
+	MOV  	DPTR,#ucFE2P_Valid_Block
+	MOVX 	A,@DPTR
+	MOV  	R7,A
+	INC  	A
+	MOVX 	@DPTR,A
+	MOV  	A,R7
+	CLR  	C
+	SUBB 	A,#05H
+	JC   	?C0084
+;         ucFE2P_Valid_Block = 0;
+			; SOURCE LINE # 508
+	CLR  	A
+	MOVX 	@DPTR,A
+;     }
+			; SOURCE LINE # 509
+?C0084:
+; 
+;     FLASH_ProtectOn();
+			; SOURCE LINE # 511
+	LCALL	FLASH_ProtectOn
+; 
+;     ResetWDTimer();
+			; SOURCE LINE # 513
+	LCALL	L?0154
+; }
+			; SOURCE LINE # 514
+?C0063:
+	RET  	
+L?0155:
+	LCALL	Fe2p_WriteEnable
+	MOV  	DPTR,#offset?753
+	MOVX 	A,@DPTR
+	MOV  	R6,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R7,A
+	RET  	
+; END OF FE2P_SaveToFlash
+
+; 
+; /**************************************************************************//**
+;  * Activate the write protection.
+;  * Control the Flash protection I/O pin.
+;  ******************************************************************************/
+; static void FLASH_WP_ON(void)
+
+	RSEG  ?PR?FLASH_WP_ON?FE2P_API
+FLASH_WP_ON:
+	USING	0
+			; SOURCE LINE # 520
+; {
+			; SOURCE LINE # 521
+;     McuSetIOBit(FLASH_WP_PORT, FLASH_WP_BIT, FLASH_WP_ACTIVE);
+			; SOURCE LINE # 522
+	CLR  	A
+	MOV  	R3,A
+	MOV  	R5,#04H
+	MOV  	R7,#04H
+	LJMP 	_McuSetIOBit
+; END OF FLASH_WP_ON
+
+; }
+; 
+; /**************************************************************************//**
+;  * Inactivate the write protection.
+;  * Control the Flash protection I/O pin.
+;  ******************************************************************************/
+; static void FLASH_WP_OFF(void)
+
+	RSEG  ?PR?FLASH_WP_OFF?FE2P_API
+FLASH_WP_OFF:
+	USING	0
+			; SOURCE LINE # 529
+; {
+			; SOURCE LINE # 530
+;     McuSetIOBit(FLASH_WP_PORT, FLASH_WP_BIT, ~FLASH_WP_ACTIVE);
+			; SOURCE LINE # 531
+	MOV  	R3,#0FFH
+	MOV  	R5,#04H
+	MOV  	R7,#04H
+	LJMP 	_McuSetIOBit
+; END OF FLASH_WP_OFF
+
+; }
+; 
+; /**************************************************************************//**
+;  * Save POT counter in the Flash. (Write to flash directly.)
+;  ******************************************************************************/
+; void RecordTimeScale(void)
+
+	RSEG  ?PR?RecordTimeScale?FE2P_API
+RecordTimeScale:
+	USING	0
+			; SOURCE LINE # 537
+; {
+			; SOURCE LINE # 538
+;     code UCHAR scaleTab[] = {0xFE, 0xFC, 0xF8, 0xF0, 0xE0, 0xC0, 0x80, 0x00};
+;     USHRT offset;
+;     UCHAR scale, ch;
+;     ULONG temp;
+; 
+;     if ((SystemData.ucPowerOnTimerM % POT_SAVE_COUNT) != 0) {//record time scale every 10 min
+			; SOURCE LINE # 544
+	MOV  	DPTR,#SystemData+016H
+	MOVX 	A,@DPTR
+	MOV  	R7,A
+	MOV  	B,#01EH
+	DIV  	AB
+	MOV  	A,B
+	JZ   	$ + 5H
+	LJMP 	?C0088
+;         return;
+;     }
+			; SOURCE LINE # 546
+?C0087:
+; 
+;     //Erase if first write
+;     if ((SystemData.ucPowerOnTimerM == POT_SAVE_COUNT) && (SystemData.usPowerOnTimerH == 0)) {
+			; SOURCE LINE # 549
+	MOV  	A,R7
+	CJNE 	A,#01EH,?C0089
+	MOV  	DPTR,#SystemData+017H
+	MOVX 	A,@DPTR
+	JNZ  	?C0115
+	INC  	DPTR
+	MOVX 	A,@DPTR
+?C0115:
+	JNZ  	?C0089
+;         EraseTimeScale();
+			; SOURCE LINE # 550
+	LCALL	EraseTimeScale
+;     }
+			; SOURCE LINE # 551
+?C0089:
+; 
+;     //Erase again if erase fail
+;     Fe2p_ByteRead(TIME_FLAG_ADDR + TIMEBLOCK, &ch);
+			; SOURCE LINE # 554
+	MOV  	R3,#01H
+	MOV  	R2,#HIGH (ch?1059)
+	MOV  	R1,#LOW (ch?1059)
+	MOV  	R7,#0FFH
+	MOV  	R6,#03FH
+	LCALL	_Fe2p_ByteRead
+;     if (ch != 0xFF) {
+			; SOURCE LINE # 555
+	MOV  	DPTR,#ch?1059
+	MOVX 	A,@DPTR
+	CPL  	A
+	JZ   	?C0090
+;         EraseTimeScale();
+			; SOURCE LINE # 556
+	LCALL	EraseTimeScale
+;     }
+			; SOURCE LINE # 557
+?C0090:
+; 
+;     //write enable
+;     FLASH_ProtectOff(TIMEBLOCK);
+			; SOURCE LINE # 560
+	MOV  	R7,#00H
+	MOV  	R6,#030H
+	LCALL	_FLASH_ProtectOff
+; 
+;     //write
+;     temp = (ULONG)(SystemData.usPowerOnTimerH - SystemData.usPOTimerH_FE2P) * 60 + SystemData.ucPowerOnTimerM - SystemData.ucPOTimerM_FE2P;
+			; SOURCE LINE # 563
+	MOV  	DPTR,#SystemData+01DH
+	LCALL	L?0166
+	MOV  	DPTR,#SystemData+018H
+	MOVX 	A,@DPTR
+	SUBB 	A,R7
+	MOV  	R7,A
+	MOV  	DPTR,#SystemData+017H
+	MOVX 	A,@DPTR
+	SUBB 	A,R6
+	MOV  	R6,A
+	MOV  	R4,#00H
+	MOV  	R5,#03CH
+	LCALL	?C?LIMUL
+	MOV  	DPTR,#SystemData+016H
+	LCALL	L?0150
+	PUSH 	AR7
+	MOV  	DPTR,#SystemData+01CH
+	MOVX 	A,@DPTR
+	MOV  	R3,A
+	POP  	AR7
+	CLR  	C
+	MOV  	A,R7
+	SUBB 	A,R3
+	MOV  	R7,A
+	MOV  	A,R6
+	SUBB 	A,#00H
+	MOV  	R6,A
+	MOV  	A,R5
+	SUBB 	A,#00H
+	MOV  	R5,A
+	MOV  	A,R4
+	SUBB 	A,#00H
+	LCALL	L?0162
+;     if (temp != 0) {
+			; SOURCE LINE # 564
+	CLR  	A
+	MOV  	R7,A
+	MOV  	R6,A
+	MOV  	R5,A
+	MOV  	R4,A
+	MOV  	DPTR,#temp?1060
+	LCALL	L?0161
+	CLR  	C
+	LCALL	?C?ULCMP
+	JZ   	?C0091
+;         temp = temp - 1;
+			; SOURCE LINE # 565
+	MOV  	DPTR,#temp?1060
+	LCALL	L?0142
+	ADD  	A,#0FFH
+	MOV  	R7,A
+	MOV  	A,R6
+	ADDC 	A,#0FFH
+	MOV  	R6,A
+	MOV  	A,R5
+	ADDC 	A,#0FFH
+	MOV  	R5,A
+	MOV  	A,R4
+	ADDC 	A,#0FFH
+	LCALL	L?0162
+;     }
+			; SOURCE LINE # 566
+?C0091:
+;     temp = temp / POT_SAVE_COUNT;
+			; SOURCE LINE # 567
+	MOV  	DPTR,#temp?1060
+	LCALL	L?0142
+	LCALL	L?0164
+	LCALL	?C?ULDIV
+	LCALL	L?0163
+;     offset = temp / 8;
+			; SOURCE LINE # 568
+	MOV  	R3,#08H
+	MOV  	DPTR,#temp?1060
+	LCALL	L?0141
+	MOV  	R7,A
+	LCALL	?C?ULDIV
+	MOV  	DPTR,#offset?1057
+	MOV  	A,R6
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOV  	A,R7
+	MOVX 	@DPTR,A
+;     offset &= 0x0FFF;
+			; SOURCE LINE # 569
+	MOV  	A,R6
+	ANL  	A,#0FH
+	MOV  	DPTR,#offset?1057
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOV  	A,R7
+	MOVX 	@DPTR,A
+;     scale = temp % 8;
+			; SOURCE LINE # 570
+	MOV  	DPTR,#temp?1060
+	LCALL	L?0142
+	ANL  	A,#07H
+	MOV  	R7,A
+	CLR  	A
+;---- Variable 'scale?1058' assigned to Register 'R7' ----
+;     ch = scaleTab[scale];
+			; SOURCE LINE # 571
+	MOV  	A,R7
+	MOV  	DPTR,#scaleTab?1056
+	MOVC 	A,@A+DPTR
+	MOV  	DPTR,#ch?1059
+	MOVX 	@DPTR,A
+;     Fe2p_WriteEnable();
+			; SOURCE LINE # 572
+	LCALL	Fe2p_WriteEnable
+;     Fe2p_ByteWrite(TIMEBLOCK + offset, ch, 0); //Set new valid flag
+			; SOURCE LINE # 573
+	MOV  	DPTR,#offset?1057+01H
+	MOVX 	A,@DPTR
+	ADD  	A,#00H
+	MOV  	R7,A
+	MOV  	DPTR,#offset?1057
+	MOVX 	A,@DPTR
+	ADDC 	A,#030H
+	MOV  	R6,A
+	MOV  	DPTR,#ch?1059
+	MOVX 	A,@DPTR
+	MOV  	R5,A
+	CLR  	A
+	MOV  	R3,A
+	LCALL	_Fe2p_ByteWrite
+; 
+;     //write protect
+;     FLASH_ProtectOn();
+			; SOURCE LINE # 576
+	LCALL	FLASH_ProtectOn
+; }
+			; SOURCE LINE # 577
+?C0088:
+	RET  	
+; END OF RecordTimeScale
+
+; 
+; /**************************************************************************//**
+;  * Erase the POT block. (Erase the flash block directly)
+;  ******************************************************************************/
+; void EraseTimeScale(void)
+
+	RSEG  ?PR?EraseTimeScale?FE2P_API
+EraseTimeScale:
+	USING	0
+			; SOURCE LINE # 582
+; {
+			; SOURCE LINE # 583
+;     if (FE2P_CheckValidBlock() == 0xFF) {
+			; SOURCE LINE # 584
+	LCALL	FE2P_CheckValidBlock
+	CJNE 	R7,#0FFH,?C0092
+;         SystemData.ucPowerOnTimerM = 0;
+			; SOURCE LINE # 585
+	CLR  	A
+	MOV  	DPTR,#SystemData+016H
+	MOVX 	@DPTR,A
+;         SystemData.usPowerOnTimerH = 0;
+			; SOURCE LINE # 586
+	INC  	DPTR
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOVX 	@DPTR,A
+	RET  	
+;         return;
+;     }
+			; SOURCE LINE # 588
+?C0092:
+; 
+;     ResetWDTimer();
+			; SOURCE LINE # 590
+	LCALL	L?0154
+; 
+;     //write enable
+;     FLASH_ProtectOff(TIMEBLOCK);
+			; SOURCE LINE # 593
+	MOV  	R7,#00H
+	MOV  	R6,#030H
+	LCALL	_FLASH_ProtectOff
+; 
+;     Fe2p_WriteEnable();
+			; SOURCE LINE # 595
+	LCALL	Fe2p_WriteEnable
+;     Fe2p_ByteWrite(TIMEBLOCK + TIME_FLAG_ADDR, 0x00, 0); //Set new valid flag
+			; SOURCE LINE # 596
+	CLR  	A
+	MOV  	R3,A
+	MOV  	R5,A
+	MOV  	R7,#0FFH
+	MOV  	R6,#03FH
+	LCALL	_Fe2p_ByteWrite
+; 
+;     //erase
+;     Fe2p_WriteEnable();
+			; SOURCE LINE # 599
+	LCALL	Fe2p_WriteEnable
+;     Fe2p_SectorErase(TIMEBLOCK, 0); //100~150ms
+			; SOURCE LINE # 600
+	CLR  	A
+	MOV  	R5,A
+	MOV  	R7,A
+	MOV  	R6,#030H
+	LCALL	_Fe2p_SectorErase
+; 
+;     //write protect
+;     FLASH_ProtectOn();
+			; SOURCE LINE # 603
+	LCALL	FLASH_ProtectOn
+; 
+;     ResetWDTimer();
+			; SOURCE LINE # 605
+	LCALL	L?0154
+; }
+			; SOURCE LINE # 606
+?C0093:
+	RET  	
+; END OF EraseTimeScale
+
+; 
+; /**************************************************************************//**
+;  * Decode the POT from flash.
+;  ******************************************************************************/
+; void DecodeTimeScale(void)
+
+	RSEG  ?PR?DecodeTimeScale?FE2P_API
+DecodeTimeScale:
+	USING	0
+			; SOURCE LINE # 611
+; {
+			; SOURCE LINE # 612
+;     ULONG temp;
+;     USHRT offset;
+;     UCHAR ch;
+; 
+;     temp = ((ULONG)SystemData.usPOTimerH_FE2P * 60 + SystemData.ucPOTimerM_FE2P) / POT_SAVE_COUNT;
+			; SOURCE LINE # 617
+	MOV  	DPTR,#SystemData+01DH
+	MOVX 	A,@DPTR
+	MOV  	R6,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R7,A
+	MOV  	R4,#00H
+	MOV  	R5,#03CH
+	LCALL	?C?LIMUL
+	MOV  	DPTR,#SystemData+01CH
+	LCALL	L?0150
+	LCALL	L?0165
+	LCALL	?C?ULDIV
+	LCALL	L?0158
+;     for (offset = 0; offset < 4095; offset++) {
+			; SOURCE LINE # 618
+	CLR  	A
+	MOV  	DPTR,#offset?1262
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOVX 	@DPTR,A
+?C0094:
+	MOV  	DPTR,#offset?1262
+	LCALL	L?0167
+	SUBB 	A,#0FFH
+	MOV  	A,R6
+	SUBB 	A,#0FH
+	JNC  	?C0095
+;         Fe2p_ByteRead(offset + TIMEBLOCK, &ch);
+			; SOURCE LINE # 619
+	CLR  	A
+	ADD  	A,R7
+	MOV  	R7,A
+	MOV  	A,R6
+	ADDC 	A,#030H
+	MOV  	R6,A
+	MOV  	R3,#01H
+	MOV  	R2,#HIGH (ch?1263)
+	MOV  	R1,#LOW (ch?1263)
+	LCALL	_Fe2p_ByteRead
+;         if (ch != 0) {
+			; SOURCE LINE # 620
+	MOV  	DPTR,#ch?1263
+	MOVX 	A,@DPTR
+	JNZ  	?C0095
+;             break;
+			; SOURCE LINE # 621
+;         }
+			; SOURCE LINE # 622
+?C0097:
+;     }
+			; SOURCE LINE # 623
+?C0096:
+	MOV  	DPTR,#offset?1262+01H
+	MOVX 	A,@DPTR
+	INC  	A
+	MOVX 	@DPTR,A
+	JNZ  	?C0094
+	MOV  	DPTR,#offset?1262
+	MOVX 	A,@DPTR
+	INC  	A
+	MOVX 	@DPTR,A
+?C0116:
+	SJMP 	?C0094
+?C0095:
+;     temp += (offset * 8);
+			; SOURCE LINE # 624
+	MOV  	DPTR,#temp?1261
+	LCALL	L?0161
+	PUSH 	AR0
+	PUSH 	AR1
+	PUSH 	AR2
+	PUSH 	AR3
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R6,A
+	INC  	DPTR
+	MOVX 	A,@DPTR
+	MOV  	R0,#03H
+?C0117:
+	CLR  	C
+	RLC  	A
+	XCH  	A,R6
+	RLC  	A
+	XCH  	A,R6
+	DJNZ 	R0,?C0117
+	MOV  	R7,A
+	CLR  	A
+	MOV  	R4,A
+	MOV  	R5,A
+	POP  	AR3
+	POP  	AR2
+	POP  	AR1
+	POP  	AR0
+	MOV  	A,R3
+	ADD  	A,R7
+	MOV  	R7,A
+	MOV  	A,R2
+	ADDC 	A,R6
+	LCALL	L?0151
+	LCALL	L?0158
+;     if (ch == 0xFE) {
+			; SOURCE LINE # 625
+	MOV  	DPTR,#ch?1263
+	MOVX 	A,@DPTR
+	MOV  	R3,A
+	CJNE 	A,#0FEH,?C0098
+;         temp += 1;
+			; SOURCE LINE # 626
+	MOV  	DPTR,#temp?1261
+	LCALL	L?0142
+	ADD  	A,#01H
+;     }
+			; SOURCE LINE # 627
+	LJMP 	?C0138
+?C0098:
+;     else if (ch == 0xFC) {
+			; SOURCE LINE # 628
+	MOV  	A,R3
+	CJNE 	A,#0FCH,?C0100
+;         temp += 2;
+			; SOURCE LINE # 629
+	MOV  	DPTR,#temp?1261
+	LCALL	L?0142
+	ADD  	A,#02H
+?C0133:
+;     }
+			; SOURCE LINE # 630
+	SJMP 	?C0138
+?C0100:
+;     else if (ch == 0xF8) {
+			; SOURCE LINE # 631
+	MOV  	DPTR,#ch?1263
+	MOVX 	A,@DPTR
+	MOV  	R3,A
+	CJNE 	A,#0F8H,?C0102
+;         temp += 3;
+			; SOURCE LINE # 632
+	MOV  	DPTR,#temp?1261
+	LCALL	L?0142
+	ADD  	A,#03H
+?C0134:
+;     }
+			; SOURCE LINE # 633
+	SJMP 	?C0138
+?C0102:
+;     else if (ch == 0xF0) {
+			; SOURCE LINE # 634
+	MOV  	A,R3
+	CJNE 	A,#0F0H,?C0104
+;         temp += 4;
+			; SOURCE LINE # 635
+	MOV  	DPTR,#temp?1261
+	LCALL	L?0142
+	ADD  	A,#04H
+?C0135:
+;     }
+			; SOURCE LINE # 636
+	SJMP 	?C0138
+?C0104:
+;     else if (ch == 0xE0) {
+			; SOURCE LINE # 637
+	MOV  	DPTR,#ch?1263
+	MOVX 	A,@DPTR
+	MOV  	R3,A
+	CJNE 	A,#0E0H,?C0106
+;         temp += 5;
+			; SOURCE LINE # 638
+	MOV  	DPTR,#temp?1261
+	LCALL	L?0142
+	ADD  	A,#05H
+?C0136:
+;     }
+			; SOURCE LINE # 639
+	SJMP 	?C0138
+?C0106:
+;     else if (ch == 0xC0) {
+			; SOURCE LINE # 640
+	MOV  	A,R3
+	CJNE 	A,#0C0H,?C0108
+;         temp += 6;
+			; SOURCE LINE # 641
+	MOV  	DPTR,#temp?1261
+	LCALL	L?0142
+	ADD  	A,#06H
+?C0137:
+;     }
+			; SOURCE LINE # 642
+	SJMP 	?C0138
+?C0108:
+;     else if (ch == 0x80) {
+			; SOURCE LINE # 643
+	MOV  	DPTR,#ch?1263
+	MOVX 	A,@DPTR
+	CJNE 	A,#080H,?C0099
+;         temp += 7;
+			; SOURCE LINE # 644
+	MOV  	DPTR,#temp?1261
+	LCALL	L?0142
+	ADD  	A,#07H
+?C0138:
+	MOV  	R7,A
+	CLR  	A
+	ADDC 	A,R6
+	MOV  	R6,A
+	CLR  	A
+	ADDC 	A,R5
+	MOV  	R5,A
+	CLR  	A
+	ADDC 	A,R4
+	MOV  	R4,A
+	LCALL	L?0159
+;     }
+			; SOURCE LINE # 645
+?C0099:
+;     temp = temp * POT_SAVE_COUNT;
+			; SOURCE LINE # 646
+	MOV  	DPTR,#temp?1261
+	LCALL	L?0142
+	LCALL	L?0164
+	LCALL	?C?LMUL
+	LCALL	L?0159
+;     SystemData.usPowerOnTimerH = temp / 60;
+			; SOURCE LINE # 647
+	LCALL	L?0140
+	MOV  	R7,A
+	LCALL	?C?ULDIV
+	MOV  	DPTR,#SystemData+017H
+	MOV  	A,R6
+	MOVX 	@DPTR,A
+	INC  	DPTR
+	MOV  	A,R7
+	MOVX 	@DPTR,A
+;     SystemData.ucPowerOnTimerM = temp % 60;
+			; SOURCE LINE # 648
+	LCALL	L?0140
+	MOV  	R7,A
+	LCALL	?C?ULDIV
+	MOV  	DPTR,#SystemData+016H
+	MOV  	A,R3
+	MOVX 	@DPTR,A
+; }
+			; SOURCE LINE # 649
+	RET  	
+; END OF DecodeTimeScale
+
+	END

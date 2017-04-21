@@ -1,0 +1,15 @@
+C51 COMPILER V9.54   OSDFONT_OTHER                                                         12/19/2016 10:33:11 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE OSDFONT_OTHER
+OBJECT MODULE PLACED IN .\Bin\OSDFont_OTHER.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE App\OSD\OSDFont_OTHER.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\Ap
+                    -p\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\
+                    -SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,NV
+                    -T_1920X1080,FLASH_BANK=4) PRINT(.\Lst\OSDFont_OTHER.lst) TABS(2) OBJECT(.\Bin\OSDFont_OTHER.obj)
+
+line level    source
+
+*** ERROR C318 OF App\OSD\OSDFont_OTHER.c: can't open file 'App\OSD\OSDFont_OTHER.c'
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  1 ERROR(S)

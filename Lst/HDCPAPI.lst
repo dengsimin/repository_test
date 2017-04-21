@@ -1,0 +1,250 @@
+C51 COMPILER V9.54   HDCPAPI                                                               01/06/2017 14:57:17 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE HDCPAPI
+OBJECT MODULE PLACED IN .\Bin\HDCPAPI.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Lib\NT68810 Series\HDCPAPI.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App
+                    -;.\App\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.
+                    -\Phy\SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODU
+                    -LE,LVIEW_2560X1440,FLASH_BANK=8) PRINT(.\Lst\HDCPAPI.lst) TABS(2) OBJECT(.\Bin\HDCPAPI.obj)
+
+line level    source
+
+   1            /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          #include "ScalerProfile.h"
+  14          #if ENABLE_HDCP == ON
+  15          
+  16          //******************************************************************************
+  17          // M A C R O   D E F I N I T I O N S
+  18          //******************************************************************************
+  19          
+  20          //******************************************************************************
+  21          // G L O B A L   V A R I A B L E S
+  22          //******************************************************************************
+  23          
+  24          //******************************************************************************
+  25          // S T A T I C   V A R I A B L E S
+  26          //******************************************************************************
+  27          #if ENABLE_DEMO_HDCP_KEY == ON
+  28          /*!
+  29           * Default HDCP KSV for development.
+  30           */
+  31          static code UCHAR demo_keyKSV[] = {
+  32              0x24, 0xC8, 0xEB, 0x3E, 0x9C,
+  33          };
+  34          /*!
+  35           * Default HDCP key for development.
+  36           */
+  37          static code UCHAR demo_key[] = {
+  38              0xF1, 0x04, 0x43, 0x87, 0x2C, 0x22, 0x0D,
+  39              0xDA, 0x6D, 0xF9, 0x4C, 0x25, 0xCA, 0x04,
+  40              0x03, 0xA9, 0x63, 0x6D, 0x9F, 0xA3, 0x71,
+  41              0x62, 0x0E, 0xB4, 0xFB, 0x29, 0xBA, 0xB4,
+  42              0xFB, 0xD9, 0xDB, 0x0C, 0x9E, 0xD3, 0x5A,
+  43              0x0A, 0xDD, 0x7C, 0x5A, 0x9E, 0x9F, 0x88,
+  44              0x15, 0x0B, 0x34, 0x13, 0x20, 0xBB, 0xFC,
+  45              0x2C, 0x36, 0x24, 0xC1, 0x60, 0xCF, 0xC2,
+  46              0x56, 0x55, 0x80, 0x11, 0x5D, 0x2A, 0x61,
+  47              0xD0, 0x8C, 0xEF, 0xF1, 0x20, 0xE7, 0xAC,
+  48              0x5D, 0xD4, 0xC3, 0xD4, 0x11, 0x75, 0x8D,
+  49              0x33, 0x3C, 0xA9, 0x95, 0x2C, 0x4D, 0x13,
+  50              0x14, 0x51, 0xA5, 0x48, 0xEB, 0x5A, 0x68,
+  51              0x99, 0xC6, 0xBE, 0xF0, 0x4A, 0xA7, 0x4D,
+  52              0x64, 0x30, 0x77, 0x22, 0x52, 0xA4, 0x23,
+C51 COMPILER V9.54   HDCPAPI                                                               01/06/2017 14:57:17 PAGE 2   
+
+  53              0xBD, 0x96, 0xAA, 0xAA, 0x3E, 0x44, 0xB8,
+  54              0x8F, 0xEA, 0x23, 0x6F, 0xE7, 0xB4, 0xEF,
+  55              0xE7, 0x66, 0x1B, 0x3C, 0xB0, 0x3E, 0x83,
+  56              0x6D, 0x5C, 0xBE, 0xA4, 0x95, 0x88, 0x0D,
+  57              0x0B, 0xA4, 0xFA, 0x96, 0x02, 0xB5, 0xC4,
+  58              0xE5, 0xD8, 0x9A, 0xAB, 0x7F, 0xF7, 0x6E,
+  59              0xAA, 0x90, 0x95, 0x73, 0xC5, 0x82, 0x02,
+  60              0x87, 0x3F, 0xD0, 0xC4, 0xFA, 0xBF, 0x5D,
+  61              0xFC, 0x5D, 0x55, 0x18, 0x24, 0xDE, 0x63,
+  62              0xA7, 0x12, 0x72, 0x25, 0x66, 0x6E, 0xB4,
+  63              0x6E, 0x9F, 0x18, 0x5D, 0xC1, 0x36, 0xC7,
+  64              0xBA, 0xD0, 0x56, 0x34, 0xCE, 0x62, 0x90,
+  65              0x6C, 0x72, 0x64, 0x31, 0x71, 0x18, 0x73,
+  66              0x1E, 0x8D, 0xDF, 0x13, 0xFB, 0x66, 0xAC,
+  67              0xB2, 0xA3, 0x1A, 0xE7, 0xB3, 0x59, 0xBD,
+  68              0x97, 0xB1, 0x4C, 0xC9, 0x52, 0x93, 0x4F,
+  69              0xAA, 0x63, 0x3F, 0xF0, 0x86, 0x35, 0x81,
+  70              0xC1, 0x11, 0x49, 0x89, 0x60, 0x2A, 0xAB,
+  71              0x96, 0xB7, 0xD2, 0x58, 0x68, 0xBA, 0x86,
+  72              0x2F, 0xC9, 0x7E, 0xE8, 0x1D, 0x77, 0x0F,
+  73              0x36, 0x20, 0xFC, 0xCC, 0x3E, 0xDB, 0x33,
+  74              0x98, 0xEF, 0x82, 0xCC, 0x51, 0x74, 0xD5,
+  75              0x3A, 0x08, 0xE4, 0xBB, 0xA3, 0x27, 0x6A,
+  76              0xFF, 0x59, 0x6B, 0xBC, 0x09, 0x8A, 0xD4,
+  77              0x5C, 0x00, 0x31, 0x87, 0x3E, 0x20, 0x38,
+  78              0x68, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05
+  79          };
+  80          #endif
+  81          
+  82          //******************************************************************************
+  83          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  84          //******************************************************************************
+  85          
+  86          //******************************************************************************
+  87          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  88          //******************************************************************************
+  89          
+  90          //******************************************************************************
+  91          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  92          //******************************************************************************
+  93          
+  94          //******************************************************************************
+  95          // F U N C T I O N   B O D Y S
+  96          //******************************************************************************
+  97          
+  98          /**************************************************************************//**
+  99           * Load HDCP KSV&key to scaler
+ 100           * @param pKSV pointer to HDCP KSV
+ 101           * @param pKey pointer to HDCP Key
+ 102           ******************************************************************************/
+ 103          void WriteHDCPKey(UCHAR *pKSV, UCHAR *pKey)
+ 104          {
+ 105   1          UCHAR tmp_reg, *p;
+ 106   1          USHRT i;
+ 107   1          
+ 108   1          ResetWDTimer();   
+ 109   1      #if IS_NT68790_SERIES_EARLIER
+                  SC_HDCP_INPUT_CTRL = 0x80 | HDCP_CLK_INV;  // Set Refclk * clk inverted  // 0x641
+              #endif
+ 112   1      #if ENABLE_HDCP_KEY_DCRPT == ON
+ 113   1          SC_HDCP_SYNC_SELECT = 0x08; // Set decryption key    // 0x640
+ 114   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INT
+C51 COMPILER V9.54   HDCPAPI                                                               01/06/2017 14:57:17 PAGE 3   
+
+             -ERFACE&INPUT_DP3)
+ 115   1          SC_DP_HDCP_CTRL = 0x28; // Set decryption key   // 0x1032
+ 116   1      #endif
+ 117   1      #else
+                  SC_HDCP_SYNC_SELECT = 0x00; // Set non-decryption key     // 0x640
+              #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INT
+             -ERFACE&INPUT_DP3)
+                  SC_DP_HDCP_CTRL = 0x20; // Set non-decryption key   // 0x1032
+              #endif
+              #endif
+ 123   1          
+ 124   1      #if IS_NT68790_SERIES || IS_NT68810_SERIES || IS_NT68870_SERIES
+ 125   1          SC_HDCP_62E |= BIT3;
+ 126   1      #endif
+ 127   1          
+ 128   1          //Write KSV
+ 129   1          p = &SC_HDCP_BKSV; // 0x61a
+ 130   1          for (i = 0; i < 5; i++) {
+ 131   2      #if ENABLE_DEMO_HDCP_KEY == ON
+ 132   2              tmp_reg = demo_keyKSV[i];
+ 133   2      #else
+                      tmp_reg = pKSV[i];
+              #endif
+ 136   2              *p = tmp_reg;
+ 137   2              p++;
+ 138   2          }
+ 139   1      
+ 140   1      #if ENABLE_DVI_DUAL_LINK == ON
+ 141   1          p = &SC_HDCP_BKSV2;
+ 142   1          for (i = 0; i < 5; i++) {
+ 143   2          #if ENABLE_DEMO_HDCP_KEY == ON
+ 144   2              tmp_reg = demo_keyKSV[i];
+ 145   2          #else
+                      tmp_reg = pKSV[i];
+                  #endif
+ 148   2              *p = tmp_reg;
+ 149   2              p++;
+ 150   2          }    
+ 151   1      #endif
+ 152   1      
+ 153   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INT
+             -ERFACE&INPUT_DP3)
+ 154   1          SC_DP_DEBUG |= BIT7;// 0x1030
+ 155   1          p = &SC_DP_HDCP_BKSV;// 0x1180
+ 156   1          for (i = 0; i < 5; i++) {
+ 157   2      #if ENABLE_DEMO_HDCP_KEY == ON
+ 158   2              tmp_reg = demo_keyKSV[i];
+ 159   2      #else
+                      tmp_reg = pKSV[i];
+              #endif
+ 162   2              *p = tmp_reg;
+ 163   2              p++;
+ 164   2          }
+ 165   1          SC_DP_DEBUG &= ~BIT7;// 0x1030
+ 166   1      #endif
+ 167   1      
+ 168   1          //Write Key
+ 169   1          tmp_reg = SC_INDEX_CTRL & 0x04; // 0x0e0
+ 170   1          tmp_reg |= 0xE0;
+ 171   1          SC_INDEX_CTRL = tmp_reg; // 0x0e0
+ 172   1      
+ 173   1          for (i = 0; i < 282; i++) {
+C51 COMPILER V9.54   HDCPAPI                                                               01/06/2017 14:57:17 PAGE 4   
+
+ 174   2      #if ENABLE_DEMO_HDCP_KEY == ON
+ 175   2              tmp_reg = demo_key[i];
+ 176   2      #else
+                      tmp_reg = pKey[i];
+              #endif
+ 179   2              SC_INDEX_ADDR_LO = (UCHAR)(i & 0xFF);// 0xe1
+ 180   2              SC_INDEX_ADDR_HI = (UCHAR)(i >> 8);
+ 181   2              SC_INDEX_DATA = tmp_reg;// 0xe3
+ 182   2          }
+ 183   1          
+ 184   1      
+ 185   1      #if IS_NT68790_SERIES || IS_NT68810_SERIES || IS_NT68870_SERIES
+ 186   1          SC_HDCP_62E &= ~BIT3;
+ 187   1      #endif
+ 188   1          // For disable compile warning only under ENABLE_DEMO_HDCP_KEY == ON
+ 189   1          pKSV = 0;
+ 190   1          pKey = 0;
+ 191   1          ResetWDTimer();
+ 192   1      }
+ 193          
+ 194          /**************************************************************************//**
+ 195           * Enable HDCP function
+ 196           ******************************************************************************/
+ 197          void EnableHDCP(void)
+ 198          {
+ 199   1          SC_HDCP_INPUT_CTRL = 0x00 | HDCP_CLK_INV;  // 0x641
+ 200   1          SC_HDCP_SLAVE_ADDR = 0x74;  // 0x63f
+ 201   1      
+ 202   1      #if ENABLE_DVI_DUAL_LINK == ON
+ 203   1          SC_HDCP_SLAVE_ADDR2 = 0x76; // 0xabf
+ 204   1      #endif    
+ 205   1      }
+ 206          
+ 207          #endif //ENABLE_HDCP == ON
+ 208          
+ 209          void ForDemoHDCPCompilerCodePass(void)
+ 210          {
+ 211   1        code UCHAR temp[]={0x00};
+ 212   1        UCHAR i;
+ 213   1        i = temp[0];
+ 214   1      }
+ 215          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    267    ----
+   CONSTANT SIZE    =    293    ----
+   XDATA SIZE       =   ----       8
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

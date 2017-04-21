@@ -1,0 +1,448 @@
+C51 COMPILER V9.54   HDCP                                                                  01/06/2017 14:57:18 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE HDCP
+OBJECT MODULE PLACED IN .\Bin\HDCP.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE App\HDCP.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD;.\App\U
+                    -ser;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NVT\Keypad
+                    -;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_2560X1440
+                    -,FLASH_BANK=8) PRINT(.\Lst\HDCP.lst) TABS(2) OBJECT(.\Bin\HDCP.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          #include "ScalerProfile.h"
+  14          
+  15          #if ENABLE_HDCP == ON
+  16          
+  17          //******************************************************************************
+  18          // G L O B A L   D E F I N I T I O N S
+  19          //******************************************************************************
+  20          #define HDCP_KEY_OFFSET 5
+  21          
+  22          //******************************************************************************
+  23          // S T A T I C   V A R I A B L E S
+  24          //******************************************************************************
+  25          static xdata USHRT usNVRamAddr_HDCP;
+  26          static xdata USHRT usHDCPChkSum1, usHDCPChkSum2 = 0;
+  27          static xdata UCHAR xdata *pHDCPbuffer;
+  28          
+  29          //******************************************************************************
+  30          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  31          //******************************************************************************
+  32          
+  33          //******************************************************************************
+  34          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  35          //******************************************************************************
+  36          
+  37          //******************************************************************************
+  38          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  39          //******************************************************************************
+  40          
+  41          //******************************************************************************
+  42          // Prototype: 
+  43          //  void InitHDCP(void)
+  44          // Parameters:
+  45          //  None
+  46          // Return:
+  47          //  None
+  48          // Purpose:
+  49          //  Load HDCP key and enable HDCP.
+  50          // Notes:
+  51          //  None
+  52          //******************************************************************************
+C51 COMPILER V9.54   HDCP                                                                  01/06/2017 14:57:18 PAGE 2   
+
+  53          void InitHDCP(void)
+  54          {
+  55   1          pHDCPbuffer = FE2P_SRAM_ADDR + NVRAM_HDCP_ADDR;
+  56   1          NvramReadHDCPdata(pHDCPbuffer);
+  57   1      #if ENABLE_DEMO_HDCP_KEY == ON
+  58   1          WriteHDCPKey(NULL, NULL);
+  59   1      #else
+                  WriteHDCPKey(pHDCPbuffer, pHDCPbuffer + HDCP_KEY_OFFSET);
+              #endif
+  62   1      #if IS_NT68770_SERIES || IS_NT68850_SERIES || IS_NT68790_SERIES || IS_NT68658_SERIES || IS_NT68810_SERIES 
+             -|| IS_NT68870_SERIES
+  63   1          SC_HDCP_CTRL3 = 0x60; //CTS issue   0x646
+  64   1      #endif
+  65   1          EnableHDCP();
+  66   1      }
+  67          
+  68          #if ENABLE_NVT_HDCP_WRITER == ON
+  69          //******************************************************************************
+  70          // Prototype: 
+  71          //  void StartHDCPStoring(void)
+  72          // Parameters:
+  73          //  None
+  74          // Return:
+  75          //  None
+  76          // Purpose:
+  77          //  Initiate HDCP-related parameters for storing HDCP.
+  78          // Notes:
+  79          //  None
+  80          //******************************************************************************
+  81          void StartHDCPStoring(void)
+  82          {
+  83   1          pHDCPbuffer = (FE2P_SRAM_ADDR + NVRAM_HDCP_ADDR);
+  84   1          usHDCPChkSum1 = 0;
+  85   1          usHDCPChkSum2 = 0xFFFF;
+  86   1          usNVRamAddr_HDCP = 0;
+  87   1      }
+  88          
+  89          //******************************************************************************
+  90          // Prototype: 
+  91          //  void StoreHDCP(UCHAR *ptr, USHRT num)
+  92          // Parameters:
+  93          //  *ptr : pointer to data
+  94          //  num    : number of bytes to be stored
+  95          // Return:
+  96          //  None
+  97          // Purpose:
+  98          //  Store HDCP key.
+  99          // Notes:
+ 100          //  None
+ 101          //******************************************************************************
+ 102          void StoreHDCP(UCHAR *ptr,  USHRT num)
+ 103          {
+ 104   1          UCHAR i;
+ 105   1      
+ 106   1          for (i = 0; i < num; i++) {
+ 107   2              pHDCPbuffer[usNVRamAddr_HDCP] = *ptr;
+ 108   2              if (usNVRamAddr_HDCP < NUM_HDCP_TOTAL) {
+ 109   3                  usHDCPChkSum1 += pHDCPbuffer[usNVRamAddr_HDCP];
+ 110   3              }
+ 111   2              usNVRamAddr_HDCP++;
+ 112   2              ptr++;
+ 113   2          }
+C51 COMPILER V9.54   HDCP                                                                  01/06/2017 14:57:18 PAGE 3   
+
+ 114   1      }
+ 115          
+ 116          //******************************************************************************
+ 117          // Prototype: 
+ 118          //  UCHAR CheckHDCPChkSum(void)
+ 119          // Parameters:
+ 120          //  None
+ 121          // Return:
+ 122          //  TRUR if checksum is correct. Otherwise, FALSE.
+ 123          // Purpose:
+ 124          //  Check HDCP checksum.
+ 125          // Notes:
+ 126          //  None
+ 127          //******************************************************************************
+ 128          UCHAR CheckHDCPChkSum(void)
+ 129          {
+ 130   1          usHDCPChkSum2 = pHDCPbuffer[0x121];
+ 131   1          usHDCPChkSum2 = usHDCPChkSum2 << 8;
+ 132   1          usHDCPChkSum2 = usHDCPChkSum2 + pHDCPbuffer[0x122];
+ 133   1      
+ 134   1          if (usHDCPChkSum1 == usHDCPChkSum2) {
+ 135   2              NvramWriteHDCPdata(pHDCPbuffer);
+ 136   2          InitHDCP();
+ 137   2              return 1;
+ 138   2          }
+ 139   1          else {
+ 140   2              return 0;
+ 141   2          }
+ 142   1      }
+ 143          #endif //#if ENABLE_NVT_HDCP_WRITER == ON
+ 144          
+ 145          #if ENABLE_HDCP_TRIM_MODE == ON
+ 146          
+ 147          #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 148          void LoadDefaultTrim(void)
+ 149          {
+ 150   1          SC_HDCP_TRIM_CTRL = 0x08;  // 0xd50
+ 151   1          SC_HDCP_TRIM_TEST_MODE =0x00;// 0xd58
+ 152   1          SC_HDCP_TRIM_ADDR_A = 0x00;// 0xd5b
+ 153   1          SC_HDCP_TRIM_ADDR_B =0x40;// 0xd5c
+ 154   1          SC_HDCP_TRIM_PI = 0x00;// 0xd5f
+ 155   1      }
+ 156          #endif
+ 157          
+ 158          //******************************************************************************
+ 159          // Prototype: 
+ 160          //  BOOL InitHDCPTrimKey(void)
+ 161          // Parameters:
+ 162          //  None
+ 163          // Return:
+ 164          //  return TRUE if load key successfully
+ 165          // Purpose:
+ 166          //  Load HDCP key and enable HDCP from E-fuse.
+ 167          // Notes:
+ 168          //  None
+ 169          //******************************************************************************
+ 170          BOOL InitHDCPTrimKey(void)
+ 171          {
+ 172   1          UCHAR tmp_POWER_CTRL2, tmp_SC_HDCP_TRIM_CTRL2, tmp_SC_HDCP_TRIM_CTRL, tmp_LDO_ADJ, tmp_0x605, tmp_reg;
+ 173   1          UCHAR *p, i, tmp_0x81E7;//, tmp_0x8103, tmp_0x81FE;
+ 174   1          USHRT index;
+ 175   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1)
+C51 COMPILER V9.54   HDCP                                                                  01/06/2017 14:57:18 PAGE 4   
+
+ 176   1          UCHAR *k;
+ 177   1      #endif
+ 178   1      
+ 179   1      
+ 180   1      #if ENABLE_HDCP_KEY_DCRPT == ON
+ 181   1          SC_HDCP_SYNC_SELECT = 0x08; // Set decryption key        // 0x640
+ 182   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1)
+ 183   1          SC_DP_HDCP_CTRL = 0x28; // Set decryption key   // 0x1032
+ 184   1      #endif
+ 185   1      #else
+                  SC_HDCP_SYNC_SELECT = 0x00; // Set non-decryption key      // 0x640
+              #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1)
+                  SC_DP_HDCP_CTRL = 0x20; // Set non-decryption key  // 0x1032
+              #endif
+              #endif
+ 191   1      
+ 192   1      //    tmp_0x8103 = SC_POWER_CTRL3;
+ 193   1      //    tmp_0x81FE = SC_LVDS_PAD_POWER;
+ 194   1          tmp_0x81E7 = SCREG_1E7;
+ 195   1          tmp_0x605 = SC_HDMI_SOFTWARE_RESET; // 0x605
+ 196   1          tmp_LDO_ADJ = LDO_ADJ;  // 0xf050
+ 197   1          tmp_POWER_CTRL2 = SC_POWER_CTRL2;  // 0x102
+ 198   1          tmp_SC_HDCP_TRIM_CTRL2= SC_HDCP_TRIM_CTRL2;  // 0xd55
+ 199   1          tmp_SC_HDCP_TRIM_CTRL= SC_HDCP_TRIM_CTRL;// 0xd50
+ 200   1      
+ 201   1          SC_HDMI_SOFTWARE_RESET &= ~(BIT7|BIT3);// 0x605
+ 202   1          LDO_ADJ &= ~BIT7;// 0xf050
+ 203   1      #if defined(ENABLE_FPGA_MODE)
+                  CPU_CLK = 0x10;
+              #endif
+ 206   1          SC_POWER_CTRL2 |= BIT1;// 0x102
+ 207   1      #if IS_NT68790_SERIES_EARLIER
+                  SC_HDCP_INPUT_CTRL |= BIT7; // 0x641
+              #endif
+ 210   1      //    SC_POWER_CTRL3 |= BIT0;
+ 211   1      //    SC_LVDS_PAD_POWER |= (BIT4 | BIT3);
+ 212   1          SC_TMDS_LINK_CLK_SEL = SCREG_1E7 | BIT4;
+ 213   1      #if defined(ENABLE_FPGA_MODE)
+                  SC_HDCP_TRIM_CTRL2 |= BIT6; // 0xd55
+              #else
+ 216   1          SC_HDCP_TRIM_CTRL2 &= ~BIT6; // 0xd55
+ 217   1      #endif
+ 218   1          SC_HDCP_TRIM_CTRL |= BIT0;// 0xd50
+ 219   1          SC_HDCP_TRIM_CTRL &= ~BIT1;// 0xd50
+ 220   1          
+ 221   1      #if IS_NT68790_SERIES || IS_NT68810_SERIES || IS_NT68870_SERIES
+ 222   1          SC_HDCP_62E |= BIT3;
+ 223   1      #endif
+ 224   1      
+ 225   1      //new add 20151021
+ 226   1      #if IS_NT68810_SERIES || IS_NT68870_SERIES    
+ 227   1          SC_HDCP_TRIM_CTRL |= BIT2; // 0xd50
+ 228   1          SC_HDCP_TRIM_TEST_MODE |= BIT7;// 0xd58
+ 229   1          SC_HDCP_TRIM_PI |= BIT0;// 0xd5f
+ 230   1      #endif
+ 231   1      
+ 232   1          p = &SC_HDCP_BKSV; // 0x61a
+ 233   1          for (i=0; i<3; i++) {
+ 234   2      //new add 20151021
+ 235   2      #if IS_NT68810_SERIES || IS_NT68870_SERIES  
+ 236   2              SC_HDCP_TRIM_ADDR_B = 0x00;// 0xd5c
+ 237   2              SC_HDCP_TRIM_ADDR_A = i+140;// 0xd5b
+C51 COMPILER V9.54   HDCP                                                                  01/06/2017 14:57:18 PAGE 5   
+
+ 238   2              SC_HDCP_TRIM_ADDR_B = 0x20; // read pulse// 0xd5c
+ 239   2              SC_HDCP_TRIM_ADDR_B = 0x00;// 0xd5c
+ 240   2      #else
+                      SC_HDCP_TRIM_ADDR = i + 140;  // 0xd51
+                      SC_HDCP_TRIM_CTRL |= BIT6;// 0xd50
+              #endif
+ 244   2              *p = SC_HDCP_TRIM_DATA_LO;// 0xd52
+ 245   2              p++;
+ 246   2              *p = SC_HDCP_TRIM_DATA_HI;// 0xd53
+ 247   2              p++;
+ 248   2              ResetWDTimer();
+ 249   2          }  
+ 250   1      
+ 251   1      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1)
+ 252   1          SC_DP_DEBUG |= BIT7;  // 0x1030
+ 253   1          p = &SC_DP_HDCP_BKSV; // 0x1180
+ 254   1          k = &SC_HDCP_BKSV; // 0x61a
+ 255   1          for (i = 0; i < 5; i++) {
+ 256   2              tmp_reg = *k;
+ 257   2              *p = tmp_reg;
+ 258   2              p++;
+ 259   2              k++;
+ 260   2          }
+ 261   1          SC_DP_DEBUG &= ~BIT7;// 0x1030
+ 262   1      #endif
+ 263   1      
+ 264   1          //Write Key
+ 265   1          tmp_reg = SC_INDEX_CTRL & 0x04;  // 0x0e0
+ 266   1          tmp_reg |= 0xE0;
+ 267   1          SC_INDEX_CTRL = tmp_reg; // 0x0e0
+ 268   1      
+ 269   1          for (index=0; index<140; index++) {
+ 270   2      //new add 20151021
+ 271   2      #if IS_NT68810_SERIES || IS_NT68870_SERIES  
+ 272   2              SC_HDCP_TRIM_ADDR_B = 0x00;// 0xd5c
+ 273   2              SC_HDCP_TRIM_ADDR_A = index;// 0xd5b
+ 274   2              SC_HDCP_TRIM_ADDR_B = 0x20; // read pulse// 0xd5c
+ 275   2              SC_HDCP_TRIM_ADDR_B = 0x00;// 0xd5c
+ 276   2      #else
+                      SC_HDCP_TRIM_ADDR = index;// 0xd51
+                      SC_HDCP_TRIM_CTRL |= BIT6;   // 0xd50
+              #endif
+ 280   2              SC_INDEX_ADDR_LO = (UCHAR)((2*index) & 0xFF);// 0xe1
+ 281   2              SC_INDEX_ADDR_HI = (UCHAR)((2*index) >> 8);
+ 282   2              SC_INDEX_DATA = SC_HDCP_TRIM_DATA_LO;  //// 0xe3,= 0xd52
+ 283   2              SC_INDEX_ADDR_LO = (UCHAR)((2*index+1) & 0xFF);// 0xe1
+ 284   2              SC_INDEX_ADDR_HI = (UCHAR)((2*index+1) >> 8);
+ 285   2              SC_INDEX_DATA = SC_HDCP_TRIM_DATA_HI;// 0xe3,0xd53
+ 286   2              ResetWDTimer();
+ 287   2          }
+ 288   1      // Set decryption key = 0x00, 0x00/////////////////////
+ 289   1              SC_INDEX_ADDR_LO = (UCHAR)((280) & 0xFF);// 0xe1
+ 290   1              SC_INDEX_ADDR_HI = (UCHAR)((280) >> 8);
+ 291   1      #if 0
+                      SC_INDEX_DATA = 0x68;//0x00 //just test, don't apply
+              #else
+ 294   1              SC_INDEX_DATA = 0x00;//0xe3,
+ 295   1      #endif
+ 296   1              SC_INDEX_ADDR_LO = (UCHAR)((281) & 0xFF);// 0xe1
+ 297   1              SC_INDEX_ADDR_HI = (UCHAR)((281) >> 8);
+ 298   1              SC_INDEX_DATA = 0x00;  //0xe3,
+ 299   1      ////////////////////////////////////////////////////////
+C51 COMPILER V9.54   HDCP                                                                  01/06/2017 14:57:18 PAGE 6   
+
+ 300   1      
+ 301   1      #if IS_NT68790_SERIES || IS_NT68810_SERIES || IS_NT68870_SERIES
+ 302   1          SC_HDCP_62E &= ~BIT3;
+ 303   1      #endif
+ 304   1      
+ 305   1          EnableHDCP();
+ 306   1          SC_HDCP_TRIM_CTRL = tmp_SC_HDCP_TRIM_CTRL;// 0xd50
+ 307   1          SC_HDCP_TRIM_CTRL2 = tmp_SC_HDCP_TRIM_CTRL2; // 0xd55
+ 308   1       //new add 20151021
+ 309   1      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 310   1          LoadDefaultTrim();
+ 311   1      #endif
+ 312   1          SC_HDMI_SOFTWARE_RESET = tmp_0x605;// 0x605
+ 313   1      //    SC_POWER_CTRL3 = tmp_0x8103;
+ 314   1      //    SC_LVDS_PAD_POWER = tmp_0x81FE;
+ 315   1          SC_TMDS_LINK_CLK_SEL = tmp_0x81E7;
+ 316   1          LDO_ADJ = tmp_LDO_ADJ;// 0xf050
+ 317   1      #if defined(ENABLE_FPGA_MODE)
+                  CPU_CLK = MCU_CLK_TIMES << 4;
+              #endif
+ 320   1          SC_POWER_CTRL2 = tmp_POWER_CTRL2;// 0x102
+ 321   1          Sleep(2);
+ 322   1      
+ 323   1          if ( SC_HDCP_BKSV == 0x00 && SC_HDCP_BKSV_B2 == 0x00 && SC_HDCP_BKSV_B3 == 0x00 ) { // 0x61a,0x61b,//0
+             -x61c
+ 324   2              SC_HDCP_TRIM_CTRL = 0x08;// 0xd50
+ 325   2              return FALSE;
+ 326   2          }
+ 327   1      
+ 328   1          return TRUE;
+ 329   1      }
+ 330          #endif
+ 331          
+ 332          #if ENABLE_EDID_TRIM_MODE == ON
+              //NT68850=0x0B
+              //NT68770=0x0C
+              //NT68655=0x0D
+              BOOL InitEDIDTrim(void)
+              {
+              code EDID_Head_Tab[8]={0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00};
+              UCHAR tmp_0xF04C, tmp_0x8D55, tmp_0x8D50, tmp_0x8101, tmp_0x8102, tmp_0x8641, i;
+              UCHAR *p;
+              //12MHz
+                  SC_ADC_ZERO_POWER_CTRL |= 0x81;// 0xb57
+                  tmp_0xF04C = CPU_CLK;
+                  CPU_CLK = 0x10;
+                  tmp_0x8101 = SC_POWER_CTRL1;
+                  SC_POWER_CTRL1 = 0x00;
+                  tmp_0x8102 = SC_POWER_CTRL2;// 0x102
+                  SC_POWER_CTRL2 |= BIT1;// 0x102
+                  tmp_0x8641 = SC_HDCP_INPUT_CTRL;// 0x641
+              #if IS_NT68790_SERIES_EARLIER
+                  SC_HDCP_INPUT_CTRL |= BIT7;// 0x641
+              #endif
+              //
+                  tmp_0x8D55 = SC_HDCP_TRIM_CTRL2; // 0xd55
+              #if defined(ENABLE_FPGA_MODE)
+                  SC_HDCP_TRIM_CTRL2 |= BIT6; // 0xd55
+              #else
+                  SC_HDCP_TRIM_CTRL2 &= ~BIT6; // 0xd55
+              #endif
+              // 
+C51 COMPILER V9.54   HDCP                                                                  01/06/2017 14:57:18 PAGE 7   
+
+                  tmp_0x8D50 = SC_HDCP_TRIM_CTRL;// 0xd50
+                  SC_HDCP_TRIM_CTRL |= BIT0;// 0xd50
+                  SC_HDCP_TRIM_CTRL &= ~BIT1;// 0xd50
+              
+              
+                  p = &EDID_SRAM_BUFF0;
+                  for (i=0; i<64; i++) {
+                      SC_HDCP_TRIM_ADDR = i;// 0xd51
+                      SC_HDCP_TRIM_CTRL |= BIT6;// 0xd50
+                      *p = SC_HDCP_TRIM_DATA_LO;// 0xd52
+                      p++;
+                      *p = SC_HDCP_TRIM_DATA_HI;// 0xd53
+                      p++;
+                      ResetWDTimer();
+                  }
+                
+                  p = &EDID_SRAM_BUFF1;
+                  for (i=0; i<64; i++) {
+                      SC_HDCP_TRIM_ADDR = i+64;// 0xd51
+                      SC_HDCP_TRIM_CTRL |= BIT6;// 0xd50
+                      *p = SC_HDCP_TRIM_DATA_LO;// 0xd52
+                      p++;
+                      *p = SC_HDCP_TRIM_DATA_HI;// 0xd53
+                      p++;
+                      ResetWDTimer();
+                  }  
+              
+                  SC_HDCP_TRIM_CTRL = tmp_0x8D50;// 0xd50
+                  SC_HDCP_TRIM_CTRL2 = tmp_0x8D55; // 0xd55
+                  CPU_CLK = tmp_0xF04C;
+                  SC_HDCP_INPUT_CTRL = tmp_0x8641;// 0x641
+                  SC_POWER_CTRL1 = tmp_0x8101;
+                  SC_POWER_CTRL2 = tmp_0x8102;// 0x102
+              
+                  for (i=0; i<8; i++) {
+                      if (EDID_SRAM_BUFF0[i] != EDID_Head_Tab[i]) {
+                          return FALSE;
+                      }
+                      if (EDID_SRAM_BUFF1[i] != EDID_Head_Tab[i]) {
+                          return FALSE;
+                      }
+                  }
+              
+                  return TRUE;
+              } 
+              #endif
+ 407          
+ 408          #endif //#if ENABLE_HDCP == ON
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    880    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      8      19
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

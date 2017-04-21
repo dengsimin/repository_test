@@ -1,0 +1,127 @@
+C51 COMPILER V9.54   AT                                                                    01/06/2017 14:56:58 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE AT
+OBJECT MODULE PLACED IN .\Bin\AT.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Sys\AT.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD;.\App\Use
+                    -r;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NVT\Keypad;.
+                    -\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_2560X1440,F
+                    -LASH_BANK=8) PRINT(.\Lst\AT.lst) TABS(2) OBJECT(.\Bin\AT.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          /******************************************************************************/
+   9          /*       LD.c                                                                 */
+  10          /*       Release Date:2010/10/15       Last Maintenance:2010/10/15            */
+  11          /*       Original Version:2.2.00       Last Version:2.2.00                    */
+  12          /*       Coding By: Jude               Maintenance By: Jude                   */
+  13          /******************************************************************************/
+  14          
+  15          //******************************************************************************
+  16          // I N C L U D E   F I L E S
+  17          //******************************************************************************
+  18          #include "Include.h"
+  19          
+  20          #if ENABLE_AUTO_CONTROL == ON
+              //******************************************************************************
+              // M A C R O   D E F I N I T I O N S
+              //******************************************************************************
+              
+              //******************************************************************************
+              // S T A T I C   V A R I A B L E S
+              //******************************************************************************
+              
+              //******************************************************************************
+              // G L O B A L   V A R I A B L E S
+              //******************************************************************************
+              
+              //******************************************************************************
+              // S T A T I C   V A R I A B L E S
+              //******************************************************************************
+                  
+              //******************************************************************************
+              // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+              //******************************************************************************
+              
+              //******************************************************************************
+              // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+              //******************************************************************************
+              
+              //******************************************************************************
+              // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+              //******************************************************************************
+              
+              //******************************************************************************
+              // Prototype:
+              //  void AT_Command(UCHAR cmd)
+              // Parameters:
+C51 COMPILER V9.54   AT                                                                    01/06/2017 14:56:58 PAGE 2   
+
+              //  None
+              // Return:
+              //  None
+              // Purpose:
+              //  Auto test command
+              // Notes:
+              //  None
+              //******************************************************************************
+              void AT_Command(UCHAR cmd)
+              {
+              static UCHAR ucAllPass = 0;
+                  printf("OK\n");
+              
+                  switch (cmd) {
+                      case 0:
+                          UserData.ucInputSource = INPUT_SC_VGA;
+              //            UserSetInputSource();
+                          OSDConfirmInput();
+                          ucAllPass |= BIT0;
+                          break;
+                      case 1:
+                          UserData.ucInputSource = INPUT_SC_HDMI2;
+              //            UserSetInputSource();
+                          OSDConfirmInput();
+                          ucAllPass |= BIT1;
+                          break;
+                      case 2:
+                          UserData.ucInputSource = INPUT_SC_DP;
+              //            UserSetInputSource();
+                          OSDConfirmInput();
+                          ucAllPass |= BIT2;
+                          break;
+                      case 4:
+                          if (ucAllPass == (BIT2|BIT1|BIT0)) {
+                              printf("AllPass\n");
+                          }
+                          else {
+                              printf("ChkFail\n");
+                          }
+                          break;
+                  }
+              
+              }
+              
+              
+              #endif //#if ENABLE_AUTO_CONTROL == ON
+  99          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   ----    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

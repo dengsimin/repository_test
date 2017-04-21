@@ -1,0 +1,114 @@
+C51 COMPILER V9.54   EMBEDCHECKSUM                                                         01/06/2017 14:56:37 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE EMBEDCHECKSUM
+OBJECT MODULE PLACED IN .\Bin\EmbedCheckSum.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Sys\EmbedCheckSum.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OS
+                    -D;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\N
+                    -VT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_
+                    -2560X1440,FLASH_BANK=8) PRINT(.\Lst\EmbedCheckSum.lst) TABS(2) OBJECT(.\Bin\EmbedCheckSum.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          
+  14          #if ENABLE_EMBEDDED_CHECKSUM == ON
+  15          
+  16          //******************************************************************************
+  17          // M A C R O   D E F I N I T I O N S
+  18          //******************************************************************************
+  19          /*!
+  20           * The bank where the checksum is.
+  21           * The value is 0 ~ 7.
+  22           * 0 is preferred.
+  23           */
+  24          #define EMBEDDED_CHKSUM_BANK        0x00
+  25          #if ENABLE_FE2P == ON
+  26          #define EMBEDDED_CHKSUM_ADDR_HI     0xEE /*!< The high byte of address where the checksum is. */
+  27          #define EMBEDDED_CHKSUM_ADDR_LOW    0x00 /*!< The low byte of address where the checksum is. */
+  28          #else
+              #define EMBEDDED_CHKSUM_ADDR_HI     0xFE /*!< The high byte of address where the checksum is. */
+              #define EMBEDDED_CHKSUM_ADDR_LOW    0x00 /*!< The low byte of address where the checksum is. */
+              #endif
+  32          
+  33          //******************************************************************************
+  34          // G L O B A L   V A R I A B L E S
+  35          //******************************************************************************
+  36          
+  37          //******************************************************************************
+  38          // S T A T I C   V A R I A B L E S
+  39          //******************************************************************************
+  40          /*!
+  41           * The string for EasyWriter to indicate where the checksum is embedded.
+  42           */
+  43          static code UCHAR ucEmbeddedCheckSumTable[] = {
+  44              0x55, 0xAA, 0x66, 0x99, 'C', 'H', 'K',
+  45              EMBEDDED_CHKSUM_BANK,
+  46              EMBEDDED_CHKSUM_ADDR_HI,
+  47              EMBEDDED_CHKSUM_ADDR_LOW
+  48          };
+  49          
+  50          //******************************************************************************
+  51          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  52          //******************************************************************************
+C51 COMPILER V9.54   EMBEDCHECKSUM                                                         01/06/2017 14:56:37 PAGE 2   
+
+  53          
+  54          //******************************************************************************
+  55          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  56          //******************************************************************************
+  57          
+  58          //******************************************************************************
+  59          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  60          //******************************************************************************
+  61          
+  62          //******************************************************************************
+  63          // F U N C T I O N   B O D Y S
+  64          //******************************************************************************
+  65          
+  66          /**************************************************************************//**
+  67           * Get the checksum embedded in code.
+  68           * @return The value of the checksum.
+  69           ******************************************************************************/
+  70          USHRT GetEmbeddedCheckSum(void)
+  71          {
+  72   1          USHRT checksum;
+  73   1          idata UCHAR tmp;
+  74   1      
+  75   1          // Remove compile warning only
+  76   1          tmp = ucEmbeddedCheckSumTable[0];
+  77   1      
+  78   1          tmp = P1;
+  79   1          P1 = EMBEDDED_CHKSUM_BANK;
+  80   1          checksum = *((USHRT code *)(EMBEDDED_CHKSUM_ADDR_HI*256+EMBEDDED_CHKSUM_ADDR_LOW));
+  81   1          P1 = tmp;
+  82   1          
+  83   1          return ((checksum<<8)+(checksum>>8));
+  84   1      }
+  85          
+  86          #endif //ENABLE_EMBEDDED_CHECKSUM == ON
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     37    ----
+   CONSTANT SIZE    =     10    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----       1
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

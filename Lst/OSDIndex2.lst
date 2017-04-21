@@ -1,0 +1,1614 @@
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE OSDINDEX2
+OBJECT MODULE PLACED IN .\Bin\OSDIndex2.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE App\OSD\OSD_BENQ_V2\OSDIndex2.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\
+                    -App;.\App\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Componen
+                    -t;.\Phy\SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_M
+                    -ODULE,LVIEW_2560X1440,FLASH_BANK=8) PRINT(.\Lst\OSDIndex2.lst) TABS(2) OBJECT(.\Bin\OSDIndex2.obj)
+
+line level    source
+
+   1          #include "Include.h"
+   2           
+   3          code UCHAR EN_MultimediaStr1[]={15, 'M', 'u', 'l', 't', 'i', 'm', 'e', 'd', 'i', 'a', ' ', 45, 51, 48, 37}
+             -;
+   4          code UCHAR FR_MultimediaStr1[]={15, 'M', 'u', 'l', 't', 'i', 'm', 2, 'd', 'i', 'a', ' ', 45, 51, 48, 37 };
+   5          code UCHAR GE_MultimediaStr1[]={15, 'M', 'u', 'l', 't', 'i', 'm', 'e', 'd', 'i', 'a', ' ', 45, 51, 48 , 37
+             -};
+   6          code UCHAR IT_MultimediaStr1[]={15, 'M', 'u', 'l', 't', 'i', 'm', 'e', 'd', 'i', 'a', ' ', 45, 51, 48, 37 
+             -};
+   7          code UCHAR SP_MultimediaStr1[]={15, 'M', 'u', 'l', 't', 'i', 'm', 'e', 'd', 'i', 'a', ' ', 45, 51, 48 , 37
+             -};
+   8          code UCHAR PO_MultimediaStr1[]={15, 'M', 'u', 'l', 't', 'i', 'm', 'e', 'd', 'i', 'a', ' ', 45, 51, 48 , 37
+             -};
+   9          code UCHAR CZ_MultimediaStr1[]={15, 'M', 'u', 'l', 't', 'i', 'm', 2, 'd', 'i', 'a', ' ', 45, 51, 48 , 37};
+  10          code UCHAR MA_MultimediaStr1[]={15, 'M', 'u', 'l', 't', 'i', 'm', 2, 'd', 'i', 'a', ' ', 45, 51, 48 , 37};
+  11          code UCHAR SE_MultimediaStr1[]={16, 'M', 'u', 'l', 't', 'i', 'm', 'e', 'd', 'i', 'j', 'i',  ' ', 45, 51, 4
+             -8, 37};
+  12          code UCHAR RO_MultimediaStr1[]={15, 'M', 'u', 'l', 't', 'i', 'm', 'e', 'd', 'i', 'a', ' ', 45, 51, 48, 37 
+             -};
+  13          code UCHAR DU_MultimediaStr1[]={15, 'M', 'u', 'l', 't', 'i', 'm', 'e', 'd', 'i', 'a',  ' ', 45, 51, 48, 37
+             -};
+  14          code UCHAR RU_MultimediaStr1[]={13, 168, 135, 127, 155, 132, 124, 146, '.',  ' ', 45, 51, 48, 37};
+  15          code UCHAR SW_MultimediaStr1[]={15, 'M', 'u', 'l', 't', 'i', 'm', 'e', 'd', 'i', 'a',  ' ', 45, 51, 48, 37
+             -};
+  16          code UCHAR PR_MultimediaStr1[]={15, 'M', 'u', 'l', 't', 'i', 'm', 2, 'd', 'i', 'a',  ' ', 45, 51, 48, 37};
+  17          code UCHAR JA_MultimediaStr1[]={12, 130, 164, 171, 172, 161, 170, 153,  ' ', 45, 51, 48, 37};
+  18          code UCHAR CT_MultimediaStr1[]={8,  161, 162, 163, ' ', 45, 51, 48 , 37};
+  19          code UCHAR CS_MultimediaStr1[]={8,  161, 162, 163, ' ', 45, 51, 48, 37};
+  20          code UCHAR AR_MultimediaStr1[]={21,  51,  48,  37,  45, 32, 143,165,165,199,147,223,218,136,32,189,134,137
+             -,174,233,218,136,};
+  21          
+  22          code UCHAR EN_WebSurfingStr1[]={16, 'W', 'e', 'b', ' ', 'S', 'u', 'r', 'f', 'i', 'n', 'g',  ' ', 45, 53, 4
+             -8, 37};
+  23          code UCHAR FR_WebSurfingStr1[]={13, 'S', 'u', 'r', 'f', ' ', 'W', 'e', 'b', ' ', 45, 53, 48, 37};
+  24          code UCHAR GE_WebSurfingStr1[]={15, 'W', 'e', 'b', 'b', 'r', 'o', 'w', 's', 'e', 'n',' ', 45, 53, 48, 37 }
+             -;
+  25          code UCHAR IT_WebSurfingStr1[]={16, 'N', 'a', 'v', 'i', 'g', 'a', 'z', ' ', 'w', 'e', 'b', ' ', 45, 53, 48
+             -, 37};
+  26          code UCHAR SP_WebSurfingStr1[]={15, 'N', 'a', 'v', 'e', 'g', 'a', 'c', 'i', 4, 'n', ' ', 45, 53, 48, 37};
+  27          code UCHAR PO_WebSurfingStr1[]={13, 'I', 'n', 't', 'e', 'r', 'n', 'e', 't', ' ', 45, 53, 48, 37};
+  28          code UCHAR CZ_WebSurfingStr1[]={16, 'W', '.', 's', 'u', 'r', 'f', 'o', 'v', 0, 'n', 1, ' ', 45, 53, 48, 37
+             -};
+  29          code UCHAR MA_WebSurfingStr1[]={14, 'B', 10, 'n', 'g', 2, 's', 'z', 2, 's', ' ', 45, 53, 48, 37};
+  30          code UCHAR SE_WebSurfingStr1[]={13, 'S', 'u', 'r', 'f', 'a', 'n', 'j', 'e', ' ', 45, 53, 48, 37};
+  31          code UCHAR RO_WebSurfingStr1[]={15, 'N', 'a', 'v', 'i', 'g', '.', ' ', 'W', 'e', 'b', ' ', 45, 53, 48, 37}
+             -;
+  32          code UCHAR DU_WebSurfingStr1[]={16, 'I', 'n', 't', 'e', 'r', 'n', 'e', 't', 't', 'e', 'n', ' ', 45, 53, 48
+             -, 37};
+  33          code UCHAR RU_WebSurfingStr1[]={13, 137, 128, 151, '-', 125, 128, 133, 172, ' ', 45, 53, 48, 37};
+  34          code UCHAR SW_WebSurfingStr1[]={16, 'N', 3, 't', 's', 'u', 'r', 'f', 'n', 'i', 'n', 'g', ' ', 45, 53, 48, 
+             -37};
+  35          code UCHAR PR_WebSurfingStr1[]={15, 'N', 'a', 'v', 'e', 'g', '.', ' ', 'w', 'e', 'b', ' ', 45, 53, 48, 37}
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 2   
+
+             -;
+  36          code UCHAR JA_WebSurfingStr1[]={13, 168, 20, 163, 169, 21, 19, 170, 28, ' ', 45, 53, 48, 37};
+  37          code UCHAR CT_WebSurfingStr1[]={9,  155, 156, 157, 152, ' ', 45, 53, 48, 37};
+  38          code UCHAR CS_WebSurfingStr1[]={9,  154, 155, 156, 157, ' ', 45, 53, 48, 37};
+  39          code UCHAR AR_WebSurfingStr1[]={17,  53,  48,  37,  45, 32, 145,227,169,147,226,245,136,32,157,207,183,146
+             -,};
+  40          
+  41          
+  42          code UCHAR EN_OfficeStr1[]={11, 'O', 'f', 'f', 'i', 'c', 'e', ' ', 45, 54, 48, 37};
+  43          code UCHAR FR_OfficegStr1[]={11, 'B', 'u', 'r', 'e', 'a', 'u', ' ', 45, 54, 48, 37};
+  44          code UCHAR GE_OfficeStr1[]={9, 'B', 23, 'r', 'o', ' ', 45, 54, 48, 37};
+  45          code UCHAR IT_OfficeStr1[]={12, 'U', 'f', 'f', 'i', 'c', 'i', 'o', ' ', 45, 54, 48, 37};
+  46          code UCHAR SP_OfficeStr1[]={12, 'O', 'f', 'i', 'c', 'i', 'n', 'a', ' ', 45, 54, 48, 37};
+  47          code UCHAR PO_OfficeStr1[]={10, 'B', 'i', 'u', 'r', 'o', ' ', 45, 54, 48, 37};
+  48          code UCHAR CZ_OfficeStr1[]={13, 'K', 'a', 'n', 'c', 'e', 'l', 0, 124, ' ', 45, 54, 48, 37};
+  49          code UCHAR MA_OfficegStr1[]={10, 'I', 'r', 'o', 'd', 'a', ' ', 45, 54, 48, 37};
+  50          code UCHAR SE_OfficeStr1[]={9, 'U', 'r', 'e', 'd',' ', 45, 54, 48, 37 };
+  51          code UCHAR RO_OfficeStr1[]={11, 'O', 'f', 'f', 'i', 'c', 'e', ' ', 45, 54, 48, 37};
+  52          code UCHAR DU_OfficeStr1[]={12, 'K', 'a', 'n', 't', 'o', 'o', 'r', ' ', 45, 54, 48, 37};
+  53          code UCHAR RU_OfficeStr1[]={9, 162, 172, 124, 125, ' ', 45, 54, 48, 37};
+  54          code UCHAR SW_OfficeStr1[]={11, 'K', 'o', 'n', 't', 'o', 'r', ' ', 45, 54, 48, 37};
+  55          code UCHAR PR_OfficeStr1[]={15, 'E', 's', 'c', 'r', 'i', 't', 4, 'r', 'i', 'o', ' ', 45, 54, 48, 37};
+  56          code UCHAR JA_OfficeStr1[]={9,  149, 19, 170, 31, ' ', 45, 54, 48, 37};
+  57          code UCHAR CT_OfficeStr1[]={8,  158, 159, 160, ' ', 45, 54, 48, 37};
+  58          code UCHAR CS_OfficeStr1[]={8,  158, 159, 160, ' ', 45, 54, 48, 37};
+  59          code UCHAR AR_OfficeStr1[]={11,  54,  48,  37,  45,32, 139,147,215,223,218,136};
+  60          
+  61          code UCHAR EN_ReadingStr1[] =  {12, 'R', 'e', 'a', 'd', 'i', 'n', 'g', ' ', 45, 55, 48, 37};
+  62          code UCHAR FR_ReadingStr1[] =  {12, 'L', 'e', 'c', 't', 'u', 'r', 'e', ' ', 45, 55, 48, 37};
+  63          code UCHAR GE_ReadingStr1[] =  {10, 'L', 'e', 's', 'e', 'n', ' ', 45, 55, 48, 37};
+  64          code UCHAR IT_ReadingStr1[] =  {12, 'L', 'e', 't', 't', 'u', 'r', 'a', ' ', 45, 55, 48, 37};
+  65          code UCHAR SP_ReadingStr1[] =  {12, 'L', 'e', 'c', 't', 'u', 'r', 'a', ' ', 45, 55, 48, 37};
+  66          code UCHAR PO_ReadingStr1[] =  {13, 'C', 'z', 'y', 't', 'a', 'n', 'i', 'e', ' ', 45, 55, 48, 37};
+  67          code UCHAR CZ_ReadingStr1[] =  {10, 27, 't', 'e', 'n', 1, ' ', 45, 55, 48, 37};
+  68          code UCHAR MA_ReadingStr1[] =  {12, 'O', 'l', 'v', 'a', 's', 0, 's', ' ', 45, 55, 48, 37};
+  69          code UCHAR SE_ReadingStr1[] =  {12, 27, 'i', 't', 'a', 'n', 'j', 'e', ' ', 45, 55, 48, 37};
+  70          code UCHAR RO_ReadingStr1[] =  {11, 'C', 'i', 't', 'i', 'r', 'e', ' ', 45, 55, 48, 37};
+  71          code UCHAR DU_ReadingStr1[] =  {10, 'L', 'e', 'z', 'e', 'n', ' ', 45, 55, 48, 37};
+  72          code UCHAR RU_ReadingStr1[] =  {11, 147, 132, 128, 144, 124, 128, ' ', 45, 55, 48, 37};
+  73          code UCHAR SW_ReadingStr1[] =  {12, 'L', 3, 's', 'n', 'i', 'n', 'g', ' ', 45, 55, 48, 37};
+  74          code UCHAR PR_ReadingStr1[] =  {12, 'L', 'e', 'i', 't', 'u', 'r', 'a', ' ', 45, 55, 48, 37};
+  75          code UCHAR JA_ReadingStr1[] =  {7, 177, 178, ' ', 45, 55, 48, 37};
+  76          code UCHAR CT_ReadingStr1[] =  {7, 171, 172, ' ', 45, 55, 48, 37};
+  77          code UCHAR CS_ReadingStr1[] =  {7, 170, 171, ' ', 45, 55, 48, 37};
+  78          code UCHAR AR_ReadingStr1[] =  {10, 55,  48,  37,  45, ' ', 142, 123, 136, 168, 210};
+  79          
+  80          
+  81          
+  82          code UCHAR *LowBlueLightTab[] = {
+  83               EN_MultimediaStr1,
+  84               FR_MultimediaStr1,
+  85               GE_MultimediaStr1,
+  86               IT_MultimediaStr1,
+  87               SP_MultimediaStr1,
+  88               PO_MultimediaStr1,
+  89               CZ_MultimediaStr1,
+  90               MA_MultimediaStr1,
+  91               SE_MultimediaStr1,
+  92               RO_MultimediaStr1,
+  93               DU_MultimediaStr1,
+  94               RU_MultimediaStr1,
+  95               SW_MultimediaStr1,
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 3   
+
+  96               PR_MultimediaStr1,
+  97               JA_MultimediaStr1,
+  98               CT_MultimediaStr1,
+  99               CS_MultimediaStr1,
+ 100               AR_MultimediaStr1,
+ 101                   
+ 102               EN_WebSurfingStr1,
+ 103               FR_WebSurfingStr1,
+ 104               GE_WebSurfingStr1,
+ 105               IT_WebSurfingStr1,
+ 106               SP_WebSurfingStr1,
+ 107               PO_WebSurfingStr1,
+ 108               CZ_WebSurfingStr1,
+ 109               MA_WebSurfingStr1,
+ 110               SE_WebSurfingStr1,
+ 111               RO_WebSurfingStr1,
+ 112               DU_WebSurfingStr1,
+ 113               RU_WebSurfingStr1,
+ 114               SW_WebSurfingStr1,
+ 115               PR_WebSurfingStr1,
+ 116               JA_WebSurfingStr1,
+ 117               CT_WebSurfingStr1,
+ 118               CS_WebSurfingStr1,
+ 119               AR_WebSurfingStr1,
+ 120          
+ 121               EN_OfficeStr1,
+ 122               FR_OfficegStr1,
+ 123               GE_OfficeStr1,
+ 124               IT_OfficeStr1,
+ 125               SP_OfficeStr1,
+ 126               PO_OfficeStr1,
+ 127               CZ_OfficeStr1,
+ 128               MA_OfficegStr1,
+ 129               SE_OfficeStr1,
+ 130               RO_OfficeStr1,
+ 131               DU_OfficeStr1,
+ 132               RU_OfficeStr1,
+ 133               SW_OfficeStr1,
+ 134               PR_OfficeStr1,
+ 135               JA_OfficeStr1,
+ 136               CT_OfficeStr1,
+ 137               CS_OfficeStr1,
+ 138               AR_OfficeStr1,
+ 139          
+ 140              EN_ReadingStr1,
+ 141              FR_ReadingStr1,
+ 142              GE_ReadingStr1,
+ 143              IT_ReadingStr1,
+ 144              SP_ReadingStr1,
+ 145              PO_ReadingStr1,
+ 146              CZ_ReadingStr1,
+ 147              MA_ReadingStr1,
+ 148              SE_ReadingStr1,
+ 149              RO_ReadingStr1,
+ 150              DU_ReadingStr1,
+ 151              RU_ReadingStr1,
+ 152              SW_ReadingStr1,
+ 153              PR_ReadingStr1,
+ 154              JA_ReadingStr1,
+ 155              CT_ReadingStr1,
+ 156              CS_ReadingStr1,
+ 157              AR_ReadingStr1,
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 4   
+
+ 158          };
+ 159          
+ 160          
+ 161           code UCHAR EN_ModeSRGBStr[]={11, 'M', 'o', 'd', 'e', ' ', ':', ' ', 's', 'R', 'G', 'B', };
+ 162           code UCHAR FR_ModeSRGBStr[]={11, 'M', 'o', 'd', 'e', ' ', ':', 12, 's', 'R', 'G', 'B', };
+ 163           code UCHAR GE_ModeSRGBStr[]={12, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 's', 'R', 'G', 'B', };
+ 164           code UCHAR IT_ModeSRGBStr[]={10, 'M', 'o', 'd', ' ', ':', ' ', 's', 'R', 'G', 'B', };
+ 165           code UCHAR SP_ModeSRGBStr[]={15, 'M', 'o', 'd', 'o', ' ', ':', ' ', 's', 'R', 'G', 'B', 12, 12, 12, 12, }
+             -;
+ 166           code UCHAR PO_ModeSRGBStr[]={11, 'T', 'r', 'y', 'b', ' ', ':', ' ', 's', 'R', 'G', 'B', };
+ 167           code UCHAR CZ_ModeSRGBStr[]={12, 'R', 'e', 26, 'i', 'm', ' ', ':', ' ', 's', 'R', 'G', 'B', };
+ 168           code UCHAR MA_ModeSRGBStr[]={10, 'M',  4,  'd', ' ', ':', ' ', 's', 'R', 'G', 'B', };
+ 169           code UCHAR SE_ModeSRGBStr[]={12, 'N', 'a', 6, 'i', 'n', ' ', ':', ' ', 's', 'R', 'G', 'B', };
+ 170           code UCHAR RO_ModeSRGBStr[]={10, 'M', 'o', 'd', ' ', ':', ' ', 's', 'R', 'G', 'B', };
+ 171           code UCHAR DU_ModeSRGBStr[]={12, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 's', 'R', 'G', 'B', };
+ 172           code UCHAR RU_ModeSRGBStr[]={12, 156, 128, 152, 124, 146, ' ', ':', ' ', 's', 'R', 'G', 'B', };
+ 173           code UCHAR SW_ModeSRGBStr[]={11, 'L', 3, 'g', 'e', ' ', ':', ' ', 's', 'R', 'G', 'B', };
+ 174           code UCHAR PR_ModeSRGBStr[]={10, 'M', 'o', 'd', 'o', ':', ' ', 's', 'R', 'G', 'B', };
+ 175           code UCHAR JA_ModeSRGBStr[]={10, 159, 21, 160, ' ', ':', 162, 's', 'R', 'G', 'B', };
+ 176           code UCHAR CT_ModeSRGBStr[]={9,  149, 150, ' ', ':', ' ', 's', 'R', 'G', 'B', };
+ 177           code UCHAR CS_ModeSRGBStr[]={9,  146, 147, ' ', ':', ' ', 's', 'R', 'G', 'B', };
+ 178           code UCHAR AR_ModeSRGBStr[]={12, 's', 'R', 'G', 'B', ' ', ':', ' ', 197, 186, 233, 218, 136, };
+ 179          
+ 180          
+ 181          
+ 182          
+ 183            code UCHAR EN_ModeSTANDARDStr[]={15, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'S', 't', 'a', 'n', 'd', 'a', 'r
+             -', 'd', };
+ 184            code UCHAR FR_ModeSTANDARDStr[]={15, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'S', 't', 'a', 'n', 'd', 'a', 'r
+             -', 'd', };
+ 185            code UCHAR GE_ModeSTANDARDStr[]={16, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'S', 't', 'a', 'n', 'd', 'a
+             -', 'r', 'd', };
+ 186            code UCHAR IT_ModeSTANDARDStr[]={14, 'M', 'o', 'd', ' ', ':', ' ', 'S', 't', 'a', 'n', 'd', 'a', 'r', 'd
+             -', };
+ 187            code UCHAR SP_ModeSTANDARDStr[]={15, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'E', 's', 't', 0, 'n', 'd', 'a',
+             - 'r', };
+ 188            code UCHAR PO_ModeSTANDARDStr[]={15, 'T', 'r', 'y', 'b', ' ', ':', ' ', 'S', 't', 'a', 'n', 'd', 'a', 'r
+             -', 'd', };
+ 189            code UCHAR CZ_ModeSTANDARDStr[]={18, 'R', 'e',  26, 'i', 'm', ' ', ':', ' ', 'S', 't', 'a', 'n', 'd', 'a
+             -', 'r', 'd', 'n', 1, };
+ 190            code UCHAR MA_ModeSTANDARDStr[]={13, 'M',   4, 'd', ' ', ':', ' ', 'N', 'o', 'r', 'm', 0, 'l', 5, };
+ 191            code UCHAR SE_ModeSTANDARDStr[]={16, 'N', 'a',   6, 'i', 'n', ' ', ':', ' ', 'S', 't', 'a', 'n', 'd', 'a
+             -', 'r', 'd', };
+ 192            code UCHAR RO_ModeSTANDARDStr[]={14, 'M', 'o', 'd', ' ', ':', ' ', 'S', 't', 'a', 'n', 'd', 'a', 'r', 'd
+             -', };
+ 193            code UCHAR DU_ModeSTANDARDStr[]={17, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'S', 't', 'a', 'n', 'd', 'a
+             -', 'a', 'r', 'd', };
+ 194            code UCHAR RU_ModeSTANDARDStr[]={16, 156, 128, 152, 124, 146, ' ', ':', ' ', 164, 132, 143, 144, 139, 14
+             -3, 133, 132, };
+ 195            code UCHAR SW_ModeSTANDARDStr[]={15, 'L', 3, 'g', 'e', ' ', ':', ' ', 'S', 't', 'a', 'n', 'd', 'a', 'r',
+             - 'd', };
+ 196            code UCHAR PR_ModeSTANDARDStr[]={12, 'M', 'o', 'd', 'o', ':', ' ', 'P', 'a', 'd', 'r', 123, 'o', };
+ 197            code UCHAR JA_ModeSTANDARDStr[]={8,  159, 21, 160, ' ', ':', ' ', 133, 134, };
+ 198            code UCHAR CT_ModeSTANDARDStr[]={7,  149, 150, ' ', ':', ' ', 124, 125, };
+ 199            code UCHAR CS_ModeSTANDARDStr[]={7,  146, 147, ' ', ':', ' ', 125, 126, };
+ 200            code UCHAR AR_ModeSTANDARDStr[]={13, 236,174,137,239,210,' ', ':', ' ', 197,186,233,218,136,};
+ 201          
+ 202          
+ 203          
+ 204            code UCHAR EN_ModeUSERStr[]={11, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'U', 's', 'e', 'r', };
+ 205            code UCHAR FR_ModeUSERStr[]={18, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'U', 't', 'i', 'l', 'i', 's', 'a', '
+             -t', 'e', 'u', 'r', };
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 5   
+
+ 206            code UCHAR GE_ModeUSERStr[]={16, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'B', 'e', 'n', 'u', 't', 'z', '
+             -e', 'r', };
+ 207            code UCHAR IT_ModeUSERStr[]={12, 'M', 'o', 'd', ' ', ':', ' ', 'U', 't', 'e', 'n', 't', 'e', };
+ 208            code UCHAR SP_ModeUSERStr[]={14, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'U', 's', 'u', 'a', 'r', 'i', 'o', }
+             -;
+ 209            code UCHAR PO_ModeUSERStr[]={13, 'T', 'r', 'y', 'b', ' ', ':', ' ', 'U', 124, 'y', 't', 'k', '.', };
+ 210            code UCHAR CZ_ModeUSERStr[]={16, 'R', 'e', 26, 'i', 'm', ' ', ':', ' ', 'U', 26, 'i', 'v', 'a', 't', 'e'
+             -, 'l', };
+ 211            code UCHAR MA_ModeUSERStr[]={17, 'M', 4, 'd', ' ', ':', ' ', 'F', 'e', 'l', 'h', 'a', 's', 'z', 'n', 0, 
+             -'l', 4, };
+ 212            code UCHAR SE_ModeUSERStr[]={16, 'N', 'a', 6, 'i', 'n', ' ', ':', ' ', 'K', 'o', 'r', 'i', 's', 'n', 'i'
+             -, 'k', };
+ 213            code UCHAR RO_ModeUSERStr[]={16, 'M', 'o', 'd', ' ', ':', ' ', 'U', 't', 'i', 'l', 'i', 'z', 'a', 't', '
+             -o', 'r', };
+ 214            code UCHAR DU_ModeUSERStr[]={17, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'G', 'e', 'b', 'r', 'u', 'i', '
+             -k', 'e', 'r', };
+ 215            code UCHAR RU_ModeUSERStr[]={16, 156, 128, 152, 124, 146, ' ', ':', ' ', 167, 136, 127, 155, 141, 136, 1
+             -31, '.', };
+ 216            code UCHAR SW_ModeUSERStr[]={16, 'L', 3, 'g', 'e', ' ', ':', ' ', 'A', 'n', 'v', 3, 'n', 'd', 'a', 'r', 
+             -'e', };
+ 217            code UCHAR PR_ModeUSERStr[]={16, 'M', 'o', 'd', 'o', ':', ' ', 'U', 't', 'i', 'l', 'i', 'z', 'a', 'd', '
+             -o', 'r', };
+ 218            code UCHAR JA_ModeUSERStr[]={10, 159, 21, 160, ' ', ':', ' ', 139, 21, 140, 21, };
+ 219            code UCHAR CT_ModeUSERStr[]={8,  149, 150, ' ', ':', ' ',  130, 131, 132, };
+ 220            code UCHAR CS_ModeUSERStr[]={7,  146, 147, ' ', ':', ' ', 131, 132, };
+ 221            code UCHAR AR_ModeUSERStr[]={16, 221,165,162,147,175,223,218,136, ' ', ':', ' ', 197,186,233,218,136,  }
+             -;
+ 222          
+ 223            code UCHAR EN_ModeLOWBLUELIGHTStr[]={21, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'L', 'o', 'w', ' ', 'B', 'l'
+             -, 'u', 'e', ' ', 'L', 'i', 'g', 'h', 't', };
+ 224            code UCHAR FR_ModeLOWBLUELIGHTStr[]={21, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'L', 'o', 'w', ' ', 'B', 'l'
+             -, 'u', 'e', ' ', 'L', 'i', 'g', 'h', 't', };
+ 225            code UCHAR GE_ModeLOWBLUELIGHTStr[]={22, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'L', 'o', 'w', ' ', 'B'
+             -, 'l', 'u', 'e', ' ', 'L', 'i', 'g', 'h', 't', };
+ 226            code UCHAR IT_ModeLOWBLUELIGHTStr[]={20, 'M', 'o', 'd', ' ', ':', ' ', 'L', 'o', 'w', ' ', 'B', 'l', 'u'
+             -, 'e', ' ', 'L', 'i', 'g', 'h', 't', };
+ 227            code UCHAR SP_ModeLOWBLUELIGHTStr[]={21, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'L', 'o', 'w', ' ', 'B', 'l'
+             -, 'u', 'e', ' ', 'L', 'i', 'g', 'h', 't', };
+ 228            code UCHAR PO_ModeLOWBLUELIGHTStr[]={21, 'T', 'r', 'y', 'b', ' ', ':', ' ', 'L', 'o', 'w', ' ', 'B', 'l'
+             -, 'u', 'e', ' ', 'L', 'i', 'g', 'h', 't', };
+ 229            code UCHAR CZ_ModeLOWBLUELIGHTStr[]={22, 'R', 'e', 26, 'i', 'm', ' ', ':', ' ', 'L', 'o', 'w', ' ', 'B',
+             - 'l', 'u', 'e', ' ', 'L', 'i', 'g', 'h', 't', };
+ 230            code UCHAR MA_ModeLOWBLUELIGHTStr[]={20, 'M', 4, 'd', ' ', ':', ' ', 'L', 'o', 'w', ' ', 'B', 'l', 'u', 
+             -'e', ' ', 'L', 'i', 'g', 'h', 't', };
+ 231            code UCHAR SE_ModeLOWBLUELIGHTStr[]={22, 'N', 'a', 6, 'i', 'n', ' ', ':', ' ', 'L', 'o', 'w', ' ', 'B', 
+             -'l', 'u', 'e', ' ', 'L', 'i', 'g', 'h', 't', };
+ 232            code UCHAR RO_ModeLOWBLUELIGHTStr[]={20, 'M', 'o', 'd', ' ', ':', ' ', 'L', 'o', 'w', ' ', 'B', 'l', 'u'
+             -, 'e', ' ', 'L', 'i', 'g', 'h', 't', };
+ 233            code UCHAR DU_ModeLOWBLUELIGHTStr[]={22, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'L', 'o', 'w', ' ', 'B'
+             -, 'l', 'u', 'e', ' ', 'L', 'i', 'g', 'h', 't', };
+ 234            code UCHAR RU_ModeLOWBLUELIGHTStr[]={22, 156, 128, 152, 124, 146, ' ', ':', ' ', 'L', 'o', 'w', ' ', 'B'
+             -, 'l', 'u', 'e', ' ', 'L', 'i', 'g', 'h', 't', };
+ 235            code UCHAR SW_ModeLOWBLUELIGHTStr[]={21, 'L', 3, 'g', 'e', ' ', ':', ' ', 'L', 'o', 'w', ' ', 'B', 'l', 
+             -'u', 'e', ' ', 'L', 'i', 'g', 'h', 't', };
+ 236            code UCHAR PR_ModeLOWBLUELIGHTStr[]={20, 'M', 'o', 'd', 'o', ':', ' ', 'L', 'o', 'w', ' ', 'B', 'l', 'u'
+             -, 'e', ' ', 'L', 'i', 'g', 'h', 't', };
+ 237            code UCHAR JA_ModeLOWBLUELIGHTStr[]={14, 159, 21, 160, ' ', ':', ' ', 163,164,21,30,165,29,166,167 };
+ 238            code UCHAR CT_ModeLOWBLUELIGHTStr[]={8, 149, 150, ' ', ':', ' ',153,127,154};
+ 239            code UCHAR CS_ModeLOWBLUELIGHTStr[]={8, 146, 147, ' ', ':', ' ',152,128,153};
+ 240            code UCHAR AR_ModeLOWBLUELIGHTStr[]={22,  'L', 'o', 'w', ' ', 'B', 'l', 'u', 'e', ' ', 'L', 'i', 'g', 'h
+             -', 't', ' ', ':', ' ',197,186,233,218,136,};  
+ 241          
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 6   
+
+ 242           
+ 243          #if ENABLE_PICTURE_MODE_MOVIE == ON               
+ 244            code UCHAR EN_ModeMOVIEStr[]={12, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'M', 'o', 'v', 'i', 'e', };
+ 245            code UCHAR FR_ModeMOVIEStr[]={11, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'F', 'i', 'l', 'm', };
+ 246            code UCHAR GE_ModeMOVIEStr[]={12, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'F', 'i', 'l', 'm', };
+ 247            code UCHAR IT_ModeMOVIEStr[]={13, 'M', 'o', 'd', ' ', ':', ' ', 'F', 'i', 'l', 'm', 12, 12, 12, };
+ 248            code UCHAR SP_ModeMOVIEStr[]={15, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'P', 'e', 'l', 1, 'c', 'u', 'l', 'a
+             -', };
+ 249            code UCHAR PO_ModeMOVIEStr[]={12, 'T', 'r', 'y', 'b', ' ', ':', ' ', 'F', 'i', 'l', 'm', ' ', };
+ 250            code UCHAR CZ_ModeMOVIEStr[]={13, 'R', 'e', 26, 'i', 'm', ' ', ':', ' ', 'F', 'i', 'l', 'm', ' ', };
+ 251            code UCHAR MA_ModeMOVIEStr[]={11, 'M', 4, 'd', ' ', ':', ' ', 'F', 'i', 'l', 'm', ' ', };
+ 252            code UCHAR SE_ModeMOVIEStr[]={12, 'N', 'a', 6, 'i', 'n', ' ', ':', ' ', 'F', 'i', 'l', 'm', };
+ 253            code UCHAR RO_ModeMOVIEStr[]={11, 'M', 'o', 'd', ' ', ':', ' ', 'F', 'i', 'l', 'm', ' ', };
+ 254            code UCHAR DU_ModeMOVIEStr[]={13, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'F', 'i', 'l', 'm', ' ', };
+ 255            code UCHAR RU_ModeMOVIEStr[]={13, 156, 128, 152, 124, 146, ' ', ':', ' ', 153, 124, 144, 136, ' ', };
+ 256            code UCHAR SW_ModeMOVIEStr[]={12, 'L', 3, 'g', 'e', ' ', ':', ' ', 'F', 'i', 'l', 'm', ' ', };
+ 257            code UCHAR PR_ModeMOVIEStr[]={12, 'M', 'o', 'd', 'o', ':', ' ', 'F', 'i', 'l', 'm', 'e', ' ', };
+ 258            code UCHAR JA_ModeMOVIEStr[]={9,  159, 21, 160, ' ', ':', ' ', 3, 25, ' ', };
+ 259            code UCHAR CT_ModeMOVIEStr[]={7,  149, 150, ' ', ':', ' ', 167, 168, };
+ 260            code UCHAR CS_ModeMOVIEStr[]={7,  146, 147, ' ', ':', ' ', 165, 168, };
+ 261            code UCHAR AR_ModeMOVIEStr[]={10, 165, 168, ' ', ':', ' ', 197,186,233,218,136,  };
+ 262          #endif
+ 263          #if ENABLE_PICTURE_MODE_GAME == ON              
+ 264           code UCHAR EN_ModeGAMEStr[]={11, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'G', 'a', 'm', 'e', };
+ 265           code UCHAR FR_ModeGAMEStr[]={10, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'J', 'e', 'u', };
+ 266           code UCHAR GE_ModeGAMEStr[]={14, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'S', 'p', 'i', 'e', 'l', 'e', };
+ 267           code UCHAR IT_ModeGAMEStr[]={12, 'M', 'o', 'd', ' ', ':', ' ', 'G', 'i', 'o', 'c', 'h', 'i', };
+ 268           code UCHAR SP_ModeGAMEStr[]={12, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'J', 'u', 'e', 'g', 'o', };
+ 269           code UCHAR PO_ModeGAMEStr[]={10, 'T', 'r', 'y', 'b', ' ', ':', ' ', 'G', 'r', 'y', };
+ 270           code UCHAR CZ_ModeGAMEStr[]={11, 'R', 'e', 26, 'i', 'm', ' ', ':', ' ', 'H', 'r', 'a', };
+ 271           code UCHAR MA_ModeGAMEStr[]={11, 'M', 4, 'd', ' ', ':', ' ', 'J', 0, 't', 2, 'k', };
+ 272           code UCHAR SE_ModeGAMEStr[]={12, 'N', 'a', 6, 'i', 'n', ' ', ':', ' ', 'I', 'g', 'r', 'a', };
+ 273           code UCHAR RO_ModeGAMEStr[]={12, 'M', 'o', 'd', ' ', ':', ' ', 'J', 'o', 'c', 'u', 'r', 'i', };
+ 274           code UCHAR DU_ModeGAMEStr[]={12, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'S', 'p', 'e', 'l', };
+ 275           code UCHAR RU_ModeGAMEStr[]={12, 156, 128, 152, 124, 146, ' ', ':', ' ', 150, 'r', 'p', 'a', };
+ 276           code UCHAR SW_ModeGAMEStr[]={11, 'L', 3, 'g', 'e', ' ', ':', ' ', 'S', 'p', 'e', 'l', };
+ 277           code UCHAR PR_ModeGAMEStr[]={10, 'M', 'o', 'd', 'o', ':', ' ', 'J', 'o', 'g', 'o', };
+ 278           code UCHAR JA_ModeGAMEStr[]={9,  159, 21, 160, ' ', ':', ' ', 176, 21, 154, };
+ 279           code UCHAR CT_ModeGAMEStr[]={7,  149, 150, ' ', ':', ' ', 165, 166, };
+ 280           code UCHAR CS_ModeGAMEStr[]={7,  146, 147, ' ', ':', ' ', 166, 167, };
+ 281           code UCHAR AR_ModeGAMEStr[]={10, 166, 167, ' ', ':', ' ', 197,186,233,218,136, };
+ 282           #endif
+ 283          #if ENABLE_PICTURE_MODE_PHOTO == ON              
+ 284           code UCHAR  EN_ModePHOTOStr[]={12, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'P', 'h', 'o', 't', 'o', };
+ 285           code UCHAR  FR_ModePHOTOStr[]={12, 'M', 'o', 'd', 'e', ' ', ':', 12, 'P', 'h', 'o', 't', 'o', };
+ 286           code UCHAR  GE_ModePHOTOStr[]={12, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'F', 'o', 't', 'o', };
+ 287           code UCHAR  IT_ModePHOTOStr[]={10, 'M', 'o', 'd', ' ', ':', ' ', 'F', 'o', 't', 'o', };
+ 288           code UCHAR  SP_ModePHOTOStr[]={11, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'F', 'o', 't', 'o', };
+ 289           code UCHAR  PO_ModePHOTOStr[]={14, 'T', 'r', 'y', 'b', ' ', ':', ' ', 'Z', 'd', 'j', 128, 'c', 'i', 'e', 
+             -};
+ 290           code UCHAR  CZ_ModePHOTOStr[]={12, 'R', 'e', 26, 'i', 'm', ' ', ':', ' ', 'F', 'o', 't', 'o', };
+ 291           code UCHAR  MA_ModePHOTOStr[]={10, 'M', 4, 'd', ' ', ':', ' ', 'F', 'o', 't', 4, };
+ 292           code UCHAR  SE_ModePHOTOStr[]={12, 'N', 'a', 6, 'i', 'n', ' ', ':', ' ', 'F', 'o', 't', 'o', };
+ 293           code UCHAR  RO_ModePHOTOStr[]={10, 'M', 'o', 'd', ' ', ':', ' ', 'F', 'o', 't', 'o', };
+ 294           code UCHAR  DU_ModePHOTOStr[]={12, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'F', 'o', 't', 'o', };
+ 295           code UCHAR  RU_ModePHOTOStr[]={12, 156, 128, 152, 124, 146, ' ', ':', ' ', 145, 136, 132, 136, };
+ 296           code UCHAR  SW_ModePHOTOStr[]={11, 'L', 3, 'g', 'e', ' ', ':', ' ', 'F', 'o', 't', 'o', };
+ 297           code UCHAR  PR_ModePHOTOStr[]={10, 'M', 'o', 'd', 'o', ':', ' ', 'F', 'o', 't', 'o', };
+ 298           code UCHAR  JA_ModePHOTOStr[]={8,  159, 21, 160, ' ', ':', ' ', 174, 175, };
+ 299           code UCHAR  CT_ModePHOTOStr[]={8,  149, 150, ' ', ':', ' ', 164, 24, ' ', };
+ 300           code UCHAR  CS_ModePHOTOStr[]={7,  146, 147, ' ', ':', ' ', 23, 24, };
+ 301           code UCHAR  AR_ModePHOTOStr[]={10, 23, 24, ' ', ':', ' ', 197,186,233,218,136,};
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 7   
+
+ 302          #endif
+ 303          
+ 304          #if ENABLE_PICTURE_MODE_REC709 == ON              
+ 305           code UCHAR  EN_ModeREC709Str[]={14, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0', '9' 
+             -};
+ 306           code UCHAR  FR_ModeREC709Str[]={14, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0', '9' 
+             -};
+ 307           code UCHAR  GE_ModeREC709Str[]={15, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0',
+             - '9' };
+ 308           code UCHAR  IT_ModeREC709Str[]={13, 'M', 'o', 'd', ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0', '9' };
+ 309           code UCHAR  SP_ModeREC709Str[]={14, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0', '9' 
+             -};
+ 310           code UCHAR  PO_ModeREC709Str[]={14, 'T', 'r', 'y', 'b', ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0', '9' 
+             -};
+ 311           code UCHAR  CZ_ModeREC709Str[]={15, 'R', 'e',  26, 'i', 'm', ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0',
+             - '9' };
+ 312           code UCHAR  MA_ModeREC709Str[]={13, 'M',   4, 'd', ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0', '9' };
+ 313           code UCHAR  SE_ModeREC709Str[]={15, 'N', 'a',   6, 'i', 'n', ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0',
+             - '9' };
+ 314           code UCHAR  RO_ModeREC709Str[]={13, 'M', 'o', 'd', ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0', '9' };
+ 315           code UCHAR  DU_ModeREC709Str[]={15, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0',
+             - '9' };
+ 316           code UCHAR  RU_ModeREC709Str[]={15, 156, 128, 152, 124, 146, ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0',
+             - '9'};
+ 317           code UCHAR  SW_ModeREC709Str[]={12, 'L', 3, 'g', 'e', ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0', '9' };
+ 318           code UCHAR  PR_ModeREC709Str[]={13, 'M', 'o', 'd', 'o', ':', ' ', 'R', 'e', 'c', '.', '7', '0', '9'};
+ 319           code UCHAR  JA_ModeREC709Str[]={13, 159, 21, 160, ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0', '9' };
+ 320           code UCHAR  CT_ModeREC709Str[]={12, 149, 150, ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0', '9' };
+ 321           code UCHAR  CS_ModeREC709Str[]={12, 146, 147, ' ', ':', ' ', 'R', 'e', 'c', '.', '7', '0', '9' };
+ 322           code UCHAR  AR_ModeREC709Str[]={15, 'R', 'e', 'c', '.', '7', '0', '9', ' ', ':', ' ', 197,186,233,218,136
+             -,};
+ 323          #endif
+ 324          
+ 325          #if ENABLE_PICTURE_MODE_DARKROOM == ON              
+ 326           code UCHAR  EN_ModeDarkRoomStr[]={15, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'D', 'a', 'r', 'k', 'R', 'o', 'o
+             -', 'm' };
+ 327           code UCHAR  FR_ModeDarkRoomStr[]={20, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'C', 'h', 'a', 'm', 'b', 'r', 'e
+             -', ' ', 'n', 'o', 'i', 'r', 'e',};
+ 328           code UCHAR  GE_ModeDarkRoomStr[]={20, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'D', 'u', 'n', 'k', 'e', 'l
+             -', 'k', 'a', 'm', 'm', 'e', 'r',};
+ 329           code UCHAR  IT_ModeDarkRoomStr[]={19, 'M', 'o', 'd', ' ', ':', ' ', 'C', 'a', 'm', 'e', 'r', 'a', ' ', 'o
+             -', 's', 'c', 'u', 'r', 'a',};
+ 330           code UCHAR  SP_ModeDarkRoomStr[]={20, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'C', 'u', 'a', 'r', 't', 'o', ' 
+             -', 'o', 's', 'c', 'u', 'r', 'o',};
+ 331           code UCHAR  PO_ModeDarkRoomStr[]={14, 'T', 'r', 'y', 'b', ' ', ':', ' ', 'C', 'i', 'e', 'm', 'n', 'i', 'a
+             -', };
+ 332           code UCHAR  CZ_ModeDarkRoomStr[]={22, 'R', 'e',  26, 'i', 'm', ' ', ':', ' ', 'T', 'm', 'a', 'v',  0, ' '
+             -, 'm', 1, 's', 't', 'n', 'o', 's', 't',};
+ 333           code UCHAR  MA_ModeDarkRoomStr[]={16, 'M',   4, 'd', ' ', ':', ' ', 'S',  10, 't', 2,  't', 'k', 'a', 'm'
+             -, 'r', 'a',};
+ 334           code UCHAR  SE_ModeDarkRoomStr[]={19, 'N', 'a',   6, 'i', 'n', ' ', ':', ' ', 'M', 'r', 'a', 6, 'n', 'a',
+             - ' ', 's', 'o', 'b', 'a', };
+ 335           code UCHAR  RO_ModeDarkRoomStr[]={20, 'M', 'o', 'd', ' ', ':', ' ', 'C', 'a', 'm', 'e', 'r', 42, ' ', 'o'
+             -, 'b', 's', 'c', 'u', 'r', 42, };
+ 336           code UCHAR  DU_ModeDarkRoomStr[]={21, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'D', 'o', 'n', 'k', 'e', 'r
+             -', 'e', ' ', 'k', 'a', 'm', 'e', 'r',};
+ 337           code UCHAR  RU_ModeDarkRoomStr[]={22, 156, 128, 152, 124, 146, ' ', ':', ' ', 161, 128, 146, 144, 143, 14
+             -9, 32, 148, 136, 146, 144, 143, 132, 143 };
+ 338           code UCHAR  SW_ModeDarkRoomStr[]={14, 'L', 3, 'g', 'e', ' ', ':', ' ', 'M', 10, 'r', 'k', 'r', 'u', 'm', 
+             -};
+ 339           code UCHAR  PR_ModeDarkRoomStr[]={19, 'M', 'o', 'd', 'o', ':', ' ', 'Q', 'u', 'a', 'r', 't', 'o', ' ', 'e
+             -', 's', 'c', 'u', 'r', 'o',};
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 8   
+
+ 340           code UCHAR  JA_ModeDarkRoomStr[]={8,  159, 21, 160, ' ', ':', ' ', 93, 95, };
+ 341           code UCHAR  CT_ModeDarkRoomStr[]={7,  149, 150, ' ', ':', ' ', 60, 62, };
+ 342           code UCHAR  CS_ModeDarkRoomStr[]={7,  146, 147, ' ', ':', ' ', 92, 93, };
+ 343           code UCHAR  AR_ModeDarkRoomStr[]={18, 143,223,219,195,222,32,143,206,169,202, ' ', ':', ' ', 197,186,233,
+             -218,136, };
+ 344          #endif
+ 345           
+ 346           code UCHAR  EN_ModeECOStr[]={10, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'E', 'C', 'O', };
+ 347           code UCHAR  FR_ModeECOStr[]={10, 'M', 'o', 'd', 'e', ' ', ':', ' ', 24, 'C', 'O', };
+ 348           code UCHAR  GE_ModeECOStr[]={12, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'S', 'P', 'A', 'R', };
+ 349           code UCHAR  IT_ModeECOStr[]={9,  'M', 'o', 'd', ' ', ':', ' ', 'E', 'C', 'O', };
+ 350           code UCHAR  SP_ModeECOStr[]={10, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'E', 'C', 'O', };
+ 351           code UCHAR  PO_ModeECOStr[]={10, 'T', 'r', 'y', 'b', ' ', ':', ' ', 'E', 'K', 'O', };
+ 352           code UCHAR  CZ_ModeECOStr[]={11, 'R', 'e', 26, 'i', 'm', ' ', ':', ' ', 'E', 'K', 'O', };
+ 353           code UCHAR  MA_ModeECOStr[]={15, 'M', 4, 'd', ' ', ':', ' ', 'T', 'a', 'k', 'a', 'r', 2, 'k', 'o', 's', }
+             -;
+ 354           code UCHAR  SE_ModeECOStr[]={11, 'N', 'a', 6, 'i', 'n', ' ', ':', ' ', 'E', 'C', 'O', };
+ 355           code UCHAR  RO_ModeECOStr[]={9,  'M', 'o', 'd', ' ', ':', ' ', 'E', 'C', 'O', };
+ 356           code UCHAR  DU_ModeECOStr[]={11, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'E', 'C', 'O', };
+ 357           code UCHAR  RU_ModeECOStr[]={11, 156, 128, 152, 124, 146, ' ', ':', ' ', 'E', 'C', 'O', };
+ 358           code UCHAR  SW_ModeECOStr[]={10, 'L', 3, 'g', 'e', ' ', ':', ' ', 'E', 'K', 'O', };
+ 359           code UCHAR  PR_ModeECOStr[]={9,  'M', 'o', 'd', 'o', ':', ' ', 'E', 'C', 'O', };
+ 360           code UCHAR  JA_ModeECOStr[]={8,  159, 21, 160, ' ', ':', ' ', 173, 27, };
+ 361           code UCHAR  CT_ModeECOStr[]={8,  149, 150, ' ', ':', ' ', 'E', 'C', 'O', };
+ 362           code UCHAR  CS_ModeECOStr[]={7,  146, 147, ' ', ':', ' ', 164, 165, };
+ 363           code UCHAR  AR_ModeECOStr[]={12, 143,135,239,140, ' ', ':', ' ', 197,186,233,218,136, };
+ 364          
+ 365          
+ 366          #if ENABLE_PICTURE_MODE_CAD == ON
+ 367          code UCHAR EN_ModeCADStr1[] = {3, 'C', 'A', 'D'};
+ 368          #endif
+ 369          
+ 370          
+ 371          
+ 372          
+ 373          #if ENABLE_PICTURE_MODE_ANIMATION == ON
+ 374          
+ 375          code UCHAR EN_ModeAnimationStr11[] = {16, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'A','n','i','m','a','t','i','
+             -o','n'};
+ 376          code UCHAR FR_ModeAnimationStr11[] = {16, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'A','n','i','m','a','t','i','
+             -o','n'};
+ 377          code UCHAR GE_ModeAnimationStr11[] = {17, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'A','n','i','m','a','t',
+             -'i','o','n'};
+ 378          code UCHAR IT_ModeAnimationStr11[] = {16, 'M', 'o', 'd', ' ', ':', ' ', 'A','n','i','m','a','z','i','o','n
+             -','e'};
+ 379          code UCHAR SP_ModeAnimationStr11[] = {16, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'A','n','i','m','a','c','i',4
+             -,'n'};
+ 380          code UCHAR PO_ModeAnimationStr11[] = {15, 'T', 'r', 'y', 'b', ' ', ':', ' ', 'A','n','i','m','a','c','j','
+             -a'};
+ 381          code UCHAR CZ_ModeAnimationStr11[] = {15, 'R', 'e', 26, 'i', 'm', ' ', ':', ' ', 'A','n','i','m','a','c','
+             -e'};
+ 382          code UCHAR MA_ModeAnimationStr11[] = {14, 'M', 4, 'd', ' ', ':', ' ', 'A','n','i','m',0,'c','i',4};
+ 383          code UCHAR SE_ModeAnimationStr11[] = {17, 'N', 'a', 6, 'i', 'n', ' ', ':', ' ', 'A','n','i','m','a','c','i
+             -','j','a'};
+ 384          code UCHAR RO_ModeAnimationStr11[] = {14, 'M', 'o', 'd', ' ', ':', ' ', 'A','n','i','m','a',124,'i','e'};
+ 385          code UCHAR DU_ModeAnimationStr11[] = {16, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'A','n','i','m','a','t',
+             -'i','e'};
+ 386          code UCHAR RU_ModeAnimationStr11[] = {16, 156, 128, 152, 124, 146, ' ', ':', ' ', 130,144,124,146,143,171,
+             -124,149};
+ 387          code UCHAR SW_ModeAnimationStr11[] = {16, 'L', 3, 'g', 'e', ' ', ':', ' ', 'A','n','i','m','a','t','i','o'
+             -,'n'};
+ 388          code UCHAR PR_ModeAnimationStr11[] = {15, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'A','n','i','m','a',7,123,'o'
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 9   
+
+             -};
+ 389          code UCHAR JA_ModeAnimationStr11[] = {10, 159, 21, 160, ' ', ':', ' ', 161, 140, 165,28};
+ 390          code UCHAR CT_ModeAnimationStr11[] = {9,  149, 150, ' ', ':', ' ', 3,173,147,174};
+ 391          code UCHAR CS_ModeAnimationStr11[] = {9,  146, 147, ' ', ':', ' ', 3,172,145,173};
+ 392          code UCHAR AR_ModeAnimationStr11[] = {14, 143,214,168,158,218,136, ' ', ':', ' ', 197, 186,233,218,136,};
+ 393          
+ 394          #endif
+ 395          
+ 396          #if ENABLE_PICTURE_MODE_CAD == ON
+ 397          
+ 398          code UCHAR EN_ModeCADStr11[] = {14, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'C','A','D',47,'C','A','M'};
+ 399          code UCHAR FR_ModeCADStr11[] = {14, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'C','A','O',47,'P','A','O'};
+ 400          code UCHAR GE_ModeCADStr11[] = {15, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'C','A','D',47,'C','A','M'};
+ 401          code UCHAR IT_ModeCADStr11[] = {13, 'M', 'o', 'd', ' ', ':', ' ', 'C','A','D',47,'C','A','M'};
+ 402          code UCHAR SP_ModeCADStr11[] = {14, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'C','A','D',47,'C','A','M'};
+ 403          code UCHAR PO_ModeCADStr11[] = {14, 'T', 'r', 'y', 'b', ' ', ':', ' ', 'C','A','D',47,'C','A','M'};
+ 404          code UCHAR CZ_ModeCADStr11[] = {15, 'R', 'e', 26, 'i', 'm', ' ', ':', ' ', 'C','A','D',47,'C','A','M'};
+ 405          code UCHAR MA_ModeCADStr11[] = {13, 'M', 4, 'd', ' ', ':', ' ', 'C','A','D',47,'C','A','M'};
+ 406          code UCHAR SE_ModeCADStr11[] = {15, 'N', 'a', 6, 'i', 'n', ' ', ':', ' ', 'C','A','D',47,'C','A','M'};
+ 407          code UCHAR RO_ModeCADStr11[] = {13, 'M', 'o', 'd', ' ', ':', ' ', 'C','A','D',47,'C','A','M'};
+ 408          code UCHAR DU_ModeCADStr11[] = {15, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'C','A','D',47,'C','A','M'};
+ 409          code UCHAR RU_ModeCADStr11[] = {15, 156, 128, 152, 124, 146, ' ', ':', ' ', 'C','A','D',47,'C','A','M'};
+ 410          code UCHAR SW_ModeCADStr11[] = {14, 'L', 3, 'g', 'e', ' ', ':', ' ', 'C','A','D',47,'C','A','M'};
+ 411          code UCHAR PR_ModeCADStr11[] = {14, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'C','A','D',47,'C','A','M'};
+ 412          code UCHAR JA_ModeCADStr11[] = {13, 159, 21, 160, ' ', ':', ' ', 'C','A','D',47,'C','A','M'};
+ 413          code UCHAR CT_ModeCADStr11[] = {12, 149, 150, ' ', ':', ' ', 67,65,68,47,67,65,77 };
+ 414          code UCHAR CS_ModeCADStr11[] = {12, 146, 147, ' ', ':', ' ', 67,65,68,47,67,65,77};
+ 415          code UCHAR AR_ModeCADStr11[] = {15, 'C','A','D',47,'C','A','M', ' ', ':', ' ', 197,186,233,218,136,};
+ 416          
+ 417          #endif
+ 418          #if ENABLE_PRESENTATION_MODE == ON
+              
+              code UCHAR EN_ModePresentationStr11[] = {19, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'P','r','e','s','e','n','t
+             -','a','t','i','o','n'};
+              code UCHAR FR_ModePresentationStr11[] = {19, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'P','r',2,'s','e','n','t',
+             -'a','t','i','o','n'};
+              code UCHAR GE_ModePresentationStr11[] = {20, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'P','r',3,'s','e','n'
+             -,'t','a','t','i','o','n'};
+              code UCHAR IT_ModePresentationStr11[] = {14, 'M', 'o', 'd', ' ', ':', ' ', 'P','r','e','s','e','n','t','e'
+             -};
+              code UCHAR SP_ModePresentationStr11[] = {19, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'P','r','e','s','e','n','t
+             -','a','c','i',4,'n'};
+              code UCHAR PO_ModePresentationStr11[] = {21, 'T', 'r', 'y', 'b', ' ', ':', ' ', 'P','r','z','e','d','s','t
+             -','a','w','i','a','n','i','e'};
+              code UCHAR CZ_ModePresentationStr11[] = {18, 'R', 'e', 26, 'i', 'm', ' ', ':', ' ', 'P','r','e','z','e','n
+             -','t','a','c','e'};
+              code UCHAR MA_ModePresentationStr11[] = {17, 'M', 4, 'd', ' ', ':', ' ', 'P','r','e','z','e','n','t',0,'c'
+             -,'i',4};
+              code UCHAR SE_ModePresentationStr11[] = {20, 'N', 'a', 6, 'i', 'n', ' ', ':', ' ', 'P','r','e','z','e','n'
+             -,'t','a','c','i','j','a'};
+              code UCHAR RO_ModePresentationStr11[] = {16, 'M', 'o', 'd', ' ', ':', ' ', 'P','r','e','z','e','n','t','a'
+             -,'r','e'};
+              code UCHAR DU_ModePresentationStr11[] = {19, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'P','r','e','s','e','
+             -n','t','a','t','i','e'};
+              code UCHAR RU_ModePresentationStr11[] = {19, 156, 128, 152, 124, 146, ' ', ':', ' ', 167,133,128,141,128,1
+             -44,132,143,171,124,149};
+              code UCHAR SW_ModePresentationStr11[] = {17, 'L', 3, 'g', 'e', ' ', ':', ' ', 'P','r','e','s','e','n','t',
+             -'e','r','a'};
+              code UCHAR PR_ModePresentationStr11[] = {19, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'A','p','r','e','s','e','n
+             -','t','a',7,123,'o'};
+              code UCHAR JA_ModePresentationStr11[] = {8, 159, 21, 160, ' ', ':', ' ', 179,0};
+              code UCHAR CT_ModePresentationStr11[] = {7, 149, 150, ' ', ':', ' ', 175, 176};
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 10  
+
+              code UCHAR CS_ModePresentationStr11[] = {7, 146, 147, ' ', ':', ' ', 174,175};
+              code UCHAR AR_ModePresentationStr11[] = {7, 146, 147, ' ', ':', ' ', 174,175};
+              #endif
+ 439          #if ENABLE_PICTURE_MODE_MBOOK == ON
+ 440          
+ 441          code UCHAR EN_ModeMbookStr11[] = {13, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k', };
+ 442          code UCHAR FR_ModeMbookStr11[] = {13, 'M', 'o', 'd', 'e', ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k', };
+ 443          code UCHAR GE_ModeMbookStr11[] = {14, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k'
+             -, };
+ 444          code UCHAR IT_ModeMbookStr11[] = {12, 'M', 'o', 'd', ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k', };
+ 445          code UCHAR SP_ModeMbookStr11[] = {13, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k', };
+ 446          code UCHAR PO_ModeMbookStr11[] = {13, 'T', 'r', 'y', 'b', ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k', };
+ 447          code UCHAR CZ_ModeMbookStr11[] = {14, 'R', 'e', 26, 'i', 'm', ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k',
+             - };
+ 448          code UCHAR MA_ModeMbookStr11[] = {12, 'M', 4, 'd', ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k', };
+ 449          code UCHAR SE_ModeMbookStr11[] = {14, 'N', 'a', 6, 'i', 'n', ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k', 
+             -};
+ 450          code UCHAR RO_ModeMbookStr11[] = {12, 'M', 'o', 'd', ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k', };
+ 451          code UCHAR DU_ModeMbookStr11[] = {14, 'M', 'o', 'd', 'u', 's', ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k'
+             -, };
+ 452          code UCHAR RU_ModeMbookStr11[] = {14, 156, 128, 152, 124, 146, ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k'
+             -, };
+ 453          code UCHAR SW_ModeMbookStr11[] = {13, 'L', 3, 'g', 'e', ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k', };
+ 454          code UCHAR PR_ModeMbookStr11[] = {13, 'M', 'o', 'd', 'o', ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k', };
+ 455          code UCHAR JA_ModeMbookStr11[] = {12, 159, 21, 160, ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k', };
+ 456          code UCHAR CT_ModeMbookStr11[] = {11, 149, 150, ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k', };
+ 457          code UCHAR CS_ModeMbookStr11[] = {11, 146, 147, ' ', ':', ' ', 'M', '-', 'b', 'o', 'o', 'k', };
+ 458          code UCHAR AR_ModeMbookStr11[] = {14, 'M', '-', 'b', 'o', 'o', 'k', ' ', ':', ' ', 197,186,233,218,136, };
+ 459          #endif
+ 460          
+ 461          code UCHAR *ModeTitleTab[] = {
+ 462                  EN_ModeSTANDARDStr,
+ 463                  FR_ModeSTANDARDStr,
+ 464                  GE_ModeSTANDARDStr,
+ 465                  IT_ModeSTANDARDStr,
+ 466                  SP_ModeSTANDARDStr,
+ 467                  PO_ModeSTANDARDStr,
+ 468                  CZ_ModeSTANDARDStr,
+ 469                  MA_ModeSTANDARDStr,
+ 470                  SE_ModeSTANDARDStr,
+ 471                  RO_ModeSTANDARDStr,
+ 472                  DU_ModeSTANDARDStr,
+ 473                  RU_ModeSTANDARDStr,
+ 474                  SW_ModeSTANDARDStr,
+ 475                  PR_ModeSTANDARDStr,
+ 476                  JA_ModeSTANDARDStr,
+ 477                  CT_ModeSTANDARDStr,
+ 478                  CS_ModeSTANDARDStr,
+ 479                  AR_ModeSTANDARDStr,
+ 480          #if ENABLE_PICTURE_MODE_REC709 == ON              
+ 481                  EN_ModeREC709Str,
+ 482                  FR_ModeREC709Str,
+ 483                  GE_ModeREC709Str,
+ 484                  IT_ModeREC709Str,
+ 485                  SP_ModeREC709Str,
+ 486                  PO_ModeREC709Str,
+ 487                  CZ_ModeREC709Str,
+ 488                  MA_ModeREC709Str,
+ 489                  SE_ModeREC709Str,
+ 490                  RO_ModeREC709Str,
+ 491                  DU_ModeREC709Str,
+ 492                  RU_ModeREC709Str,
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 11  
+
+ 493                  SW_ModeREC709Str,
+ 494                  PR_ModeREC709Str,
+ 495                  JA_ModeREC709Str,
+ 496                  CT_ModeREC709Str,
+ 497                  CS_ModeREC709Str,
+ 498                  AR_ModeREC709Str,
+ 499          #endif
+ 500              EN_ModeSRGBStr,
+ 501              FR_ModeSRGBStr,
+ 502              GE_ModeSRGBStr,
+ 503              IT_ModeSRGBStr,
+ 504              SP_ModeSRGBStr,
+ 505              PO_ModeSRGBStr,
+ 506              CZ_ModeSRGBStr,
+ 507              MA_ModeSRGBStr,
+ 508              SE_ModeSRGBStr,
+ 509              RO_ModeSRGBStr,
+ 510              DU_ModeSRGBStr,
+ 511              RU_ModeSRGBStr,
+ 512              SW_ModeSRGBStr,
+ 513              PR_ModeSRGBStr,
+ 514              JA_ModeSRGBStr,
+ 515              CT_ModeSRGBStr,
+ 516              CS_ModeSRGBStr,
+ 517              AR_ModeSRGBStr,
+ 518          
+ 519          #if ENABLE_PICTURE_MODE_CAD == ON
+ 520              EN_ModeCADStr11,
+ 521              FR_ModeCADStr11,
+ 522              GE_ModeCADStr11,
+ 523              IT_ModeCADStr11,
+ 524              SP_ModeCADStr11,
+ 525              PO_ModeCADStr11,
+ 526              CZ_ModeCADStr11,
+ 527              MA_ModeCADStr11,
+ 528              SE_ModeCADStr11,
+ 529              RO_ModeCADStr11,
+ 530              DU_ModeCADStr11,
+ 531              RU_ModeCADStr11,
+ 532              SW_ModeCADStr11,
+ 533              PR_ModeCADStr11,
+ 534              JA_ModeCADStr11,
+ 535              CT_ModeCADStr11,
+ 536              CS_ModeCADStr11,
+ 537              AR_ModeCADStr11,
+ 538          #endif
+ 539          #if ENABLE_PICTURE_MODE_ANIMATION == ON
+ 540              EN_ModeAnimationStr11,
+ 541              FR_ModeAnimationStr11,
+ 542              GE_ModeAnimationStr11,
+ 543              IT_ModeAnimationStr11,
+ 544              SP_ModeAnimationStr11,
+ 545              PO_ModeAnimationStr11,
+ 546              CZ_ModeAnimationStr11,
+ 547              MA_ModeAnimationStr11,
+ 548              SE_ModeAnimationStr11,
+ 549              RO_ModeAnimationStr11,
+ 550              DU_ModeAnimationStr11,
+ 551              RU_ModeAnimationStr11,
+ 552              SW_ModeAnimationStr11,
+ 553              PR_ModeAnimationStr11,
+ 554              JA_ModeAnimationStr11,
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 12  
+
+ 555              CT_ModeAnimationStr11,
+ 556              CS_ModeAnimationStr11,
+ 557              AR_ModeAnimationStr11,
+ 558          #endif
+ 559          #if ENABLE_PRESENTATION_MODE == ON
+                  EN_ModePresentationStr11,
+                  FR_ModePresentationStr11,
+                  GE_ModePresentationStr11,
+                  IT_ModePresentationStr11,
+                  SP_ModePresentationStr11,
+                  PO_ModePresentationStr11,
+                  CZ_ModePresentationStr11,
+                  MA_ModePresentationStr11,
+                  SE_ModePresentationStr11,
+                  RO_ModePresentationStr11,
+                  DU_ModePresentationStr11,
+                  RU_ModePresentationStr11,
+                  SW_ModePresentationStr11,
+                  PR_ModePresentationStr11,
+                  JA_ModePresentationStr11,
+                  CT_ModePresentationStr11,
+                  CS_ModePresentationStr11,
+                  AR_ModePresentationStr11,
+              #endif
+ 579              EN_ModeLOWBLUELIGHTStr,
+ 580              FR_ModeLOWBLUELIGHTStr,
+ 581              GE_ModeLOWBLUELIGHTStr,
+ 582              IT_ModeLOWBLUELIGHTStr,
+ 583              SP_ModeLOWBLUELIGHTStr,
+ 584              PO_ModeLOWBLUELIGHTStr,
+ 585              CZ_ModeLOWBLUELIGHTStr,
+ 586              MA_ModeLOWBLUELIGHTStr,
+ 587              SE_ModeLOWBLUELIGHTStr,
+ 588              RO_ModeLOWBLUELIGHTStr,
+ 589              DU_ModeLOWBLUELIGHTStr,
+ 590              RU_ModeLOWBLUELIGHTStr,
+ 591              SW_ModeLOWBLUELIGHTStr,
+ 592              PR_ModeLOWBLUELIGHTStr,
+ 593              JA_ModeLOWBLUELIGHTStr,
+ 594              CT_ModeLOWBLUELIGHTStr,
+ 595              CS_ModeLOWBLUELIGHTStr,
+ 596              AR_ModeLOWBLUELIGHTStr,
+ 597          #if ENABLE_PICTURE_MODE_MOVIE == ON
+ 598              EN_ModeMOVIEStr,
+ 599              FR_ModeMOVIEStr,
+ 600              GE_ModeMOVIEStr,
+ 601              IT_ModeMOVIEStr,
+ 602              SP_ModeMOVIEStr,
+ 603              PO_ModeMOVIEStr,
+ 604              CZ_ModeMOVIEStr,
+ 605              MA_ModeMOVIEStr,
+ 606              SE_ModeMOVIEStr,
+ 607              RO_ModeMOVIEStr,
+ 608              DU_ModeMOVIEStr,
+ 609              RU_ModeMOVIEStr,
+ 610              SW_ModeMOVIEStr,
+ 611              PR_ModeMOVIEStr,
+ 612              JA_ModeMOVIEStr,
+ 613              CT_ModeMOVIEStr,
+ 614              CS_ModeMOVIEStr,
+ 615              AR_ModeMOVIEStr,
+ 616          #endif
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 13  
+
+ 617          
+ 618          #if ENABLE_PICTURE_MODE_GAME == ON
+ 619              EN_ModeGAMEStr,
+ 620              FR_ModeGAMEStr,
+ 621              GE_ModeGAMEStr,
+ 622              IT_ModeGAMEStr,
+ 623              SP_ModeGAMEStr,
+ 624              PO_ModeGAMEStr,
+ 625              CZ_ModeGAMEStr,
+ 626              MA_ModeGAMEStr,
+ 627              SE_ModeGAMEStr,
+ 628              RO_ModeGAMEStr,
+ 629              DU_ModeGAMEStr,
+ 630              RU_ModeGAMEStr,
+ 631              SW_ModeGAMEStr,
+ 632              PR_ModeGAMEStr,
+ 633              JA_ModeGAMEStr,
+ 634              CT_ModeGAMEStr,
+ 635              CS_ModeGAMEStr,
+ 636              AR_ModeGAMEStr,
+ 637          #endif
+ 638          #if ENABLE_PICTURE_MODE_PHOTO == ON
+ 639              EN_ModePHOTOStr,
+ 640              FR_ModePHOTOStr,
+ 641              GE_ModePHOTOStr,
+ 642              IT_ModePHOTOStr,
+ 643              SP_ModePHOTOStr,
+ 644              PO_ModePHOTOStr,
+ 645              CZ_ModePHOTOStr,
+ 646              MA_ModePHOTOStr,
+ 647              SE_ModePHOTOStr,
+ 648              RO_ModePHOTOStr,
+ 649              DU_ModePHOTOStr,
+ 650              RU_ModePHOTOStr,
+ 651              SW_ModePHOTOStr,
+ 652              PR_ModePHOTOStr,
+ 653              JA_ModePHOTOStr,
+ 654              CT_ModePHOTOStr,
+ 655              CS_ModePHOTOStr,
+ 656              AR_ModePHOTOStr,
+ 657          #endif
+ 658          #if ENABLE_PICTURE_MODE_DARKROOM == ON              
+ 659              EN_ModeDarkRoomStr,
+ 660              FR_ModeDarkRoomStr,
+ 661              GE_ModeDarkRoomStr,
+ 662              IT_ModeDarkRoomStr,
+ 663              SP_ModeDarkRoomStr,
+ 664              PO_ModeDarkRoomStr,
+ 665              CZ_ModeDarkRoomStr,
+ 666              MA_ModeDarkRoomStr,
+ 667              SE_ModeDarkRoomStr,
+ 668              RO_ModeDarkRoomStr,
+ 669              DU_ModeDarkRoomStr,
+ 670              RU_ModeDarkRoomStr,
+ 671              SW_ModeDarkRoomStr,
+ 672              PR_ModeDarkRoomStr,
+ 673              JA_ModeDarkRoomStr,
+ 674              CT_ModeDarkRoomStr,
+ 675              CS_ModeDarkRoomStr,
+ 676              AR_ModeDarkRoomStr,
+ 677          #endif
+ 678          
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 14  
+
+ 679              EN_ModeECOStr,
+ 680              FR_ModeECOStr,
+ 681              GE_ModeECOStr,
+ 682              IT_ModeECOStr,
+ 683              SP_ModeECOStr,
+ 684              PO_ModeECOStr,
+ 685              CZ_ModeECOStr,
+ 686              MA_ModeECOStr,
+ 687              SE_ModeECOStr,
+ 688              RO_ModeECOStr,
+ 689              DU_ModeECOStr,
+ 690              RU_ModeECOStr,
+ 691              SW_ModeECOStr,
+ 692              PR_ModeECOStr,
+ 693              JA_ModeECOStr,
+ 694              CT_ModeECOStr,
+ 695              CS_ModeECOStr,
+ 696              AR_ModeECOStr,
+ 697          
+ 698          #if ENABLE_PICTURE_MODE_MBOOK== ON
+ 699              EN_ModeMbookStr11,
+ 700              FR_ModeMbookStr11,
+ 701              GE_ModeMbookStr11,
+ 702              IT_ModeMbookStr11,
+ 703              SP_ModeMbookStr11,
+ 704              PO_ModeMbookStr11,
+ 705              CZ_ModeMbookStr11,
+ 706              MA_ModeMbookStr11,
+ 707              SE_ModeMbookStr11,
+ 708              RO_ModeMbookStr11,
+ 709              DU_ModeMbookStr11,
+ 710              RU_ModeMbookStr11,
+ 711              SW_ModeMbookStr11,
+ 712              PR_ModeMbookStr11,
+ 713              JA_ModeMbookStr11,
+ 714              CT_ModeMbookStr11,
+ 715              CS_ModeMbookStr11,
+ 716              AR_ModeMbookStr11,
+ 717          #endif
+ 718          
+ 719              EN_ModeUSERStr,
+ 720              FR_ModeUSERStr,
+ 721              GE_ModeUSERStr,
+ 722              IT_ModeUSERStr,
+ 723              SP_ModeUSERStr,
+ 724              PO_ModeUSERStr,
+ 725              CZ_ModeUSERStr,
+ 726              MA_ModeUSERStr,
+ 727              SE_ModeUSERStr,
+ 728              RO_ModeUSERStr,
+ 729              DU_ModeUSERStr,
+ 730              RU_ModeUSERStr,
+ 731              SW_ModeUSERStr,
+ 732              PR_ModeUSERStr,
+ 733              JA_ModeUSERStr,
+ 734              CT_ModeUSERStr,
+ 735              CS_ModeUSERStr,
+ 736              AR_ModeUSERStr,
+ 737          };
+ 738          
+ 739          code UCHAR RStr[]={1,"R"};
+ 740          code UCHAR GStr[]={1,"G"};
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 15  
+
+ 741          code UCHAR BStr[]={1,"B"};
+ 742          
+ 743          code UCHAR FR_GStr[]={1,"V"};
+ 744          
+ 745          code UCHAR SP_GStr[]={1,"V"};
+ 746          code UCHAR SP_BStr[]={1,"A"};
+ 747          
+ 748          code UCHAR JA_RStr[]={1, 137};
+ 749          code UCHAR JA_GStr[]={1, 138};
+ 750          code UCHAR JA_BStr[]={1, 136};
+ 751          
+ 752          code UCHAR CT_RStr[]={1, 128};
+ 753          code UCHAR CT_GStr[]={1, 129};
+ 754          code UCHAR CT_BStr[]={1, 127};
+ 755          
+ 756          code UCHAR CS_RStr[]={1,129};
+ 757          code UCHAR CS_GStr[]={1,130};
+ 758          code UCHAR CS_BStr[]={1,128};
+ 759          code UCHAR AR_RStr[]={1,"R"};
+ 760          code UCHAR AR_GStr[]={1,"G"};
+ 761          code UCHAR AR_BStr[]={1,"B"};
+ 762          
+ 763          code UCHAR *RGB_Slider_BAR_Tab[] = {
+ 764               RStr,
+ 765               RStr,//FR
+ 766               RStr,//GE
+ 767               RStr,//IT
+ 768               RStr,//SP
+ 769               RStr,//PO
+ 770               RStr,//CZ
+ 771               RStr,//MA
+ 772               RStr,//SE
+ 773               RStr,//RO
+ 774               RStr,//DU
+ 775               RStr,//RU
+ 776               RStr,//SW
+ 777               RStr,//PR
+ 778               JA_RStr,//JA
+ 779               CT_RStr,//CT
+ 780               CS_RStr,//CS
+ 781               AR_RStr,
+ 782               
+ 783               GStr,
+ 784               FR_GStr,//FR
+ 785               GStr,//GE
+ 786               GStr,//IT
+ 787               SP_GStr,//SP
+ 788               GStr,//PO
+ 789               GStr,//CZ
+ 790               GStr,//MA
+ 791               GStr,//SE
+ 792               GStr,//RO
+ 793               GStr,//DU
+ 794               GStr,//RU
+ 795               GStr,//SW
+ 796               GStr,//PR
+ 797               JA_GStr,//JA
+ 798               CT_GStr,//CT
+ 799               CS_GStr,//CS
+ 800               AR_GStr,
+ 801          
+ 802               BStr,
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 16  
+
+ 803               BStr,//FR
+ 804               BStr,//GE
+ 805               BStr,//IT
+ 806               SP_BStr,//SP
+ 807               BStr,//PO
+ 808               BStr,//CZ
+ 809               BStr,//MA
+ 810               BStr,//SE
+ 811               BStr,//RO
+ 812               BStr,//DU
+ 813               BStr,//RU
+ 814               BStr,//SW
+ 815               BStr,//PR
+ 816               JA_BStr,//JA
+ 817               CT_BStr,//CT
+ 818               CS_BStr,//CS
+ 819               AR_BStr,
+ 820          };
+ 821          
+ 822          code UCHAR EN_PictureModeStr11[] = {12, 'P', 'i', 'c', 't', 'u', 'r', 'e', ' ', 'M', 'o', 'd', 'e', };
+ 823          code UCHAR FR_PictureModeStr11[] = {12, 'M', 'o', 'd', 'e', ' ', 'd', 124, 'i', 'm', 'a', 'g', 'e', };
+ 824          code UCHAR GE_PictureModeStr11[] = {9, 'B', 'i', 'l', 'd', 'm', 'o', 'd', 'u', 's', };
+ 825          code UCHAR IT_PictureModeStr11[] = {12, 'M', 'o', 'd', ' ', 'I', 'm', 'm', 'a', 'g', 'i', 'n', 'e', };
+ 826          code UCHAR SP_PictureModeStr11[] = {11, 'M', 'o', 'd', 'o', ' ', 'i', 'm', 'a', 'g', 'e', 'n', };
+ 827          code UCHAR PO_PictureModeStr11[] = {11, 'T', 'r', 'y', 'b', ' ', 'o', 'b', 'r', 'a', 'z', 'u', };
+ 828          code UCHAR CZ_PictureModeStr11[] = {12, 'R', 'e', 26, 'i', 'm', ' ', 'o', 'b', 'r', 'a', 'z', 'u', };
+ 829          code UCHAR MA_PictureModeStr11[] = {6, 'K', 2, 'p', 'm', 4, 'd', };
+ 830          code UCHAR SE_PictureModeStr11[] = {9, 'M', 'o', 'd', ' ', 's', 'l', 'i', 'k', 'e', };
+ 831          code UCHAR RO_PictureModeStr11[] = {11, 'M', 'o', 'd', ' ', 'I', 'm', 'a', 'g', 'i', 'n', 'e', };
+ 832          code UCHAR DU_PictureModeStr11[] = {10, 'B', 'e', 'e', 'l', 'd', 'm', 'o', 'd', 'u', 's', };
+ 833          code UCHAR RU_PictureModeStr11[] = {12, 156, 128, 152, 124, 146, ' ', 124, 141, 136, 151, 133, '.', };
+ 834          code UCHAR SW_PictureModeStr11[] = {8, 'B', 'i', 'l', 'd', 'l', 3, 'g', 'e', };
+ 835          code UCHAR PR_PictureModeStr11[] = {11, 'M', 'o', 'd', 'o', ' ', 'i', 'm', 'a', 'g', 'e', 'm', };
+ 836          code UCHAR JA_PictureModeStr11[] ={5, 25, 26, 159, 21, 160, };
+ 837          code UCHAR CT_PictureModeStr11[] ={4, 23, 24, 149, 150, };
+ 838          code UCHAR CS_PictureModeStr11[] ={4, 23, 16, 146, 147, };
+ 839          code UCHAR AR_PictureModeStr11[] ={9,168,233,183,218,136,32,197,186,232};
+ 840          
+ 841          code UCHAR EN_DisplayModeStr11[] = {12, 'D', 'i', 's', 'p', 'l', 'a', 'y', ' ', 'M', 'o', 'd', 'e', };
+ 842          code UCHAR FR_DisplayModeStr11[] = {16, 'M', 'o', 'd', 'e', ' ', 'd', 39, 'a', 'f', 'f', 'i', 'c', 'h', 'a
+             -', 'g', 'e', };
+ 843          code UCHAR GE_DisplayModeStr11[] = {12, 'A', 'n', 'z', 'e', 'i', 'g', 'e', 'm', 'o', 'd', 'u', 's', };
+ 844          code UCHAR IT_DisplayModeStr11[] = {16, 'M', 'o', 'd', 'a', 'l', 'i', 't', 123, ' ', 'd', 'i', 's', 'p', '
+             -l', 'a', 'y', };
+ 845          code UCHAR SP_DisplayModeStr11[] = {18, 'M', 'o', 'd', 'o', ' ', 'v', 'i', 's', 'u', 'a', 'l', 'i', 'z', '
+             -a', 'c', 'i', 4, 'n', };
+ 846          code UCHAR PO_DisplayModeStr11[] = {17, 'T', 'r', 'y', 'b', ' ', 'w', 'y', 123, 'w', 'i', 'e', 't', 'l', '
+             -a', 'n', 'i', 'a', };
+ 847          code UCHAR CZ_DisplayModeStr11[] = {15, 'R', 'e', 26, 'i', 'm', ' ', 'z', 'o', 'b', 'r', 'a', 'z', 'e', 'n
+             -', 1, };
+ 848          code UCHAR MA_DisplayModeStr11[] = {11, 'K', 'i', 'j', 'e', 'l', 'z', 123, ' ', 'm', 4, 'd', };
+ 849          code UCHAR SE_DisplayModeStr11[] = {13, 'N', 'a', 6, 'i', 'n', ' ', 'p', 'r', 'i', 'k', 'a', 'z', 'a', };
+ 850          code UCHAR RO_DisplayModeStr11[] = {11, 'M', 'o', 'd', ' ', 'a', 'f', 'i', 123, 'a', 'r', 'e', };
+ 851          code UCHAR DU_DisplayModeStr11[] = {13, 'W', 'e', 'e', 'r', 'g', 'a', 'v', 'e', 'm', 'o', 'd', 'u', 's', }
+             -;
+ 852          code UCHAR RU_DisplayModeStr11[] = {14, 156, 128, 152, 124, 146, ' ', 136, 132, 136, 151, 133, 143, 152, '
+             -.', };
+ 853          code UCHAR SW_DisplayModeStr11[] = {16, 'B', 'i', 'l', 'd', 'v', 'i', 's', 'n', 'i', 'n', 'g', 's', 'l', 3
+             -, 'g', 'e', };
+ 854          code UCHAR PR_DisplayModeStr11[] = {13, 'M', 'o', 'd', 'a', 'l', 'i', 'd', '.', ' ', 'V', 'i', 's', '.', }
+             -;
+ 855          code UCHAR JA_DisplayModeStr11[] = {5, 25, 186, 159, 21, 160,};
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 17  
+
+ 856          code UCHAR CT_DisplayModeStr11[] ={4, 0, 1, 149, 150, };
+ 857          code UCHAR CS_DisplayModeStr11[] ={4, 0, 1, 146, 147, };
+ 858          code UCHAR AR_DisplayModeStr11[] ={9,185,169,199,218,136,32,189,223,226};
+ 859          
+ 860          code UCHAR EN_BrightnessStr11[] = {10, 'B', 'r', 'i', 'g', 'h', 't', 'n', 'e', 's', 's', };
+ 861          code UCHAR FR_BrightnessStr11[] = {11, 'L', 'u', 'm', 'i', 'n', 'o', 's', 'i', 't', 2, 5, };
+ 862          code UCHAR GE_BrightnessStr11[] = {10, 'H', 'e', 'l', 'l', 'i', 'g', 'k', 'e', 'i', 't', };
+ 863          code UCHAR IT_BrightnessStr11[] = {10, 'L', 'u', 'm', 'i', 'n', 'o', 's', 'i', 't', 123, };
+ 864          code UCHAR SP_BrightnessStr11[] = {6, 'B', 'r', 'i', 'l', 'l', 'o', };
+ 865          code UCHAR PO_BrightnessStr11[] = {7, 'J', 'a', 's', 'n', 'o', 123, 22, };
+ 866          code UCHAR CZ_BrightnessStr11[] = {3, 'J', 'a', 's', };
+ 867          code UCHAR MA_BrightnessStr11[] = {7, 'F', 2, 'n', 'y', 'e', 'r', 123, };
+ 868          code UCHAR SE_BrightnessStr11[] = {19, 'J', 'a', 6, 'i', 'n', 'a', ' ', 'o', 's', 'v', 'j', 'e', 't', 'l',
+             - 'j', 'e', 'n', 'j', 'a', };
+ 869          code UCHAR RO_BrightnessStr11[] = {12, 'L', 'u', 'm', 'i', 'n', 'o', 'z', 'i', 't', 'a', 't', 'e', };
+ 870          code UCHAR DU_BrightnessStr11[] = {10, 'H', 'e', 'l', 'd', 'e', 'r', 'h', 'e', 'i', 'd', };
+ 871          code UCHAR RU_BrightnessStr11[] = {7, 154, 133, 148, 136, 125, 132, 155, };
+ 872          code UCHAR SW_BrightnessStr11[] = {10, 'L', 'j', 'u', 's', 's', 't', 'y', 'r', 'k', 'a', };
+ 873          code UCHAR PR_BrightnessStr11[] = {6, 'B', 'r', 'i', 'l', 'h', 'o', };
+ 874          code UCHAR JA_BrightnessStr11[] = {2, 123, 124, };
+ 875          code UCHAR CT_BrightnessStr11[] = {2, 27, 28, };
+ 876          code UCHAR CS_BrightnessStr11[] = {2, 27, 28, };
+ 877          code UCHAR AR_BrightnessStr11[] = {6,196,233,191,175,218,136};
+ 878          
+ 879          code UCHAR EN_ContrastStr11[]={8, 'C', 'o', 'n', 't', 'r', 'a', 's', 't', };
+ 880          code UCHAR FR_ContrastStr11[]={9, 'C', 'o', 'n', 't', 'r', 'a', 's', 't', 'e', };
+ 881          code UCHAR GE_ContrastStr11[]={8, 'K', 'o', 'n', 't', 'r', 'a', 's', 't', };
+ 882          code UCHAR IT_ContrastStr11[]={9, 'C', 'o', 'n', 't', 'r', 'a', 's', 't', 'o', };
+ 883          code UCHAR SP_ContrastStr11[]={9, 'C', 'o', 'n', 't', 'r', 'a', 's', 't', 'e', };
+ 884          code UCHAR PO_ContrastStr11[]={8, 'K', 'o', 'n', 't', 'r', 'a', 's', 't', };
+ 885          code UCHAR CZ_ContrastStr11[]={8, 'K', 'o', 'n', 't', 'r', 'a', 's', 't', };
+ 886          code UCHAR MA_ContrastStr11[]={9, 'K', 'o', 'n', 't', 'r', 'a', 's', 'z', 't', };
+ 887          code UCHAR SE_ContrastStr11[]={8, 'K', 'o', 'n', 't', 'r', 'a', 's', 't', };
+ 888          code UCHAR RO_ContrastStr11[]={8, 'C', 'o', 'n', 't', 'r', 'a', 's', 't', };
+ 889          code UCHAR DU_ContrastStr11[]={8, 'C', 'o', 'n', 't', 'r', 'a', 's', 't', };
+ 890          code UCHAR RU_ContrastStr11[]={8, 153, 136, 144, 132, 133, 143, 125, 132, };
+ 891          code UCHAR SW_ContrastStr11[]={8, 'K', 'o', 'n', 't', 'r', 'a', 's', 't', };
+ 892          code UCHAR PR_ContrastStr11[]={9, 'C', 'o', 'n', 't', 'r', 'a', 's', 't', 'e', };
+ 893          code UCHAR JA_ContrastStr11[]={6, 27, 28, 29, 30, 31, 29, };
+ 894          code UCHAR CT_ContrastStr11[]={2, 25, 26, };
+ 895          code UCHAR CS_ContrastStr11[]={2, 25, 26, };
+ 896          code UCHAR AR_ContrastStr11[]={7,225,238,137,141,147,218,136};
+ 897          
+ 898          code UCHAR EN_AutoAdjustmentStr11[] = {15, 'A', 'u', 't', 'o', ' ', 'A', 'd', 'j', 'u', 's', 't', 'm', 'e'
+             -, 'n', 't', };
+ 899          code UCHAR FR_AutoAdjustmentStr11[] = {15, 'A', 'j', 'u', 's', 't', 'e', 'm', 'e', 'n', 't', ' ', 'a', 'u'
+             -, 't', 'o', };
+ 900          code UCHAR GE_AutoAdjustmentStr11[] = {11, 'A', 'u', 't', 'o', '-', 'E', 'i', 'n', 's', 't', '.', };
+ 901          code UCHAR IT_AutoAdjustmentStr11[] = {14, 'R', 'e', 'g', ' ', 'a', 'u', 't', 'o', 'm', 'a', 't', 'i', 'c'
+             -, 'a', };
+ 902          code UCHAR SP_AutoAdjustmentStr11[] = {17, 'A', 'j', 'u', 's', 't', 'e', ' ', 'a', 'u', 't', 'o', 'm', 0, 
+             -'t', 'i', 'c', 'o', };
+ 903          code UCHAR PO_AutoAdjustmentStr11[] = {18, 'A', 'u', 't', 'o', '.', ' ', 'd', 'o', 's', 't', 'o', 's', 'o'
+             -, 'w', 'a', 'n', 'i', 'e', };
+ 904          code UCHAR CZ_AutoAdjustmentStr11[] = {16, 'A', 'u', 't', 'o', 'm', '.', ' ', 'n', 'a', 's', 't', 'a', 'v'
+             -, 'e', 'n', 1, };
+ 905          code UCHAR MA_AutoAdjustmentStr11[] = {17, 'A', 'u', 't', 'o', '.', ' ', 'B', 'e', 0, 'l', 'l', 1, 't', 0,
+             - 's', ' ', 5, };
+ 906          code UCHAR SE_AutoAdjustmentStr11[] = {16, 'A', 'u', 't', 'o', 'm', '.', ' ', 'p', 'o', 'd', 'e', 20, 'a',
+             - 'v', '.', 5, };
+ 907          code UCHAR RO_AutoAdjustmentStr11[] = {14, 'R', 'e', 'g', 'l', 'a', 'r', 'e', ' ', 'a', 'u', 't', 'o', 'm'
+             -, '.', };
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 18  
+
+ 908          code UCHAR DU_AutoAdjustmentStr11[] = {15, 'A', 'u', 't', 'o', '-', 'a', 'a', 'n', 'p', 'a', 's', 's', 'i'
+             -, 'n', 'g', };
+ 909          code UCHAR RU_AutoAdjustmentStr11[] = {14, 130, 131, 132, '.', ' ', 133, 128, 134, 135, 127, 124, 133, '.'
+             -, 5, };
+ 910          code UCHAR SW_AutoAdjustmentStr11[] = {13, 'A', 'u', 't', 'o', 'j', 'u', 's', 't', 'e', 'r', 'i', 'n', 'g'
+             -, };
+ 911          code UCHAR PR_AutoAdjustmentStr11[] = {13, 'A', 'j', 'u', 's', 't', 'e', ' ', 'a', 'u', 't', 'o', '.', 5, 
+             -};
+ 912          code UCHAR JA_AutoAdjustmentStr11[] = {4, 2, 3, 4, 5, };
+ 913          code UCHAR CT_AutoAdjustmentStr11[] = {4, 2, 3, 4, 5, };
+ 914          code UCHAR CS_AutoAdjustmentStr11[] = {4, 2, 3, 4, 5, };
+ 915          code UCHAR AR_AutoAdjustmentStr11[] = {4, 2, 3, 4, 5, };
+ 916          
+ 917          code UCHAR EN_InputStr11[] = {5, 'I', 'n', 'p', 'u', 't', };
+ 918          code UCHAR FR_InputStr11[] = {6, 'E', 'n', 't', 'r', 2, 'e', };
+ 919          code UCHAR GE_InputStr11[] = {7, 'E', 'i', 'n', 'g', 'a', 'b', 'e', };
+ 920          code UCHAR IT_InputStr11[] = {5, 'I', 'n', 'p', 'u', 't', };
+ 921          code UCHAR SP_InputStr11[] = {7, 'E', 'n', 't', 'r', 'a', 'd', 'a', };
+ 922          code UCHAR PO_InputStr11[] = {7, 'W', 'e', 'j', 123, 'c', 'i', 'e', };
+ 923          code UCHAR CZ_InputStr11[] = {5, 'V', 's', 't', 'u', 'p', };
+ 924          code UCHAR MA_InputStr11[] = {7, 'B', 'e', 'm', 'e', 'n', 'e', 't', };
+ 925          code UCHAR SE_InputStr11[] = {4, 'U', 'l', 'a', 'z', };
+ 926          code UCHAR RO_InputStr11[] = {7, 'I', 'n', 't', 'r', 'a', 'r', 'e', };
+ 927          code UCHAR DU_InputStr11[] = {5, 'I', 'n', 'p', 'u', 't', };
+ 928          code UCHAR RU_InputStr11[] = {4, 137, 138, 136, 139, };
+ 929          code UCHAR SW_InputStr11[] = {6, 'I', 'n', 'g', 123, 'n', 'g', };
+ 930          code UCHAR PR_InputStr11[] = {7, 'E', 'n', 't', 'r', 'a', 'd', 'a', };
+ 931          code UCHAR JA_InputStr11[] = {2, 8, 9, };
+ 932          code UCHAR CT_InputStr11[] = {2, 8, 9, };
+ 933          code UCHAR CS_InputStr11[] = {2, 8, 9, };
+ 934          code UCHAR AR_InputStr11[] = {5,216,137,162,164,130};
+ 935          
+ 936          code UCHAR EN_VolumeStr11[]={6, 'V', 'o', 'l', 'u', 'm', 'e', };
+ 937          code UCHAR FR_VolumeStr11[]={6, 'V', 'o', 'l', 'u', 'm', 'e', };
+ 938          code UCHAR GE_VolumeStr11[]={10, 'L', 'a', 'u', 't', 's', 't', 3, 'r', 'k', 'e', };
+ 939          code UCHAR IT_VolumeStr11[]={6, 'V', 'o', 'l', 'u', 'm', 'e', };
+ 940          code UCHAR SP_VolumeStr11[]={7, 'V', 'o', 'l', 'u', 'm', 'e', 'n', };
+ 941          code UCHAR PO_VolumeStr11[]={9, 'G', 129, 'o', 123, 'n', 'o', 123, 22, 5, };
+ 942          code UCHAR CZ_VolumeStr11[]={9, 'H', 'l', 'a', 's', 'i', 't', 'o', 's', 't', };
+ 943          code UCHAR MA_VolumeStr11[]={7, 'H', 'a', 'n', 'g', 'e', 'r', 123, };
+ 944          code UCHAR SE_VolumeStr11[]={10, 'G', 'l', 'a', 's', 'n', 'o', 22, 'a', ' ', 5, };
+ 945          code UCHAR RO_VolumeStr11[]={5, 'V', 'o', 'l', 'u', 'm', };
+ 946          code UCHAR DU_VolumeStr11[]={6, 'V', 'o', 'l', 'u', 'm', 'e', };
+ 947          code UCHAR RU_VolumeStr11[]={9, 140, 133, 136, 146, 148, 136, 125, 132, 155, };
+ 948          code UCHAR SW_VolumeStr11[]={5, 'V', 'o', 'l', 'y', 'm', };
+ 949          code UCHAR PR_VolumeStr11[]={6, 'V', 'o', 'l', 'u', 'm', 'e', };
+ 950          code UCHAR JA_VolumeStr11[]={4, 195, 196, 4, 5, };
+ 951          code UCHAR CT_VolumeStr11[]={4, 190, 192, 4, 5, };
+ 952          code UCHAR CS_VolumeStr11[]={4, 189, 190, 4, 191, };
+ 953          code UCHAR AR_VolumeStr11[]={11,144,233,183,218,136,32,234,233,147,175,222};
+ 954          
+ 955          code UCHAR EN_MuteStr11[]={4, 'M', 'u', 't', 'e', };
+ 956          code UCHAR FR_MuteStr11[]={4, 'M', 'u', 'e', 't', };
+ 957          code UCHAR GE_MuteStr11[]={5, 'S', 't', 'u', 'm', 'm', };
+ 958          code UCHAR IT_MuteStr11[]={15, 'D', 'i', 's', 'a', 't', 't', 'i', 'v', 'a', ' ', 'a', 'u', 'd', 'i', 'o', 
+             -};
+ 959          code UCHAR SP_MuteStr11[]={9, 'S', 'i', 'l', 'e', 'n', 'c', 'i', 'a', 'r', };
+ 960          code UCHAR PO_MuteStr11[]={7, 'W', 'y', 'c', 'i', 's', 'z', 5, };
+ 961          code UCHAR CZ_MuteStr11[]={7, 'Z', 't', 'l', 'u', 'm', 'i', 't', };
+ 962          code UCHAR MA_MuteStr11[]={5, 'N', 2, 'm', 1, 't', };
+ 963          code UCHAR SE_MuteStr11[]={7, 'U', 't', 'i', 20, 'a', 'n', 'o', };
+ 964          code UCHAR RO_MuteStr11[]={3, 'M', 'u', 't', };
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 19  
+
+ 965          code UCHAR DU_MuteStr11[]={10, 'G', 'e', 'l', 'u', 'i', 'd', ' ', 'u', 'i', 't', };
+ 966          code UCHAR RU_MuteStr11[]={14, 137, 159, 148, 127, 174, 147, 124, 132, 155, ' ', 141, 131, 135, 148, };
+ 967          code UCHAR SW_MuteStr11[]={4, 'T', 'y', 's', 't', };
+ 968          code UCHAR PR_MuteStr11[]={7, 'S', 'e', 'm', ' ', 's', 'o', 'm', };
+ 969          code UCHAR JA_MuteStr11[]={4, 152, 197, 21, 29, };
+ 970          code UCHAR CT_MuteStr11[]={2, 193, 190, };
+ 971          code UCHAR CS_MuteStr11[]={2, 192, 189, };
+ 972          code UCHAR AR_MuteStr11[]={9,144,233,183,218,136,32,221,147,214};
+ 973          
+ 974          code UCHAR EN_SmartReminderStr11[]={14, 'S', 'm', 'a', 'r', 't', ' ', 'R', 'e', 'm', 'i', 'n', 'd', 'e', '
+             -r', };
+ 975          code UCHAR FR_SmartReminderStr11[]={18, 'R', 'a', 'p', 'p', 'e', 'l', ' ', 'I', 'n', 't', 'e', 'l', 'l', '
+             -i', 'g', 'e', 'n', 't', };
+ 976          code UCHAR GE_SmartReminderStr11[]={18, 'I', 'n', 't', 'e', 'l', 'l', '.', ' ', 'E', 'r', 'i', 'n', 'n', '
+             -e', 'r', 'u', 'n', 'g', };
+ 977          code UCHAR IT_SmartReminderStr11[]={20, 'P', 'r', 'o', 'm', 'e', 'm', 'o', 'r', 'i', 'a', ' ', 'i', 'n', '
+             -t', 'e', 'l', 'l', 'i', 'g', '.', };
+ 978          code UCHAR SP_SmartReminderStr11[]={17, 'A', 'v', 'i', 's', 'o', ' ', 'i', 'n', 't', 'e', 'l', 'i', 'g', '
+             -e', 'n', 't', 'e', };
+ 979          code UCHAR PO_SmartReminderStr11[]={19, 'I', 'n', 't', 'e', 'l', 'i', 'g', 'e', 'n', 't', 'n', 'e', ' ', '
+             -p', 'r', 'z', 'y', 'p', '.', };
+ 980          code UCHAR CZ_SmartReminderStr11[]={20, 'I', 'n', 't', 'e', 'l', 'i', 'g', 'e', 'n', 't', 'n', 1, ' ', 'p'
+             -, 124, 'i', 'p', 'o', 'm', '.', };
+ 981          code UCHAR MA_SmartReminderStr11[]={19, 'I', 'n', 't', 'e', 'l', 'l', '.', ' ', 'e', 'm', 'l', 2, 'k', 'e'
+             -, 'z', 't', 'e', 't', 123, };
+ 982          code UCHAR SE_SmartReminderStr11[]={18, 'P', 'a', 'm', 'e', 't', 'n', 'i', ' ', 'p', 'o', 'd', 's', 'j', '
+             -e', 't', 'n', 'i', 'k', };
+ 983          code UCHAR RO_SmartReminderStr11[]={18, 'M', 'e', 'm', 'e', 'n', 't', 'o', ' ', 'i', 'n', 't', 'e', 'l', '
+             -i', 'g', 'e', 'n', 't', };
+ 984          code UCHAR DU_SmartReminderStr11[]={19, 'S', 'l', 'i', 'm', 'm', 'e', 'r', ' ', 'h', 'e', 'r', 'i', 'n', '
+             -n', 'e', 'r', 'i', 'n', 'g', };
+ 985          code UCHAR RU_SmartReminderStr11[]={12, 173,146,144,136,128,32,144,143,126,136,146,46 };
+ 986          code UCHAR SW_SmartReminderStr11[]={16, 'S', 'm', 'a', 'r', 't', ' ', 'p', 123, 'm', 'i', 'n', 'n', 'e', '
+             -l', 's', 'e', };
+ 987          code UCHAR PR_SmartReminderStr11[]={20, 'L', 'e', 'm', 'b', 'r', 'e', 't', 'e', ' ', 'I', 'n', 't', 'e', '
+             -l', 'i', 'g', 'e', 'n', 't', 'e', };
+ 988          code UCHAR JA_SmartReminderStr11[]={6, 31, 130, 21, 29, 244, 245, };
+ 989          code UCHAR CT_SmartReminderStr11[]={4, 241, 242, 179, 180, };
+ 990          code UCHAR CS_SmartReminderStr11[]={4, 239, 240, 241, 242, };
+ 991          code UCHAR AR_SmartReminderStr11[]={4, 239, 240, 241, 242, };
+ 992          
+ 993          code UCHAR EN_MenuStr11[] = {4,'M','e','n','u'};
+ 994          code UCHAR FR_MenuStr11[] = {4,'M','e','n','u'};
+ 995          code UCHAR GE_MenuStr11[] = {4,'M','e','n',23};
+ 996          code UCHAR IT_MenuStr11[] = {4,'M','e','n','u'};
+ 997          code UCHAR SP_MenuStr11[] = {4,'M','e','n',25};
+ 998          code UCHAR PO_MenuStr11[] = {4,'M','e','n','u'};
+ 999          code UCHAR CZ_MenuStr11[] = {7,'N','a','b',1,'d','k','a'};
+1000          code UCHAR MA_MenuStr11[] = {4,'M','e','n',23};
+1001          code UCHAR SE_MenuStr11[] = {8,'I','z','b','o','r','n','i','k'};
+1002          code UCHAR RO_MenuStr11[] = {5,'M','e','n','i','u'};
+1003          code UCHAR DU_MenuStr11[] = {4,'M','e','n','u'};
+1004          code UCHAR RU_MenuStr11[] = {4, 168,128,144,174,};
+1005          code UCHAR SW_MenuStr11[] = {4,'M','e','n','y'};
+1006          code UCHAR PR_MenuStr11[] = {4,'M','e','n','u'};
+1007          code UCHAR JA_MenuStr11[] = {4,172,224,197,21};
+1008          code UCHAR CT_MenuStr11[] = {3,91,92,240};
+1009          code UCHAR CS_MenuStr11[] = {2,244,245};
+1010          code UCHAR AR_MenuStr11[] = {7,143,223,134,137,211,218,136};
+1011          
+1012          code UCHAR EN_ExitStr11[] = {4,'E','x','i','t'};
+1013          code UCHAR FR_ExitStr11[] = {7,'Q','u','i','t','t','e','r'};
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 20  
+
+1014          code UCHAR GE_ExitStr11[] = {5,'B','e','e','n',46};
+1015          code UCHAR IT_ExitStr11[] = {4,'E','s','c','i'};
+1016          code UCHAR SP_ExitStr11[] = {5,'S','a','l','i','r'};
+1017          code UCHAR PO_ExitStr11[] = {7,'Z','a','k','o',132,'c','z'};
+1018          code UCHAR CZ_ExitStr11[] = {5,'K','o','n','e','c'};
+1019          code UCHAR MA_ExitStr11[] = {6,'K','i','l',2,'p',32};
+1020          code UCHAR SE_ExitStr11[] = {5,'I','z','l','a','z'};
+1021          code UCHAR RO_ExitStr11[] = {6,'I','e',123,'i','r','e'};
+1022          code UCHAR DU_ExitStr11[] = {5,'A','f','s','l','t'};
+1023          code UCHAR RU_ExitStr11[] = {5, 137,159,138,136,139,};
+1024          code UCHAR SW_ExitStr11[] = {7,'A','v','s','l','u','t','a'};
+1025          code UCHAR PR_ExitStr11[] = {4,'S','a','i','r'};
+1026          code UCHAR JA_ExitStr11[] = {2,91,92};
+1027          code UCHAR CT_ExitStr11[] = {2,255,93};
+1028          code UCHAR CS_ExitStr11[] = {2,253 ,254};
+1029          code UCHAR AR_ExitStr11[] = {4,152,233,169,162};
+1030          
+1031          code UCHAR *TopPageStrTab1[] = {
+1032               EN_PictureModeStr11,
+1033               FR_PictureModeStr11,
+1034               GE_PictureModeStr11,
+1035               IT_PictureModeStr11,
+1036               SP_PictureModeStr11,
+1037               PO_PictureModeStr11,
+1038               CZ_PictureModeStr11,
+1039               MA_PictureModeStr11,
+1040               SE_PictureModeStr11,
+1041               RO_PictureModeStr11,
+1042               DU_PictureModeStr11,
+1043               RU_PictureModeStr11,
+1044               SW_PictureModeStr11,
+1045               PR_PictureModeStr11,
+1046               JA_PictureModeStr11,
+1047               CT_PictureModeStr11,
+1048               CS_PictureModeStr11,
+1049               AR_PictureModeStr11,
+1050          
+1051              EN_DisplayModeStr11,
+1052              FR_DisplayModeStr11,
+1053              GE_DisplayModeStr11,
+1054              IT_DisplayModeStr11,
+1055              SP_DisplayModeStr11,
+1056              PO_DisplayModeStr11,
+1057              CZ_DisplayModeStr11,
+1058              MA_DisplayModeStr11,
+1059              SE_DisplayModeStr11,
+1060              RO_DisplayModeStr11,
+1061              DU_DisplayModeStr11,
+1062              RU_DisplayModeStr11,
+1063              SW_DisplayModeStr11,
+1064              PR_DisplayModeStr11,
+1065              JA_DisplayModeStr11,
+1066              CT_DisplayModeStr11,
+1067              CS_DisplayModeStr11,
+1068              AR_DisplayModeStr11,
+1069            
+1070              EN_BrightnessStr11,
+1071              FR_BrightnessStr11,
+1072              GE_BrightnessStr11,
+1073              IT_BrightnessStr11,
+1074              SP_BrightnessStr11,
+1075              PO_BrightnessStr11,
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 21  
+
+1076              CZ_BrightnessStr11,
+1077              MA_BrightnessStr11,
+1078              SE_BrightnessStr11,
+1079              RO_BrightnessStr11,
+1080              DU_BrightnessStr11,
+1081              RU_BrightnessStr11,
+1082              SW_BrightnessStr11,
+1083              PR_BrightnessStr11,
+1084              JA_BrightnessStr11,
+1085              CT_BrightnessStr11,
+1086              CS_BrightnessStr11,
+1087              AR_BrightnessStr11,
+1088          
+1089              EN_ContrastStr11,
+1090              FR_ContrastStr11,
+1091              GE_ContrastStr11,
+1092              IT_ContrastStr11,
+1093              SP_ContrastStr11,
+1094              PO_ContrastStr11,
+1095              CZ_ContrastStr11,
+1096              MA_ContrastStr11,
+1097              SE_ContrastStr11,
+1098              RO_ContrastStr11,
+1099              DU_ContrastStr11,
+1100              RU_ContrastStr11,
+1101              SW_ContrastStr11,
+1102              PR_ContrastStr11,
+1103              JA_ContrastStr11,
+1104              CT_ContrastStr11,
+1105              CS_ContrastStr11,
+1106              AR_ContrastStr11,
+1107          
+1108          #if ENABLE_CUSTOMKEY_AUTOADJ == ON     
+                  EN_AutoAdjustmentStr11,
+                  FR_AutoAdjustmentStr11,
+                  GE_AutoAdjustmentStr11,
+                  IT_AutoAdjustmentStr11,
+                  SP_AutoAdjustmentStr11,
+                  PO_AutoAdjustmentStr11,
+                  CZ_AutoAdjustmentStr11,
+                  MA_AutoAdjustmentStr11,
+                  SE_AutoAdjustmentStr11,
+                  RO_AutoAdjustmentStr11,
+                  DU_AutoAdjustmentStr11,
+                  RU_AutoAdjustmentStr11,
+                  SW_AutoAdjustmentStr11,
+                  PR_AutoAdjustmentStr11,
+                  JA_AutoAdjustmentStr11,
+                  CT_AutoAdjustmentStr11,
+                  CS_AutoAdjustmentStr11,
+                  AR_AutoAdjustmentStr11,
+              #endif
+1128          
+1129               EN_InputStr11,
+1130               FR_InputStr11,
+1131               GE_InputStr11,
+1132               IT_InputStr11,
+1133               SP_InputStr11,
+1134               PO_InputStr11,
+1135               CZ_InputStr11,
+1136               MA_InputStr11,
+1137               SE_InputStr11,
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 22  
+
+1138               RO_InputStr11,
+1139               DU_InputStr11,
+1140               RU_InputStr11,
+1141               SW_InputStr11,
+1142               PR_InputStr11,
+1143               JA_InputStr11,
+1144               CT_InputStr11,
+1145               CS_InputStr11,
+1146               AR_InputStr11,        
+1147               //ULEric140402
+1148               EN_VolumeStr11,
+1149               FR_VolumeStr11,
+1150               GE_VolumeStr11,
+1151               IT_VolumeStr11,
+1152               SP_VolumeStr11,
+1153               PO_VolumeStr11,
+1154               CZ_VolumeStr11,
+1155               MA_VolumeStr11,
+1156               SE_VolumeStr11,
+1157               RO_VolumeStr11,
+1158               DU_VolumeStr11,
+1159               RU_VolumeStr11,
+1160               SW_VolumeStr11,
+1161               PR_VolumeStr11,
+1162               JA_VolumeStr11,
+1163               CT_VolumeStr11,
+1164               CS_VolumeStr11,
+1165               AR_VolumeStr11,
+1166                 
+1167              EN_MuteStr11,
+1168              FR_MuteStr11,
+1169              GE_MuteStr11,
+1170              IT_MuteStr11,
+1171              SP_MuteStr11,
+1172              PO_MuteStr11,
+1173              CZ_MuteStr11,
+1174              MA_MuteStr11,
+1175              SE_MuteStr11,
+1176              RO_MuteStr11,
+1177              DU_MuteStr11,
+1178              RU_MuteStr11,
+1179              SW_MuteStr11,
+1180              PR_MuteStr11,
+1181              JA_MuteStr11,
+1182              CT_MuteStr11,
+1183              CS_MuteStr11,
+1184              AR_MuteStr11,
+1185          
+1186          #if ENABLE_CUSTOMKEY_LBL == ON  
+                  EN_LowBlueLightStr11,
+                  EN_LowBlueLightStr11,
+                  EN_LowBlueLightStr11,
+                  EN_LowBlueLightStr11,
+                  EN_LowBlueLightStr11,
+                  EN_LowBlueLightStr11,
+                  EN_LowBlueLightStr11,
+                  EN_LowBlueLightStr11,
+                  EN_LowBlueLightStr11,
+                  EN_LowBlueLightStr11,
+                  EN_LowBlueLightStr11,
+                  EN_LowBlueLightStr11,
+                  EN_LowBlueLightStr11,
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 23  
+
+                  EN_LowBlueLightStr11,
+                  JA_LowBlueLightStr11,
+                  CT_LowBlueLightStr11,
+                  CS_LowBlueLightStr11,
+                  AR_LowBlueLightStr11,
+              #endif
+1206          #if ENABLE_ERGONOMICS == ON
+                  EN_SmartReminderStr11,
+                  FR_SmartReminderStr11,
+                  GE_SmartReminderStr11,
+                  IT_SmartReminderStr11,
+                  SP_SmartReminderStr11,
+                  PO_SmartReminderStr11,
+                  CZ_SmartReminderStr11,
+                  MA_SmartReminderStr11,
+                  SE_SmartReminderStr11,
+                  RO_SmartReminderStr11,
+                  DU_SmartReminderStr11,
+                  RU_SmartReminderStr11,
+                  SW_SmartReminderStr11,
+                  PR_SmartReminderStr11,
+                  JA_SmartReminderStr11,
+                  CT_SmartReminderStr11,
+                  CS_SmartReminderStr11,
+                  AR_SmartReminderStr11,
+              #endif  
+1226          #if ENABLE_CUSTOMKEY_ANIMATION == ON  
+                  EN_MenuStr11,
+                  FR_MenuStr11,
+                  GE_MenuStr11,
+                  IT_MenuStr11,
+                  SP_MenuStr11,
+                  PO_MenuStr11,
+                  CZ_MenuStr11,
+                  MA_MenuStr11,
+                  SE_MenuStr11,
+                  RO_MenuStr11,
+                  DU_MenuStr11,
+                  RU_MenuStr11,
+                  SW_MenuStr11,
+                  PR_MenuStr11,
+                  JA_MenuStr11,
+                  CT_MenuStr11,
+                  CS_MenuStr11,
+                  AR_MenuStr11,
+              #endif
+1246          #if ENABLE_CUSTOMKEY_CAD == ON 
+                  EN_MenuStr11,
+                  FR_MenuStr11,
+                  GE_MenuStr11,
+                  IT_MenuStr11,
+                  SP_MenuStr11,
+                  PO_MenuStr11,
+                  CZ_MenuStr11,
+                  MA_MenuStr11,
+                  SE_MenuStr11,
+                  RO_MenuStr11,
+                  DU_MenuStr11,
+                  RU_MenuStr11,
+                  SW_MenuStr11,
+                  PR_MenuStr11,
+                  JA_MenuStr11,
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 24  
+
+                  CT_MenuStr11,
+                  CS_MenuStr11,
+                  AR_MenuStr11,
+              #endif
+1266          #if ENABLE_EYE_PROTECT == ON
+                  EN_MenuStr11,
+                  FR_MenuStr11,
+                  GE_MenuStr11,
+                  IT_MenuStr11,
+                  SP_MenuStr11,
+                  PO_MenuStr11,
+                  CZ_MenuStr11,
+                  MA_MenuStr11,
+                  SE_MenuStr11,
+                  RO_MenuStr11,
+                  DU_MenuStr11,
+                  RU_MenuStr11,
+                  SW_MenuStr11,
+                  PR_MenuStr11,
+                  JA_MenuStr11,
+                  CT_MenuStr11,
+                  CS_MenuStr11,
+                  AR_MenuStr11,
+              
+                  EN_MenuStr11,
+                  FR_MenuStr11,
+                  GE_MenuStr11,
+                  IT_MenuStr11,
+                  SP_MenuStr11,
+                  PO_MenuStr11,
+                  CZ_MenuStr11,
+                  MA_MenuStr11,
+                  SE_MenuStr11,
+                  RO_MenuStr11,
+                  DU_MenuStr11,
+                  RU_MenuStr11,
+                  SW_MenuStr11,
+                  PR_MenuStr11,
+                  JA_MenuStr11,
+                  CT_MenuStr11,
+                  CS_MenuStr11,
+                  AR_MenuStr11,
+              #endif
+1305          #if ENABLE_ECO_SENSOR == ON
+                  EN_MenuStr11,
+                  FR_MenuStr11,
+                  GE_MenuStr11,
+                  IT_MenuStr11,
+                  SP_MenuStr11,
+                  PO_MenuStr11,
+                  CZ_MenuStr11,
+                  MA_MenuStr11,
+                  SE_MenuStr11,
+                  RO_MenuStr11,
+                  DU_MenuStr11,
+                  RU_MenuStr11,
+                  SW_MenuStr11,
+                  PR_MenuStr11,
+                  JA_MenuStr11,
+                  CT_MenuStr11,
+                  CS_MenuStr11,
+                  AR_MenuStr11,
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 25  
+
+                   
+                   EN_MenuStr11,
+                   FR_MenuStr11,
+                   GE_MenuStr11,
+                   IT_MenuStr11,
+                   SP_MenuStr11,
+                   PO_MenuStr11,
+                   CZ_MenuStr11,
+                   MA_MenuStr11,
+                   SE_MenuStr11,
+                   RO_MenuStr11,
+                   DU_MenuStr11,
+                   RU_MenuStr11,
+                   SW_MenuStr11,
+                   PR_MenuStr11,
+                   JA_MenuStr11,
+                   CT_MenuStr11,
+                   CS_MenuStr11,
+                   AR_MenuStr11,
+              #endif
+1344              EN_MenuStr11,
+1345              FR_MenuStr11,
+1346              GE_MenuStr11,
+1347              IT_MenuStr11,
+1348              SP_MenuStr11,
+1349              PO_MenuStr11,
+1350              CZ_MenuStr11,
+1351              MA_MenuStr11,
+1352              SE_MenuStr11,
+1353              RO_MenuStr11,
+1354              DU_MenuStr11,
+1355              RU_MenuStr11,
+1356              SW_MenuStr11,
+1357              PR_MenuStr11,
+1358              JA_MenuStr11,
+1359              CT_MenuStr11,
+1360              CS_MenuStr11,
+1361              AR_MenuStr11,
+1362            
+1363               EN_ExitStr11,
+1364               FR_ExitStr11,
+1365               GE_ExitStr11,
+1366               IT_ExitStr11,
+1367               SP_ExitStr11,
+1368               PO_ExitStr11,
+1369               CZ_ExitStr11,
+1370               MA_ExitStr11,
+1371               SE_ExitStr11,
+1372               RO_ExitStr11,
+1373               DU_ExitStr11,
+1374               RU_ExitStr11,
+1375               SW_ExitStr11,
+1376               PR_ExitStr11,
+1377               JA_ExitStr11,
+1378               CT_ExitStr11,
+1379               CS_ExitStr11,
+1380               AR_ExitStr11,  
+1381           };
+1382          
+1383          
+
+
+C51 COMPILER V9.54   OSDINDEX2                                                             01/06/2017 14:57:18 PAGE 26  
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   ----    ----
+   CONSTANT SIZE    =   7779    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

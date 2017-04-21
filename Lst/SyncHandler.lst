@@ -1,0 +1,810 @@
+C51 COMPILER V9.54   SYNCHANDLER                                                           01/06/2017 14:56:39 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE SYNCHANDLER
+OBJECT MODULE PLACED IN .\Bin\SyncHandler.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Sys\SyncHandler.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD;
+                    -.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NVT
+                    -\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_25
+                    -60X1440,FLASH_BANK=8) PRINT(.\Lst\SyncHandler.lst) TABS(2) OBJECT(.\Bin\SyncHandler.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          
+  14          //******************************************************************************
+  15          // M A C R O   D E F I N I T I O N S
+  16          //******************************************************************************
+  17          #define SYNC_CHANGE_CNT     10
+  18          
+  19          //******************************************************************************
+  20          // G L O B A L   V A R I A B L E S
+  21          //******************************************************************************
+  22          xdata UCHAR ucInputSyncMode = SEP_SYNC;
+  23          
+  24          code UCHAR SyncSrcTbl[] = {
+  25          #if (INPUT_INTERFACE&INPUT_VGA1)
+                  ANALOG_SEP_INPUT1,
+                  ANALOG_COM_INPUT1,
+                  ANALOG_SOG_INPUT1,
+              #endif
+  30          #if (INPUT_INTERFACE&INPUT_VGA0)
+                  ANALOG_SEP_INPUT0,
+                  ANALOG_COM_INPUT0,
+                  ANALOG_SOG_INPUT0,
+              #endif
+  35          #if (INPUT_INTERFACE&INPUT_DIG3)
+  36              DIGITAL_INPUT3,
+  37          #endif
+  38          #if (INPUT_INTERFACE&INPUT_DIG2)
+  39              DIGITAL_INPUT2,
+  40          #endif
+  41          #if (INPUT_INTERFACE&INPUT_DIG1)
+  42              DIGITAL_INPUT1,
+  43          #endif
+  44          #if (INPUT_INTERFACE&INPUT_DIG0)
+                  DIGITAL_INPUT0,
+              #endif
+  47          #if (INPUT_INTERFACE&INPUT_YPbPr1)
+                  ANALOG_YPBPR_INPUT1,
+              #endif
+  50          #if (INPUT_INTERFACE&INPUT_YPbPr0)
+                  ANALOG_YPBPR_INPUT0,
+              #endif
+C51 COMPILER V9.54   SYNCHANDLER                                                           01/06/2017 14:56:39 PAGE 2   
+
+  53          #if (INPUT_INTERFACE&INPUT_DP)
+  54              DISPLAY_PORT_INPUT,
+  55          #endif
+  56          #if (INPUT_INTERFACE&INPUT_DP1)
+                  DISPLAY_PORT_INPUT1,
+              #endif
+  59          #if (INPUT_INTERFACE&INPUT_DP2)
+                  DISPLAY_PORT_INPUT2,
+              #endif
+  62          #if (INPUT_INTERFACE&INPUT_DP3)
+                  DISPLAY_PORT_INPUT3,
+              #endif
+  65          };
+  66          
+  67          //******************************************************************************
+  68          // S T A T I C   V A R I A B L E S
+  69          //******************************************************************************
+  70          static xdata UCHAR ucSyncHdlrState = SEP_SYNC; //Sync handler state
+  71          static xdata UCHAR ucSyncSrcIdx = 0; //Sync source table index
+  72          static xdata UCHAR ucSyncChangeCnt = SYNC_CHANGE_CNT; //Mode change delay
+  73          static xdata USHRT usPortTimer_1ms = 0; //Port delay when changing input port
+  74          static BOOL bManualSyncSource = FALSE; //Make SyncSource searching input sync automatically or manually
+  75          static xdata USHRT usTimerTickTemp = 0;
+  76          static xdata USHRT usTMDSClock = 0;
+  77          static xdata USHRT usTMDSHrtlDE = 0;
+  78          static xdata USHRT usTMDSVrtlDE = 0;
+  79          #if ENABLE_HDMI == ON
+  80          static xdata USHRT usTMDSHtotal = 0;
+  81          static xdata USHRT usTMDSVtotal = 0;
+  82          #endif
+  83          static xdata UCHAR ucRecordSyncSrcIdx = 0xFF; //Sync source table index
+  84          
+  85          //******************************************************************************
+  86          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  87          //******************************************************************************
+  88          
+  89          //******************************************************************************
+  90          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  91          //******************************************************************************
+  92          static UCHAR SyncSource(void);
+  93          static void SetModeChanged(void);
+  94          static UCHAR GetSameInput(void);
+  95          static UCHAR GetNextInput(void);
+  96          static void UpdateSyncSrcIdx(void);
+  97          static USHRT GetSyncSourceTimer(void);
+  98          
+  99          //******************************************************************************
+ 100          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+ 101          //******************************************************************************
+ 102          
+ 103          //******************************************************************************
+ 104          // F U N C T I O N   B O D Y S
+ 105          //******************************************************************************
+ 106          
+ 107          //******************************************************************************
+ 108          // Prototype: 
+ 109          //  void SyncHandler(void)
+ 110          // Parameters:
+ 111          //  None
+ 112          // Return:
+ 113          //  None
+ 114          // Purpose:
+C51 COMPILER V9.54   SYNCHANDLER                                                           01/06/2017 14:56:39 PAGE 3   
+
+ 115          //  Handle input sync
+ 116          // Notes:
+ 117          //  None
+ 118          //******************************************************************************
+ 119          void SyncHandler(void)
+ 120          {
+ 121   1          switch (ucSyncHdlrState) {
+ 122   2              case NO_SYNC:
+ 123   2              case NO_CABLE:
+ 124   2              case UNKNOWN_SYNC:
+ 125   2                  ucSyncHdlrState = SyncSource();
+ 126   2                  ucInputSyncMode = ucSyncHdlrState;
+ 127   2                  usTMDSClock = TMDS_GetClock();
+ 128   2      
+ 129   2                  // The following "get DE" function must be after SyncSource!
+ 130   2                  // Because of some TMDS setting in SyncSource may affect HDE/VDE value and will cause infinite
+             -ly mode changed.
+ 131   2      #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INT
+             -ERFACE&INPUT_DP3)
+ 132   2                  if ((GetCurrInputInterface() == DISPLAY_PORT_INPUT) || (GetCurrInputInterface() == DISPLAY_POR
+             -T_INPUT1)
+ 133   2                   || (GetCurrInputInterface() == DISPLAY_PORT_INPUT2) || (GetCurrInputInterface() == DISPLAY_PO
+             -RT_INPUT3)) {
+ 134   3                      usTMDSHrtlDE = GetDPInputHDEImmediate();
+ 135   3                      usTMDSVrtlDE = GetDPInputVDEImmediate();
+ 136   3                  }
+ 137   2                  else
+ 138   2      #endif
+ 139   2                  {
+ 140   3              #if ENABLE_HDMI == ON
+ 141   3                      usTMDSHtotal = GetDigInputHTotalImmediate();
+ 142   3                      usTMDSVtotal = GetDigInputVTotalImmediate();
+ 143   3              #endif
+ 144   3                      usTMDSHrtlDE = GetDigInputHActiveImmediate();
+ 145   3                      usTMDSVrtlDE = GetDigInputVActiveImmediate();
+ 146   3                  }
+ 147   2                  break;
+ 148   2      
+ 149   2              case SEP_SYNC:
+ 150   2              case COM_SYNC:
+ 151   2              case SOG_SYNC:
+ 152   2              case DIG_SYNC:
+ 153   2                  if (CheckModeChange() == TRUE) { 
+ 154   3              McuScalerIntDisable();
+ 155   3                AudioMuteOn();//lrd add 
+ 156   3                      SetModeChanged();
+ 157   3                  }
+ 158   2                  break;
+ 159   2      
+ 160   2              default:
+ 161   2                  break;
+ 162   2          }
+ 163   1      }
+ 164          
+ 165          //******************************************************************************
+ 166          // Prototype: 
+ 167          //  static BOOL CheckModeChange(void)
+ 168          // Parameters:
+ 169          //  None
+ 170          // Return:
+ 171          //  None
+ 172          // Purpose:
+C51 COMPILER V9.54   SYNCHANDLER                                                           01/06/2017 14:56:39 PAGE 4   
+
+ 173          //  Check input timing was changed or not
+ 174          // Notes:
+ 175          //  None
+ 176          //******************************************************************************
+ 177          BOOL CheckModeChange(void)
+ 178          {
+ 179   1          if (ucSyncHdlrState == DIG_SYNC) {          
+ 180   2      #if 0//ENABLE_HDMI_PRETEST == ON
+              #if (INPUT_INTERFACE&INPUT_DP) || (INPUT_INTERFACE&INPUT_DP1) || (INPUT_INTERFACE&INPUT_DP2) || (INPUT_INT
+             -ERFACE&INPUT_DP3)//CTS
+                      if ((GetCurrInputInterface() != DISPLAY_PORT_INPUT) && (GetCurrInputInterface() != DISPLAY_PORT_IN
+             -PUT1)
+                       && (GetCurrInputInterface() != DISPLAY_PORT_INPUT2) && (GetCurrInputInterface() != DISPLAY_PORT_I
+             -NPUT3))
+              #endif
+                      {
+              #if ((INPUT_INTERFACE&INPUT_MHL_MASK) // CTS
+                          if (!MHL_IsCDSenseFlagOn())
+              #endif
+                          {//not MHL
+                              if ((SC_DVI_CTRL_308 & 0x07) != 0x00) {
+                                  SC_DVI_CTRL_309 |= BIT0;//clear error
+                                  return TRUE;
+                              }
+                          }
+                      }
+              #endif
+ 197   2              if (IsForceToSleep() == TRUE) {
+ 198   3                  ClearModeChangeFlag();
+ 199   3                  TMDS_EnableSCDT();
+ 200   3                  McuScalerIntEnable();
+ 201   3                  // Monitor the variation of TMDS clock under power saving mode
+ 202   3                  if (abs(TMDS_GetClock() - usTMDSClock) > 2) {
+ 203   4                      return TRUE;
+ 204   4                  }
+ 205   3              }
+ 206   2      #if (INPUT_INTERFACE&INPUT_DP)
+ 207   2              else if (GetCurrInputInterface() == DISPLAY_PORT_INPUT) {
+ 208   3                  if (abs(GetDPInputHDEImmediate() - usTMDSHrtlDE) > 2) {
+ 209   4                      return TRUE;
+ 210   4                  }
+ 211   3                  if (abs(GetDPInputVDEImmediate() - usTMDSVrtlDE) > 1) {
+ 212   4                      return TRUE;
+ 213   4                  }
+ 214   3              }
+ 215   2      #endif        
+ 216   2      #if (INPUT_INTERFACE&INPUT_DP1)
+                      else if (GetCurrInputInterface() == DISPLAY_PORT_INPUT1) {
+                          if (abs(GetDPInputHDEImmediate() - usTMDSHrtlDE) > 2) {
+                              return TRUE;
+                          }
+                          if (abs(GetDPInputVDEImmediate() - usTMDSVrtlDE) > 1) {
+                              return TRUE;
+                          }
+                      }
+              #endif        
+ 226   2      #if (INPUT_INTERFACE&INPUT_DP2)
+                      else if (GetCurrInputInterface() == DISPLAY_PORT_INPUT2) {
+                          if (abs(GetDPInputHDEImmediate() - usTMDSHrtlDE) > 2) {
+                              return TRUE;
+                          }
+                          if (abs(GetDPInputVDEImmediate() - usTMDSVrtlDE) > 1) {
+C51 COMPILER V9.54   SYNCHANDLER                                                           01/06/2017 14:56:39 PAGE 5   
+
+                              return TRUE;
+                          }
+                      }
+              #endif        
+ 236   2      #if (INPUT_INTERFACE&INPUT_DP3)
+                      else if (GetCurrInputInterface() == DISPLAY_PORT_INPUT3) {
+                          if (abs(GetDPInputHDEImmediate() - usTMDSHrtlDE) > 2) {
+                              return TRUE;
+                          }
+                          if (abs(GetDPInputVDEImmediate() - usTMDSVrtlDE) > 1) {
+                              return TRUE;
+                          }
+                      }
+              #endif        
+ 246   2             else {
+ 247   3            #if ENABLE_DVI_DUAL_LINK == ON    
+ 248   3            if (!TMDS_IsDualLink())
+ 249   3            #endif  
+ 250   3            {
+ 251   4            
+ 252   4                  // The HDMISoftReset is used to recover the abnormal states of HDMI circuit. When HDMI circuit
+ 253   4                  // is under abnormal states, the H/V total are unstable. So, we monitor H/V total and reset HDMI
+ 254   4                  // circuit when H/V total is unstable.
+ 255   4                    // Monitor the variation of TMDS DE under normal display
+ 256   4                    if (abs(GetDigInputHActiveImmediate() - usTMDSHrtlDE) > 2) {
+ 257   5                        return TRUE;
+ 258   5                    }
+ 259   4                    if (abs(GetDigInputVActiveImmediate() - usTMDSVrtlDE) > 1) {
+ 260   5                        return TRUE;
+ 261   5                    }
+ 262   4      
+ 263   4                  #if ENABLE_HDMI == ON
+ 264   4                    // Monitor the variation of TMDS DE under normal display
+ 265   4                    #if ENABLE_SCALER_3D == ON
+                            if (SC3DAPI_IsActiveSpaceChanged()) {
+                                return TRUE;
+                            }
+                            #endif
+ 270   4                    // The HTotal is unstable when input is deepcolor(e.x. For NT68360 the diff range is 0~10).
+ 271   4                    // For fitting all scaler characteristic, we choose the value of HTotal tolerance as 16.
+ 272   4                    if (abs(GetDigInputHTotalImmediate() - usTMDSHtotal) > 16) {
+ 273   5                        HDMISoftReset();
+ 274   5                        return TRUE;
+ 275   5                    }
+ 276   4                    // The VTotal is unstable when input is interlace format.  we choose the value of VTotal
+ 277   4                    // tolerance as 4.
+ 278   4      #if ENABLE_FREESYNC_HDMI_FUNC == ON
+                              //FreeSync Function do not support interlace timing.
+                              if (bFreeSyncMode == FALSE && (abs(GetDigInputVTotalImmediate() - usTMDSVtotal) > 4)) {
+              #else
+ 282   4                    if (abs(GetDigInputVTotalImmediate() - usTMDSVtotal) > 4) {
+ 283   5      #endif
+ 284   5                        HDMISoftReset();
+ 285   5                        return TRUE;
+ 286   5                    }
+ 287   4                  #endif
+ 288   4                  }
+ 289   3              }
+ 290   2          }
+ 291   1      
+ 292   1      
+ 293   1          if (IsInterlaceSyncPreset()) { //If input is interlaced
+C51 COMPILER V9.54   SYNCHANDLER                                                           01/06/2017 14:56:39 PAGE 6   
+
+ 294   2              if ((SC_GPORT_CTRL & BIT2) == 0x00) {
+ 295   3                  SC_GPORT_CTRL |= BIT2;    
+ 296   3                  return TRUE;
+ 297   3              }
+ 298   2          }
+ 299   1          else {
+ 300   2              if ((SC_GPORT_CTRL & BIT2) != 0x00) {
+ 301   3                  SC_GPORT_CTRL &= ~BIT2;
+ 302   3                  return TRUE;
+ 303   3              }
+ 304   2          }
+ 305   1      
+ 306   1          if (CheckModeChangeFlag() == TRUE) {    
+ 307   2              return TRUE;
+ 308   2          }
+ 309   1      
+ 310   1          return FALSE;
+ 311   1      }
+ 312          
+ 313          //******************************************************************************
+ 314          // Prototype: 
+ 315          //  static UCHAR SyncSource(void)
+ 316          // Parameters:
+ 317          //  None
+ 318          // Return:
+ 319          //  Sync status(NO_SYNC/NO_CABLE/SEP_SYNC/COM_SYNC/SOG_SYNC/DIG_SYNC)
+ 320          // Purpose:
+ 321          //  Check and search input sync in SyncSrcTbl
+ 322          // Notes:
+ 323          //  None
+ 324          //******************************************************************************
+ 325          static UCHAR SyncSource(void)
+ 326          {
+ 327   1          UCHAR sync, next_sync_idx;
+ 328   1      
+ 329   1          //CheckInputSync will return NO_SYNC/SEP_SYNC/COM_SYNC/SOG_SYNC/DIG_SYNC
+ 330   1          sync = CheckInputSync();
+ 331   1      
+ 332   1          if (sync == NO_SYNC) {
+ 333   2              if (bIsCableConnect() == FALSE) {
+ 334   3                  sync = NO_CABLE;
+ 335   3              }
+ 336   2              if (ucSyncChangeCnt > 0) {
+ 337   3                  ucSyncChangeCnt--;
+ 338   3              }
+ 339   2              else {
+ 340   3                  UpdateSyncSrcIdx();
+ 341   3                  usPortTimer_1ms = GetSyncSourceTimer();
+ 342   3                  if (((GetTimerTick()-usTimerTickTemp)<usPortTimer_1ms) || (bManualSyncSource==TRUE)) {
+ 343   4                      next_sync_idx = GetSameInput();
+ 344   4                      //RecordCurrentSource(FALSE);
+ 345   4                      if (ucSyncSrcIdx != next_sync_idx) {
+ 346   5                          ucSyncSrcIdx = next_sync_idx;
+ 347   5                          SetInputInterface(SyncSrcTbl[ucSyncSrcIdx]);
+ 348   5                      }
+ 349   4                  }
+ 350   3                  else {
+ 351   4                      if (ucRecordSyncSrcIdx < sizeof(SyncSrcTbl)) {
+ 352   5                          // Do not change the sequence of the following statements.
+ 353   5                          // Return back to Record source index.
+ 354   5                          next_sync_idx = ucRecordSyncSrcIdx;
+ 355   5                          RecordCurrentSource(FALSE);
+C51 COMPILER V9.54   SYNCHANDLER                                                           01/06/2017 14:56:39 PAGE 7   
+
+ 356   5                      }
+ 357   4                      else {
+ 358   5                      next_sync_idx = GetNextInput();
+ 359   5                      }
+ 360   4                      if (ucSyncSrcIdx != next_sync_idx) {
+ 361   5                          ucSyncSrcIdx = next_sync_idx;
+ 362   5                          SetInputInterface(SyncSrcTbl[ucSyncSrcIdx]);
+ 363   5      #if (ENABLE_DIGI3_HPD == ON) ||(ENABLE_DIGI2_HPD == ON) ||(ENABLE_DIGI1_HPD == ON) || (ENABLE_DIGI0_HPD ==
+             - ON) || (ENABLE_DP_HPD == ON) || (ENABLE_DP1_HPD == ON) || (ENABLE_DP2_HPD == ON) || (ENABLE_DP3_HPD == ON)
+ 364   5                          SYSAPI_PerformHPDOff(FALSE);
+ 365   5      #endif
+ 366   5                      }
+ 367   4                      usTimerTickTemp = GetTimerTick();
+ 368   4                  }
+ 369   3      #if (INPUT_INTERFACE&INPUT_MHL_MASK)
+                          if ( ((SyncSrcTbl[ucSyncSrcIdx]==DIGITAL_INPUT0) && MHLIsCBus1On() ) || ((SyncSrcTbl[ucSyncSrc
+             -Idx]==DIGITAL_INPUT1) &&  MHLIsCBus2On() ) ||
+                         ((SyncSrcTbl[ucSyncSrcIdx]==DIGITAL_INPUT2) && MHLIsCBus1On() ) || ((SyncSrcTbl[ucSyncSrcIdx]==DIGI
+             -TAL_INPUT3) &&  MHLIsCBus2On() )    ) {
+                              if ( GetCbusConnectStatus() == MHL_PATH_EN ) {          
+                                  ResetCurTimerTick();
+                              }
+                          }
+              #endif
+ 377   3              }
+ 378   2          }
+ 379   1      
+ 380   1      #if (ENABLE_DIGI3_HPD == ON) ||(ENABLE_DIGI2_HPD == ON) ||(ENABLE_DIGI1_HPD == ON) || (ENABLE_DIGI0_HPD ==
+             - ON) || (ENABLE_DP_HPD == ON) || (ENABLE_DP1_HPD == ON) || (ENABLE_DP2_HPD == ON) || (ENABLE_DP3_HPD == ON) || (ENABLE_U
+             -SB_TYPE_C == ON)
+ 381   1          if ( sync == UNKNOWN_SYNC) { //need to discuss with Nick&James
+ 382   2              SYSAPI_PerformHPDOn();
+ 383   2          }
+ 384   1          else {
+ 385   2              if (bIsHPDActive() == FALSE) {
+ 386   3                  if (GetGlobalTimer(GLOBAL_TMR_HPD) > 0) {
+ 387   4                      sync = NO_SYNC;
+ 388   4                      if (bIsCableConnect() == FALSE) {
+ 389   5                          sync = NO_CABLE;
+ 390   5                      }
+ 391   4                  }
+ 392   3                  else {
+ 393   4                      SYSAPI_PerformHPDOn();
+ 394   4                  }
+ 395   3              }
+ 396   2          }
+ 397   1      #endif
+ 398   1      
+ 399   1          return sync;
+ 400   1      }
+ 401          
+ 402          //******************************************************************************
+ 403          // Prototype: 
+ 404          //  static void SetModeChanged(void)
+ 405          // Parameters:
+ 406          //  None
+ 407          // Return:
+ 408          //  None
+ 409          // Purpose:
+ 410          //  Set some flags to indicate that input timing was changed
+ 411          // Notes:
+ 412          //  None
+C51 COMPILER V9.54   SYNCHANDLER                                                           01/06/2017 14:56:39 PAGE 8   
+
+ 413          //******************************************************************************
+ 414          static void SetModeChanged(void)
+ 415          {
+ 416   1      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 417   1      #if ENABLE_SCALER_AUDIO == ON
+ 418   1          ScalerAudioPreMute();
+ 419   1      #endif
+ 420   1      #endif
+ 421   1      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 422   1      //Chroma HDMI HDCP on, have snow noise when timing change.
+ 423   1      #if (ENABLE_DIGI3_HPD == ON) ||(ENABLE_DIGI2_HPD == ON) ||(ENABLE_DIGI1_HPD == ON) || (ENABLE_DIGI0_HPD ==
+             - ON)
+ 424   1      {
+ 425   2          UCHAR curr_interface;
+ 426   2          if ((SC_DISPLAY_CHANNEL & BIT7) != 0) {  // 0x159
+ 427   3              curr_interface = GetCurrInputInterface();
+ 428   3              if ((curr_interface == DIGITAL_INPUT0) || (curr_interface == DIGITAL_INPUT1)
+ 429   3              || (curr_interface == DIGITAL_INPUT2) || (curr_interface == DIGITAL_INPUT3)) {
+ 430   4                  SYSAPI_PerformHPDOff(FALSE);// mode change set hot plug Pin off(Low) one time.
+ 431   4                  Sleep(500);
+ 432   4                  SYSAPI_PerformHPDOn();
+ 433   4      #if ENABLE_EMBEDED_TMDS_CLOCK_TRAINING == OFF
+ 434   4                  ClearTMDSTraining();
+ 435   4      #endif
+ 436   4              }
+ 437   3          }
+ 438   2      }
+ 439   1      #endif
+ 440   1      #endif
+ 441   1          Force2Background(0, 0, 0); //Mute screen and display black pattern
+ 442   1          ucSyncHdlrState = NO_SYNC;
+ 443   1          ucInputSyncMode = NO_SYNC;
+ 444   1          ucSyncChangeCnt = SYNC_CHANGE_CNT;
+ 445   1          usPortTimer_1ms = GetSyncSourceTimer();
+ 446   1          usTimerTickTemp = GetTimerTick();
+ 447   1          ClearModeChangeFlag(); //Clear mode change flag
+ 448   1          ClearForceToSleep();
+ 449   1      }
+ 450          
+ 451          //******************************************************************************
+ 452          // Prototype: 
+ 453          //  static UCHAR GetSameInput(void)
+ 454          // Parameters:
+ 455          //  None
+ 456          // Return:
+ 457          //  The sync index in SyncSrcTbl
+ 458          // Purpose:
+ 459          //  Search next input sync belonged to the same input interface in SyncSrcTbl
+ 460          // Notes:
+ 461          //  None
+ 462          //******************************************************************************
+ 463          static UCHAR GetSameInput(void)
+ 464          {
+ 465   1          UCHAR i, j;
+ 466   1      
+ 467   1          for (i=1; i<=sizeof(SyncSrcTbl); i++) {
+ 468   2              j = (ucSyncSrcIdx+i) % sizeof(SyncSrcTbl);
+ 469   2              if ((SyncSrcTbl[j]&PORT_MASK) == (SyncSrcTbl[ucSyncSrcIdx]&PORT_MASK)) {
+ 470   3                  //SyncSrcTbl[j] is the next sync that we found in the same interface.
+ 471   3                  //Ex. Seperate -> Composite -> SOG -> Seperate -> Composite -> ...
+ 472   3                  return j;
+ 473   3              }
+C51 COMPILER V9.54   SYNCHANDLER                                                           01/06/2017 14:56:39 PAGE 9   
+
+ 474   2          }
+ 475   1      
+ 476   1          //Error handling, program should not run to here.
+ 477   1          return ucSyncSrcIdx;
+ 478   1      }
+ 479          
+ 480          //******************************************************************************
+ 481          // Prototype: 
+ 482          //  static UCHAR GetNextInput(void)
+ 483          // Parameters:
+ 484          //  None
+ 485          // Return:
+ 486          //  The sync index in SyncSrcTbl
+ 487          // Purpose:
+ 488          //  Search next input sync belonged to the different input interface in 
+ 489          //  SyncSrcTbl
+ 490          // Notes:
+ 491          //  None
+ 492          //******************************************************************************
+ 493          static UCHAR GetNextInput(void)
+ 494          {
+ 495   1          UCHAR i, j;
+ 496   1      
+ 497   1          for (i=1; i<=sizeof(SyncSrcTbl); i++) {
+ 498   2              j = (ucSyncSrcIdx+i) % sizeof(SyncSrcTbl);
+ 499   2              if ((SyncSrcTbl[j]&PORT_MASK) != (SyncSrcTbl[ucSyncSrcIdx]&PORT_MASK)) {
+ 500   3                  //SyncSrcTbl[j] is the next input interface that we found.
+ 501   3                  //Ex. DSub -> DVI -> HDMI -> DSub -> DVI -> ...
+ 502   3                  return j;
+ 503   3              }
+ 504   2          }
+ 505   1      
+ 506   1          ucSyncSrcIdx = GetSameInput();
+ 507   1          //If we can not find next input in SyncSrcTbl, return current input.
+ 508   1          return ucSyncSrcIdx;
+ 509   1      }
+ 510          
+ 511          //******************************************************************************
+ 512          // Prototype: 
+ 513          //  void SetSyncSource(UCHAR Type)
+ 514          // Parameters:
+ 515          //  Type : AUTO_SYNC/MANUAL_SYNC
+ 516          // Return:
+ 517          //  None
+ 518          // Purpose:
+ 519          //  Make SyncSource searching input sync automatically or manually
+ 520          // Notes:
+ 521          //  None
+ 522          //******************************************************************************
+ 523          void SetSyncSource(UCHAR Type)
+ 524          {
+ 525   1      #if ENABLE_HDMI_PRETEST == ON || ENABLE_AUTO_CONTROL == ON
+                  Type = MANUAL_SYNC;
+              #endif
+ 528   1          if (SystemData.bHDMI_PRETEST == ON) { //工厂优先
+ 529   2              Type = MANUAL_SYNC;
+ 530   2          }
+ 531   1          if (Type == AUTO_SYNC) {
+ 532   2              bManualSyncSource = FALSE;
+ 533   2          }
+ 534   1          else {
+ 535   2              bManualSyncSource = TRUE;
+C51 COMPILER V9.54   SYNCHANDLER                                                           01/06/2017 14:56:39 PAGE 10  
+
+ 536   2          }
+ 537   1      }
+ 538          
+ 539          //******************************************************************************
+ 540          // Prototype: 
+ 541          //  static void UpdateSyncSrcIdx(void)
+ 542          // Parameters:
+ 543          //  void
+ 544          // Return:
+ 545          //  None
+ 546          // Purpose:
+ 547          //  Update the variable "ucSyncSrcIdx" if the input interface was changed 
+ 548          //  outside of SyncSource.
+ 549          // Notes:
+ 550          //  None
+ 551          //******************************************************************************
+ 552          static void UpdateSyncSrcIdx(void)
+ 553          {
+ 554   1          UCHAR i, curr_interface;
+ 555   1      
+ 556   1          curr_interface = GetCurrInputInterface();
+ 557   1          for (i=0; i<sizeof(SyncSrcTbl); i++) {
+ 558   2              if (SyncSrcTbl[i] == curr_interface) {
+ 559   3                  ucSyncSrcIdx = i;
+ 560   3                  return;
+ 561   3              }
+ 562   2          }
+ 563   1      }
+ 564          
+ 565          //******************************************************************************
+ 566          // Prototype: 
+ 567          //  static USHRT GetSyncSourceTimer(void)
+ 568          // Parameters:
+ 569          //  void
+ 570          // Return:
+ 571          //  The time out timer of changing input port
+ 572          // Purpose:
+ 573          //  Set set timer to change input port
+ 574          // Notes:
+ 575          //  None
+ 576          //******************************************************************************
+ 577          static USHRT GetSyncSourceTimer(void)
+ 578          {
+ 579   1          UCHAR curr_interface;
+ 580   1          USHRT time = 0;
+ 581   1      
+ 582   1          curr_interface = GetCurrInputInterface();
+ 583   1      
+ 584   1          switch (curr_interface) {
+ 585   2              case ANALOG_SEP_INPUT0:
+ 586   2              case ANALOG_COM_INPUT0:
+ 587   2              case ANALOG_SOG_INPUT0:
+ 588   2              case ANALOG_YPBPR_INPUT0:
+ 589   2                  time = SYNCSRC_TIME_ANALOG0;
+ 590   2                  break;
+ 591   2      
+ 592   2              case DIGITAL_INPUT0:
+ 593   2      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 594   2      #if (INPUT_INTERFACE&INPUT_MHL0)
+                          if (MHL_Is_CDSense1_IO_HIGH()) {
+                              time = SYNCSRC_TIME_DIGITAL0 + 5000;
+                          }
+C51 COMPILER V9.54   SYNCHANDLER                                                           01/06/2017 14:56:39 PAGE 11  
+
+                          else
+              #endif
+ 600   2      #endif
+ 601   2                  time = SYNCSRC_TIME_DIGITAL0;
+ 602   2                  break;
+ 603   2      
+ 604   2              case ANALOG_SEP_INPUT1:
+ 605   2              case ANALOG_COM_INPUT1:
+ 606   2              case ANALOG_SOG_INPUT1:
+ 607   2              case ANALOG_YPBPR_INPUT1:
+ 608   2                  time = SYNCSRC_TIME_ANALOG1;
+ 609   2                  break;
+ 610   2      
+ 611   2              case DIGITAL_INPUT1:
+ 612   2      #if IS_NT68810_SERIES || IS_NT68870_SERIES
+ 613   2      #if (INPUT_INTERFACE&INPUT_MHL1)
+                          if (MHL_Is_CDSense2_IO_HIGH()) {
+                              time = SYNCSRC_TIME_DIGITAL1 + 5000;
+                          }
+                          else
+              #endif
+ 619   2      #endif
+ 620   2                  time = SYNCSRC_TIME_DIGITAL1;
+ 621   2                  break;
+ 622   2      #if (INPUT_INTERFACE&INPUT_DIG2)
+ 623   2              case DIGITAL_INPUT2:
+ 624   2      #if IS_NT68870_SERIES
+ 625   2      #if (INPUT_INTERFACE&INPUT_MHL2)
+                    if (MHL_Is_CDSense1_IO_HIGH()) {
+                      time = SYNCSRC_TIME_DIGITAL2 + 5000;
+                    }
+                    else
+              #endif
+ 631   2      #endif      
+ 632   2                  time = SYNCSRC_TIME_DIGITAL2;
+ 633   2                  break;
+ 634   2      #endif
+ 635   2      #if (INPUT_INTERFACE&INPUT_DIG3)
+ 636   2              case DIGITAL_INPUT3:
+ 637   2      #if IS_NT68870_SERIES
+ 638   2      #if (INPUT_INTERFACE&INPUT_MHL3)
+                    if (MHL_Is_CDSense2_IO_HIGH()) {
+                      time = SYNCSRC_TIME_DIGITAL3 + 5000;
+                    }
+                    else
+              #endif
+ 644   2      #endif      
+ 645   2                  time = SYNCSRC_TIME_DIGITAL3;
+ 646   2                  break;
+ 647   2      #endif
+ 648   2      #if (INPUT_INTERFACE&INPUT_DP)
+ 649   2              case DISPLAY_PORT_INPUT:
+ 650   2      #if ENABLE_USB_TYPE_C == ON
+                          if (IsUSBCCConnect()) {
+                              time = SYNCSRC_TIME_DP + 5000;
+                          }
+                          else
+              #endif        
+ 656   2                  time = SYNCSRC_TIME_DP;
+ 657   2                  break;
+ 658   2      #endif
+ 659   2      #if (INPUT_INTERFACE&INPUT_DP1)
+C51 COMPILER V9.54   SYNCHANDLER                                                           01/06/2017 14:56:39 PAGE 12  
+
+                      case DISPLAY_PORT_INPUT1:
+                          time = SYNCSRC_TIME_DP1;
+                          break;
+              #endif
+ 664   2      #if (INPUT_INTERFACE&INPUT_DP2)
+                      case DISPLAY_PORT_INPUT2:
+                          time = SYNCSRC_TIME_DP2;
+                          break;
+              #endif
+ 669   2      #if (INPUT_INTERFACE&INPUT_DP3)
+                      case DISPLAY_PORT_INPUT3:
+                          time = SYNCSRC_TIME_DP3;
+                          break;
+              #endif
+ 674   2              default:
+ 675   2                  time = SYNCSRC_TIME_ANALOG0;
+ 676   2                  break;
+ 677   2          }
+ 678   1      
+ 679   1          return time;
+ 680   1      }
+ 681          
+ 682          //******************************************************************************
+ 683          // Prototype: 
+ 684          //  UCHAR GetSyncMode(void)
+ 685          // Parameters:
+ 686          //  None
+ 687          // Return:
+ 688          //  NO_SYNC/NO_CABLE/SEP_SYNC/COM_SYNC/SOG_SYNC/DIG_SYNC/OUT_SYNC
+ 689          // Purpose:
+ 690          //  Return system sync state
+ 691          // Notes:
+ 692          //  None
+ 693          //******************************************************************************
+ 694          UCHAR GetInputSyncMode(void)
+ 695          {
+ 696   1          return ucInputSyncMode;
+ 697   1      }
+ 698          
+ 699          #if (INPUT_INTERFACE&INPUT_MHL_MASK) || (ENABLE_DP_HPD == ON) || (ENABLE_DP1_HPD == ON)
+ 700          #if !lrd_dis
+              //******************************************************************************
+              // Prototype: 
+              //  void ResetCurTimerTick(void)
+              // Parameters:
+              //  None
+              // Return:
+              //  None
+              // Purpose:
+              //  Reset Change-port timer (used for MHL)
+              // Notes:
+              //  None
+              //******************************************************************************
+              void ResetCurTimerTick(void)
+              {
+                  ucSyncChangeCnt = SYNC_CHANGE_CNT;
+                  usPortTimer_1ms = GetSyncSourceTimer();
+                  usTimerTickTemp = GetTimerTick();
+              }
+              #endif
+ 720          #endif
+ 721          
+C51 COMPILER V9.54   SYNCHANDLER                                                           01/06/2017 14:56:39 PAGE 13  
+
+ 722          //******************************************************************************
+ 723          // Prototype:
+ 724          //  void RecordCurrentSource(UCHAR enable)
+ 725          // Parameters:
+ 726          //  enable : TRUE/FALSE
+ 727          //  TRUE: Record current source index.
+ 728          //  FALSE: clear Record source index.
+ 729          // Return:
+ 730          //  None
+ 731          // Purpose:
+ 732          //  Determine whether to record current sync source or not
+ 733          // Notes:
+ 734          //  @Param TRUE : only use to manual change input source
+ 735          //******************************************************************************
+ 736          void RecordCurrentSource(UCHAR enable)
+ 737          {
+ 738   1          if (enable) {
+ 739   2              // We use UpdateSyncSrcIdx to make sure the range of ucSyncSrcIdx is valid or not.
+ 740   2              // P.S. When system AC on, ucSyncSrcIdx is 0. That is invalid for ucRecordSyncSrcIdx.
+ 741   2              UpdateSyncSrcIdx();
+ 742   2              ucRecordSyncSrcIdx = ucSyncSrcIdx;
+ 743   2          }
+ 744   1          else {
+ 745   2              ucRecordSyncSrcIdx = 0xFF;
+ 746   2          }
+ 747   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1025    ----
+   CONSTANT SIZE    =      4    ----
+   XDATA SIZE       =     19       5
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

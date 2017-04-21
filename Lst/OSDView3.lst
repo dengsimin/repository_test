@@ -1,0 +1,36 @@
+C51 COMPILER V9.54   OSDVIEW3                                                              01/06/2017 14:57:07 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE OSDVIEW3
+OBJECT MODULE PLACED IN .\Bin\OSDView3.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE App\OSD\OSDView3.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD
+                    -;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NV
+                    -T\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_2
+                    -560X1440,FLASH_BANK=8) PRINT(.\Lst\OSDView3.lst) TABS(2) OBJECT(.\Bin\OSDView3.obj)
+
+line level    source
+
+   1          #include "Include.h"
+   2          
+   3          #if OSDTYPE == OSD_BENQ
+              #include "OSD_BENQ/OSDView3.c"
+              #elif OSDTYPE == OSD_BENQ_V1
+              #include "OSD_BENQ_V1/OSDView3.c"
+              #elif OSDTYPE == OSD_BENQ_V2
+   8          #include "OSD_BENQ_V2/OSDView3.c"
+   9          #endif
+*** WARNING C291 IN LINE 1155 OF App\OSD\OSDView3.c: not every exit path returns a value
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   5555    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     27      16
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       2
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

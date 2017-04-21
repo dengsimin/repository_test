@@ -1,0 +1,565 @@
+C51 COMPILER V9.54   DBCAPI                                                                01/06/2017 14:56:55 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DBCAPI
+OBJECT MODULE PLACED IN .\Bin\DBCAPI.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Lib\NT68810 Series\DBCAPI.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;
+                    -.\App\OSD;.\App\User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\
+                    -Phy\SI\NVT\Keypad;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODUL
+                    -E,LVIEW_2560X1440,FLASH_BANK=8) PRINT(.\Lst\DBCAPI.lst) TABS(2) OBJECT(.\Bin\DBCAPI.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "include.h"
+  13          
+  14          #if ENABLE_DBC == ON
+  15          
+  16          //******************************************************************************
+  17          // M A C R O   D E F I N I T I O N S
+  18          //******************************************************************************
+  19          
+  20          //******************************************************************************
+  21          // G L O B A L   V A R I A B L E S
+  22          //******************************************************************************
+  23          
+  24          //******************************************************************************
+  25          // S T A T I C   V A R I A B L E S
+  26          //******************************************************************************
+  27          
+  28          //******************************************************************************
+  29          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+  30          //******************************************************************************
+  31          
+  32          //******************************************************************************
+  33          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+  34          //******************************************************************************
+  35          
+  36          //******************************************************************************
+  37          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+  38          //******************************************************************************
+  39          
+  40          //******************************************************************************
+  41          // F U N C T I O N   B O D Y S
+  42          //******************************************************************************
+  43          
+  44          /**************************************************************************//**
+  45           * Enable DBC function
+  46           ******************************************************************************/
+  47          void DBCAPI_EnableDBC(void)
+  48          {
+  49   1          WaitDisVSync();
+  50   1          SC_DBC_CTRL |= BIT0;
+  51   1      
+  52   1      #if ENABLE_SCALER_LEDDRV_ANA_MODE == ON
+C51 COMPILER V9.54   DBCAPI                                                                01/06/2017 14:56:55 PAGE 2   
+
+                  SC_VREF_VOLTAGE_MODE3 = 0x0D;//0xE24
+              #endif
+  55   1      }
+  56          
+  57          /**************************************************************************//**
+  58           * Disable DBC function
+  59           ******************************************************************************/
+  60          void DBCAPI_DisableDBC(void)
+  61          {
+  62   1          WaitDisVSync();
+  63   1          SC_DBC_CTRL &= ~BIT0;
+  64   1          
+  65   1      #if ENABLE_SCALER_LEDDRV_ANA_MODE == ON
+                  SC_VREF_VOLTAGE_MODE3 = 0x0C;//0xE24
+              #endif    
+  68   1      }
+  69          
+  70          /**************************************************************************//**
+  71           * Load DBC LUT to scaler
+  72           * @param ptab pointer to DBC LUT
+  73           ******************************************************************************/
+  74          void DBCAPI_LoadTable(DBCTab *ptab)
+  75          {
+  76   1          USHRT i;
+  77   1          
+  78   1      #if DBC_TABLE_GENERATION == 1
+                  SC_DBC_INDEX_PORT = 0x10;
+                  for (i = 0; i <= 511; i++) {
+                      SC_DBC_INDEX_DATA = ptab->ucYGrayToLum[i];
+                  }
+              #elif DBC_TABLE_GENERATION == 2
+  84   1          SC_DBC_INDEX_PORT = 0x10;
+  85   1          for (i = 0; i <= 511; i=i+4) {
+  86   2              SC_DBC_INDEX_DATA = ptab->ucYGrayToLum[i];
+  87   2          }
+  88   1      #else
+                  SC_DBC_INDEX_PORT = 0x10;
+                  for (i = 0; i <= 255; i++) {
+                      SC_DBC_INDEX_DATA = ptab->ucYGrayToLum[i];
+                  }
+                  SC_DBC_INDEX_PORT = 0x20;
+                  for (i = 0; i <= 255; i++) {
+                      SC_DBC_INDEX_DATA = ptab->ucPWMToLum[i];
+                  }
+                  SC_DBC_INDEX_PORT = 0x30;
+                  for (i = 0; i <= 255; i++) {
+                      SC_DBC_INDEX_DATA = ptab->ucPWMToMult[i];
+                  }
+              #endif
+ 102   1          SC_DBC_INDEX_PORT = 0x00;
+ 103   1      }
+ 104          
+ 105          /**************************************************************************//**
+ 106           * Configure PWM port and frequency
+ 107           * @param freq PWM frequency of DBC. We limit the frequency to 60Hz ~ 11KHz
+ 108           * @param div  Dividor of DBC PWM
+ 109           ******************************************************************************/
+ 110          void DBCAPI_ConfigPWM(USHRT freq, UCHAR div)
+ 111          {
+ 112   1          ULONG total_div;
+ 113   1      
+ 114   1          // Limit the PWM frequency from 60Hz to 11KHz for keeping the number of 
+C51 COMPILER V9.54   DBCAPI                                                                01/06/2017 14:56:55 PAGE 3   
+
+ 115   1          // adjustment steps as 1024.
+ 116   1          if (freq > 11000) {
+ 117   2              freq = 11000; 
+ 118   2          }
+ 119   1          if (freq < 60) {
+ 120   2              freq = 60; 
+ 121   2          }
+ 122   1      
+ 123   1          SC_DBC_CTRL &= ~BIT2;
+ 124   1      
+ 125   1          total_div = (float)REF_CLK / freq - 0.5;
+ 126   1          total_div = total_div / 1024;
+ 127   1      
+ 128   1          div <<= 6;
+ 129   1          SC_DBC_PWM_DIV1 = (SC_DBC_PWM_DIV1 & BIT5) | 0x1A | div;
+ 130   1          SC_DBC_PWM_DIV2 = (UCHAR)total_div;
+ 131   1          SC_DBC_PWM_DUTY = 0xFF;
+ 132   1      
+ 133   1          // Force DBC prior to Gamma
+ 134   1          SC_DBC_POSITION |= BIT0;
+ 135   1      }
+ 136          
+ 137          /**************************************************************************//**
+ 138           * Enable DBC PWM control
+ 139           * @param port Assign DBC output port
+ 140           ******************************************************************************/
+ 141          void DBCAPI_EnableDBCPWM(UCHAR port, UCHAR pin)
+ 142          {
+ 143   1      #if ENABLE_SCALER_LEDDRV == ON   
+                  if(DBCAPI_AbruptChange_IsEnable()){
+                    SC_LEDDIMMING_CTRL &= ~BIT7;
+                    SC_PWMA_CTRL1|=(BIT6|BIT3);
+                    }
+                  else {
+              #if ENABLE_SCALER_LEDDRV_ANA_MODE == ON
+                   SC_LEDDIMMING_CTRL &= ~BIT7;
+              #else 
+                   SC_LEDDIMMING_CTRL |= BIT7;
+              #endif
+                  }
+                  SC_DBC_PWM_CTRL |= BIT7;
+                  
+              #if ENABLE_SCALER_LEDDRV_ANA_MODE == ON
+              //Only use the DBC Offset mode
+                  SC_DBC_PWM_CTRL &= ~(BIT5|BIT6);
+                  SC_DBC_PWM_CTRL |= BIT6; 
+              #endif
+              
+              #else
+ 164   1          switch (pin) {
+ 165   2              case DBC_PIN_PWM_1:
+ 166   2      #if IS_NT68810_SERIES
+                          SC_MCU_IO_CTRL3 &= ~(BIT7|BIT6);
+                          SC_MCU_IO_CTRL3 |= BIT7;
+              #else
+ 170   2                  SC_MCU_IO_CTRL8 &= ~(BIT7|BIT6);
+ 171   2                  SC_MCU_IO_CTRL8 |= BIT7;
+ 172   2      #endif
+ 173   2                  break;
+ 174   2                  /*
+ 175   2              case DBC_PIN_PWM_2:
+ 176   2                  SC_MCU_IO_CTRL1 &= ~(BIT7|BIT6);
+C51 COMPILER V9.54   DBCAPI                                                                01/06/2017 14:56:55 PAGE 4   
+
+ 177   2                  SC_MCU_IO_CTRL1 |= BIT7;
+ 178   2                  break;
+ 179   2              case DBC_PIN_PWM_3:
+ 180   2                  SC_MCU_IO_CTRL1 &= ~(BIT5|BIT4);
+ 181   2                  SC_MCU_IO_CTRL1 |= BIT5;        
+ 182   2                  break;
+ 183   2              case DBC_PIN_PWM_4:
+ 184   2                  SC_MCU_IO_CTRL3 &= ~(BIT7|BIT6);
+ 185   2                  SC_MCU_IO_CTRL3 |= BIT7;
+ 186   2                  break;
+ 187   2              case DBC_PIN_PWM_5:
+ 188   2                  SC_MCU_IO_CTRL3 &= ~(BIT7|BIT6);
+ 189   2                  SC_MCU_IO_CTRL3 |= BIT7;
+ 190   2                  break;
+ 191   2                  */
+ 192   2              default:
+ 193   2                  return;
+ 194   2          }
+ 195   1          SC_DBC_PWM_CTRL |= BIT7;
+ 196   1      #endif
+ 197   1         port = 0;
+ 198   1         pin = 0;
+ 199   1      }
+ 200          
+ 201          /**************************************************************************//**
+ 202           * Disable DBC PWM control
+ 203           * @param port Assign DBC output port
+ 204           ******************************************************************************/
+ 205          void DBCAPI_DisableDBCPWM(UCHAR port, UCHAR pin)
+ 206          {
+ 207   1      #if ENABLE_SCALER_LEDDRV==ON
+                  SC_DBC_PWM_CTRL &= ~BIT7;
+                  SC_LEDDIMMING_CTRL &= ~BIT7;
+                  SC_PWMA_CTRL1&=~(BIT6|BIT3);
+              #else
+ 212   1          switch (pin) {
+ 213   2              case DBC_PIN_PWM_1:
+ 214   2      #if IS_NT68810_SERIES
+                          SC_MCU_IO_CTRL3 &= ~(BIT7|BIT6);
+                          SC_MCU_IO_CTRL3 |= BIT6; 
+              #else
+ 218   2                  SC_MCU_IO_CTRL8 &= ~(BIT7|BIT6);
+ 219   2                  SC_MCU_IO_CTRL8 |= BIT6; 
+ 220   2      #endif
+ 221   2                  break;
+ 222   2                  /*
+ 223   2              case DBC_PIN_PWM_2:
+ 224   2                  SC_MCU_IO_CTRL1 &= ~(BIT7|BIT6);
+ 225   2                  SC_MCU_IO_CTRL1 |= BIT6;
+ 226   2                  break;
+ 227   2              case DBC_PIN_PWM_3:
+ 228   2                  SC_MCU_IO_CTRL1 &= ~(BIT5|BIT4);
+ 229   2                  SC_MCU_IO_CTRL1 |= BIT4;        
+ 230   2                  break;
+ 231   2              case DBC_PIN_PWM_4:
+ 232   2                  SC_MCU_IO_CTRL3 &= ~(BIT7|BIT6);
+ 233   2                  SC_MCU_IO_CTRL3 |= BIT6; 
+ 234   2                  break;
+ 235   2              case DBC_PIN_PWM_5:
+ 236   2                  SC_MCU_IO_CTRL3 &= ~(BIT7|BIT6);
+ 237   2                  SC_MCU_IO_CTRL3 |= BIT6; 
+ 238   2                  break;
+C51 COMPILER V9.54   DBCAPI                                                                01/06/2017 14:56:55 PAGE 5   
+
+ 239   2                  */
+ 240   2              default:
+ 241   2                  return;
+ 242   2          }
+ 243   1          SC_DBC_PWM_CTRL &= ~BIT7;
+ 244   1      #endif
+ 245   1          port = 0;
+ 246   1          pin = 0;
+ 247   1      }
+ 248          
+ 249          /**************************************************************************//**
+ 250           * Set DBC saving ratio
+ 251           * @param mode Saving ratio mode
+ 252           ******************************************************************************/
+ 253          void DBCAPI_SetSavingRatio(UCHAR ratio1, UCHAR ratio2)
+ 254          {
+ 255   1          SC_DBC_AVERAGE_MODE = (ratio2<<4) | ratio1;  //0x441 DBC Average Saving Mode
+ 256   1      }
+ 257          
+ 258          /**************************************************************************//**
+ 259           * Set PWM adjustment rate and step size
+ 260           * @param rate DBC control adjustment rate. The range is 0 ~ 15.
+ 261           * @param step DBC control adjustment step size. The range is 0 ~ 15.
+ 262           ******************************************************************************/
+ 263          void DBCAPI_SetPWMAdjustment(UCHAR rate, UCHAR step)
+ 264          {
+ 265   1          SC_DBC_ADJ = ((rate & 0x0F) << 4);
+ 266   1          SC_DBC_ADJ |= step & 0x0F;
+ 267   1      }
+ 268          
+ 269          /**************************************************************************//**
+ 270           * Set the polarity of DBC PWM
+ 271           * @param inv Invert PWM polarity
+ 272           ******************************************************************************/
+ 273          void DBCAPI_SetPWMInvert(BOOL inv)
+ 274          {
+ 275   1          if (inv) {
+ 276   2              SC_DBC_PWM_DIV1 |= BIT5;
+ 277   2          }
+ 278   1          else {
+ 279   2              SC_DBC_PWM_DIV1 &= ~BIT5;
+ 280   2          }
+ 281   1      }
+ 282          
+ 283          /**************************************************************************//**
+ 284           * Enable RGB compensation
+ 285           ******************************************************************************/
+ 286          void DBCAPI_EnableRGBCompensation(void)
+ 287          {
+ 288   1          SC_DBC_CTRL |= BIT1;
+ 289   1      }
+ 290          
+ 291          /**************************************************************************//**
+ 292           * Disable RGB compensation
+ 293           ******************************************************************************/
+ 294          void DBCAPI_DisableRGBCompensation(void)
+ 295          {
+ 296   1          SC_DBC_CTRL &= ~BIT1;
+ 297   1      }
+ 298          
+ 299          /**************************************************************************//**
+ 300           * Set the allowable distortion
+C51 COMPILER V9.54   DBCAPI                                                                01/06/2017 14:56:55 PAGE 6   
+
+ 301           * @param distort The allowable distortion
+ 302           ******************************************************************************/
+ 303          void DBCAPI_SetDistortion(UCHAR distort)
+ 304          {
+ 305   1          SC_DBC_PWM_CTRL = (SC_DBC_PWM_CTRL & 0xF0) | (distort & 0x0F);
+ 306   1      #if ENABLE_SCALER_LEDDRV_ANA_MODE == ON
+              //Only use the DBC offset mode
+                  SC_DBC_PWM_CTRL &= ~(BIT5|BIT6);
+                  SC_DBC_PWM_CTRL |= BIT6; 
+              #endif
+ 311   1      }
+ 312          
+ 313          /**************************************************************************//**
+ 314           * Enable abrupt change function
+ 315           * @param thd Threshold of difference of current frame and previous frame. Range is 0 ~ 15.
+ 316           ******************************************************************************/
+ 317          void DBCAPI_EnableAbruptChange(UCHAR thd)
+ 318          {
+ 319   1          SC_DBC_CTRL = (SC_DBC_CTRL & 0x0F) | ((thd & 0x0F) << 4);
+ 320   1          SC_DBC_CTRL |= BIT3;
+ 321   1      }
+ 322          
+ 323          /**************************************************************************//**
+ 324           * Set abrupt change step function
+ 325           * @param step Abrupt step. Range is 0 ~ 3.
+ 326           ******************************************************************************/
+ 327          void DBCAPI_SetAbruptStep(UCHAR step)
+ 328          {
+ 329   1          SC_DBC_POSITION &= 0x9F;
+ 330   1        SC_DBC_POSITION |= (step<<5);
+ 331   1      }
+ 332          
+ 333          /**************************************************************************//**
+ 334           * Set abrupt change mode function
+ 335           * @param step Abrupt Mode. mode is 0 ~ 1.
+ 336           ******************************************************************************/
+ 337          void DBCAPI_SetAbruptMode(UCHAR mode)
+ 338          {
+ 339   1          SC_DBC_POSITION &= 0xEF;
+ 340   1        SC_DBC_POSITION |= (mode<<4);
+ 341   1      }
+ 342          
+ 343          /**************************************************************************//**
+ 344           * Disable abrupt change function
+ 345           ******************************************************************************/
+ 346          void DBCAPI_DisableAbruptChange(void)
+ 347          {
+ 348   1          SC_DBC_CTRL &= ~BIT3;
+ 349   1      }
+ 350          
+ 351          #if 0//!IS_NT68770_SERIES && !IS_NT68850_SERIES && !IS_NT68655_SERIES && !IS_NT68150_SERIES && !IS_NT68790
+             -_SERIES && !IS_NT68658_SERIES
+              /**************************************************************************//**
+               * Get active PWM duty.
+               * @return Active PWM duty.
+               ******************************************************************************/
+              UCHAR DBCAPI_GetActPWM(void)
+              {
+                  return SC_DBC_PWM_ACT;
+              }
+              #endif
+ 361          
+C51 COMPILER V9.54   DBCAPI                                                                01/06/2017 14:56:55 PAGE 7   
+
+ 362          #if ENABLE_DBC == ON && ENABLE_DBC_HW_DEBOUNCE == OFF
+              /**************************************************************************//**
+               * Get average Y of current display
+               * @return Average Y of current image.
+               ******************************************************************************/
+              UCHAR DBCAPI_GetAverageY(void)
+              {
+                  return SC_DBC_AVG_Y;
+              }
+              
+              /**************************************************************************//**
+               * Get the effect color value of current display
+               * @return Effective color value
+               ******************************************************************************/
+              UCHAR DBCAPI_GetEffectiveColor(void)
+              {
+                  return SC_EFFECTIVE_COLOR_VALUE;
+              }
+              #endif
+ 381          
+ 382          /**************************************************************************//**
+ 383           * Set minimum and maximum PWM duty
+ 384           * @param min Set minimum PWM duty. The range is 0 ~ 255.
+ 385           * @param max Set maximum PWM duty. The range is 0 ~ 255.
+ 386           ******************************************************************************/
+ 387          void DBCAPI_SetDBCMinMax(UCHAR min, UCHAR max)
+ 388          {
+ 389   1      #if 1//(IS_NT68655_SERIES || IS_NT68770_SERIES || IS_NT68850_SERIES )
+ 390   1      #if ENABLE_SCALER_LEDDRV_ANA_MODE == ON
+                  max = (USHRT)GetLEDCurrentlimit()*max/255;
+                  min = (USHRT)GetLEDCurrentlimit()*max/255;
+              #endif        
+ 394   1          SC_DBC_PWM_OFFSET = max; //v07_121030_1800_SYS#1
+ 395   1          SC_DBC_PWM_MIN = min;
+ 396   1      #else
+                  UCHAR duty_div;
+                  USHRT duty_range;
+                  USHRT min_duty, max_duty;
+                  UCHAR offset;
+                  
+                  if (max < min) return;
+                  
+                  duty_div   = ((SC_DBC_PWM_DIV1 >> 6) + 1);
+                  duty_range = (USHRT)duty_div * 256 - 1;
+              
+                  min_duty = (ULONG)min * 1019 / 255 + 4;
+                  max_duty = (ULONG)max * 1019 / 255 + 4;
+                  
+                  if (max_duty >= duty_range) {
+                      offset = (max_duty - duty_range) / 4;
+                  }
+                  else {
+                      offset = (1024 + max_duty - duty_range) / 4;
+                  }
+                  
+                  // Force the difference of max_duty and min_duty is smaller than duty_range
+                  if ((min_duty + duty_range) < max_duty)
+                      min_duty = max_duty - duty_range;
+              
+                  min = (min_duty + duty_range - max_duty) / duty_div;
+              
+                  SC_DBC_PWM_OFFSET = offset;
+C51 COMPILER V9.54   DBCAPI                                                                01/06/2017 14:56:55 PAGE 8   
+
+                  SC_DBC_PWM_MIN = min;
+              
+                  if (min > DBCAPI_GetActPWM())  {
+                      max = SC_DBC_AVERAGE_MODE;
+                      SC_DBC_AVERAGE_MODE &= 0xF8;
+                      WaitDisVSync();
+                      SC_DBC_AVERAGE_MODE = max;
+                  }
+              #endif
+ 433   1      }
+ 434          
+ 435          #if ENABLE_DBC_HW_DEBOUNCE == ON
+ 436          /**************************************************************************//**
+ 437           * Set De-bouncing Mode
+ 438           * @param Bounce 0=off, 1:2, 2:4, 3:6, 4:10.
+ 439           ******************************************************************************/
+ 440          void DBCAPI_SetDebouncingMode(UCHAR Bounce1, UCHAR Bounce2)
+ 441          {
+ 442   1          SC_DBC_DEBOUNCINT_MODE = (Bounce2<<4) | Bounce1;    //0x442 DBC De-bouncing Mode
+ 443   1      }
+ 444          
+ 445          #endif
+ 446          
+ 447          /**************************************************************************//**
+ 448           * Set Non-Linear Gain Slop
+ 449           * @param 
+ 450           ******************************************************************************/
+ 451          void DBCAPI_SetNLGain(UCHAR Gain)
+ 452          {
+ 453   1          SC_DBC_POSITION &= 0xF1;
+ 454   1          SC_DBC_POSITION |= (Gain<<1);
+ 455   1      }
+ 456          
+ 457          /*
+ 458          void DBCAPI_EnableNLGain()
+ 459          {
+ 460              SC_DBC_NON_LINEAR_GAIN_CTRL |= BIT0;
+ 461          }
+ 462          */
+ 463          
+ 464          void DBCAPI_DisableNLGain()
+ 465          {
+ 466   1          SC_DBC_NON_LINEAR_GAIN_CTRL &= ~BIT0;
+ 467   1      }
+ 468          
+ 469          void DBCAPI_SetNLGainBreak(UCHAR BrkGain, UCHAR BrkGainRef)
+ 470          {
+ 471   1          SC_DBC_NON_LINEAR_GAIN_CTRL = (SC_DBC_NON_LINEAR_GAIN_CTRL&0x01) | (BrkGain<<3) | (BrkGainRef<<1);
+ 472   1      }
+ 473          
+ 474          void DBCAPI_SetLUTGray2PWMLim(UCHAR Lim)
+ 475          {
+ 476   1          SC_DBC_PWM_LUT_LIM = Lim;
+ 477   1      }
+ 478          
+ 479          void DBCAPI_SetLUTGray2GainLim(UCHAR Lim)
+ 480          {
+ 481   1          SC_DBC_GRAY_LUT_LIM = Lim;
+ 482   1      }
+ 483          
+ 484          void DBCAPI_SetLUTRef(UCHAR mode)
+ 485          {
+C51 COMPILER V9.54   DBCAPI                                                                01/06/2017 14:56:55 PAGE 9   
+
+ 486   1          SC_DBC_EXT_CTRL = (SC_DBC_EXT_CTRL&0xBF) | (mode<<6);
+ 487   1      }
+ 488          
+ 489          #if DBC_TABLE_GENERATION != 0
+ 490          /**************************************************************************//**
+ 491           * Set LUT point of gray to PWM limit control
+ 492           * @param limit LUT limit point
+ 493           ******************************************************************************/
+ 494          void DBCAPI_SetGray2PwmLim(UCHAR limit)
+ 495          {
+ 496   1          SC_DBC_PWM_LUT_LIM = limit;
+ 497   1      }
+ 498          
+ 499          /**************************************************************************//**
+ 500           * Set LUT point of gray to gain limit control
+ 501           * @param limit LUT limit point
+ 502           ******************************************************************************/
+ 503          void DBCAPI_SetGray2GainLim(UCHAR limit)
+ 504          {
+ 505   1          SC_DBC_GRAY_LUT_LIM = limit;
+ 506   1      }
+ 507          #endif
+ 508          
+ 509          #if ENABLE_SCALER_LEDDRV == ON
+              /**************************************************************************//**
+               * return if abrupt change function is enable or not
+               ******************************************************************************/
+              BOOL DBCAPI_AbruptChange_IsEnable(void)
+              {
+                  if( (SC_DBC_CTRL & BIT3) && (SC_DBC_POSITION &(BIT6|BIT5))==0 )
+                    return TRUE;
+                  else
+                    return FALSE;
+              }
+              #endif
+ 521          
+ 522          #endif //ENABLE_DBC == ON
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    562    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----       8
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

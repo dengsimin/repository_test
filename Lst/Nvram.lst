@@ -1,0 +1,1702 @@
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE NVRAM
+OBJECT MODULE PLACED IN .\Bin\Nvram.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE Sys\Nvram.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\App;.\App\OSD;.\App\
+                    -User;.\Lib;.\Lib\NT68810 Series;.\Lib\ScalerCfg;.\Phy\Panel;.\Phy\SI\NVT\Board;.\Phy\SI\NVT\Component;.\Phy\SI\NVT\Keypa
+                    -d;.\Sys;.\Sys\SI\NVT;.\Phy\SI\NVT\Keypad\NT68870_MODULE_KEYPAD) DEFINE(SCALER_TYPE=NT68870,NT68870_MODULE,LVIEW_2560X144
+                    -0,FLASH_BANK=8) PRINT(.\Lst\Nvram.lst) TABS(2) OBJECT(.\Bin\Nvram.obj)
+
+line level    source
+
+   1          /******************************************************************************/
+   2          /*                       Novatek MicroElectronics Corp.                       */
+   3          /*       6F, No. 1-2, Innovation Road I, Science-Based Industrial Park,       */
+   4          /*                         HsinChu 300, Taiwan, R.O.C.                        */
+   5          /*                 TEL:886-3-567-0889       FAX:886-3-577-0132                */
+   6          /*                            All Rights Reserved                             */
+   7          /******************************************************************************/
+   8          
+   9          //******************************************************************************
+  10          // I N C L U D E   F I L E S
+  11          //******************************************************************************
+  12          #include "Include.h"
+  13          
+  14          //******************************************************************************
+  15          // M A C R O   D E F I N I T I O N S
+  16          //******************************************************************************
+  17          
+  18          //******************************************************************************
+  19          // G L O B A L   V A R I A B L E S
+  20          //******************************************************************************
+  21          /*!
+  22           * Default value of user data.
+  23           */
+  24          code NvramUserData UserDataDefault = {
+  25              0x00, //UCHAR bICare : 1;
+  26              0x01, //UCHAR bPowerStatus : 1;
+  27              0x00, //UCHAR bOSDLock : 1;
+  28              0x01, //UCHAR bDDCCI : 1;
+  29              0x00, //UCHAR bAudioMute : 1;
+  30              0x01, //UCHAR bGammaOnOff : 1;
+  31              0x00, //UCHAR bDCRMode : 1;
+  32              DEF_DBCMode, //UCHAR bDBCMode : 1;
+  33              0x00, //UCHAR bLDOnOff : 1;
+  34          #if ENABLE_HDMI_PRETEST == ON || ENABLE_AUTO_CONTROL == ON
+                  0x00, //UCHAR bAutoSyncSource : 1;
+                  0x00, //UCHAR bPIPAutoSyncSource : 1;
+              #else
+  38              DEFAULT_AUTOSORUCE, //UCHAR bAutoSyncSource : 1;
+  39              0x00, //UCHAR bPIPAutoSyncSource : 1;
+  40          #endif
+  41          #if ENABLE_AUTO_POVIT_FUNC == ON      
+                  0x01, //UCHAR bAutoPivot : 1;
+              #endif
+  44              0x00, //UCHAR bOSDRotation : 1;
+  45              0x00, //UCHAR bOverScan : 1;
+  46              0x01, //UCHAR bSOGOverScan : 1; 
+  47          #if ENABLE_DUAL_370 == OFF
+  48              0x00, //UCHAR bDPSpeed : 1;
+  49          #else
+                  0x01, //UCHAR bDPSpeed : 1;
+              #endif
+  52              0x00, //UCHAR ucDCRMode;
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 2   
+
+  53              0x00,//UCHAR bBrightFrame : 1;
+  54              0x00,//UCHAR bDemo : 1;
+  55              0x00,//UCHAR bAutoDetect : 1;
+  56              0x00,//UCHAR bFullEnhance : 1;
+  57              0x00,//UCHAR bNatureSkin : 1;
+  58              0x00,//UCHAR bGreenEnhance : 1;
+  59              0x00,//UCHAR bBlueEnhance : 1;
+  60              0x00,//UCHAR bAutoConfig : 1;
+  61              0x00,//UCHAR bClearVisionDemo : 1;
+  62              0x00,//UCHAR bPowerKeyLock : 1;
+  63              0x01,//UCHAR bHDMIAudioSelect : 1
+  64              0x01,//UCHAR bSRS3D: 1;
+  65          #if ENABLE_DUAL_370
+                  0x00,//    UCHAR bPIPSWAP : 1;
+              #endif    
+  68          #if TPV_DP_VERSION_SELECT == ON
+  69              DP_1_2,//UCHAR bDPversion:1;
+  70          #endif
+  71              DEFAULT_SensEyeDemo,//UCHAR bSensEyeDemo : 1
+  72              COLOR_YUV,//UCHAR bColorFormat : 1        
+  73              ON,//UCHAR bHDMIAutoSwitch : 1
+  74              DEFAULT_DPAUTOSWITCH,//UCHAR bDPAutoSwitch : 1    
+  75              ON, //UCHAR bResNotice : 1    
+  76              OFF,//UCHAR bSmartReminder : 1;  
+  77              0x00, //bSeviceMenu :1
+  78          #if ENABLE_EYE_PROTECT == ON
+                  OFF,//UCHAR bEyePortect : 1;
+                  OFF,//UCHAR bEyeProtectMeter : 1;
+              #endif   
+  82          #if ENABLE_ECO_SENSOR == ON                                       
+                  OFF,    //UCHAR bECOSensor : 1;
+                  OFF,    //UCHAR bECOSensorMeter : 1;
+                  0x02,//ECO_SENSOR_RANGE_FAR,   //UCHAR ucSensorRange
+              #endif    
+  87              DEFAULT_COLOR_AUTO,
+  88          #if ENABLE_SMART_SCALING == ON
+                  0x00, //ucSmartScaling;
+              #endif
+  91              0x00, //ucUserDefVideoSource 
+  92              DEFLANG, //UCHAR ucLanguage;  //v31_110902_1150_SYS#1
+  93          #if ENABLE_EYE_PROTECT == ON
+                  0x32, //UCHAR ucEyeProtectBrightness
+              #endif    
+  96              DEF_BRIGHTNESS,//UCHAR ucBrightness;   
+  97              0x64, //UCHAR ucBrightness_sRGB;    
+  98              DEF_BRIGHTNESS_STANDARD, //UCHAR ucBrightness_Standard;
+  99              MAXBRI_LBL_MULTIMEDIA,//0x64, //UCHAR ucBrightness_LBL_Mult;
+ 100              MAXBRI_LBL_WEB_SURFING, //UCHAR ucBrightness_LBL_Web;    
+ 101              MAXBRI_LBL_OFFICE,//0x24,//0x64, //UCHAR ucBrightness_LBL_Office;
+ 102              MAXBRI_LBL_READING, //UCHAR ucBrightness_LBL_Read;
+ 103          #if ENABLE_PICTURE_MODE_MOVIE == ON                           
+ 104              0x64, //UCHAR ucBrightness_Movie;
+ 105          #endif
+ 106          #if ENABLE_PICTURE_MODE_GAME == ON                    
+ 107              0x64, //UCHAR ucBrightness_Game;    
+ 108          #endif    
+ 109          #if ENABLE_PICTURE_MODE_PHOTO== ON                    
+ 110              0x64, //UCHAR ucBrightness_Photo;   
+ 111          #endif  
+ 112              
+ 113              0x64, //UCHAR ucBrightness_USER;
+ 114              0x64, //UCHAR ucBrightness_MBOOK;
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 3   
+
+ 115          #if ENABLE_PICTURE_MODE_ANIMATION == ON            
+ 116              0x64, //UCHAR ucBrightness_Animation;
+ 117          #endif
+ 118          #if ENABLE_PICTURE_MODE_CAD == ON    
+ 119              DEF_BRIGHTNESS_CAD, //UCHAR ucBrightness_CAD;
+ 120          #endif
+ 121          #if ENABLE_PRESENTATION_MODE == ON        
+                  0x64, //UCHAR ucBrightness_Presentation;    
+              #endif    
+ 124          #if ENABLE_PICTURE_MODE_REC709 == ON                                   
+ 125              DEF_BRIGHTNESS_REC709, //ucBrightness_Rec709;
+ 126          #endif  
+ 127          #if ENABLE_PICTURE_MODE_DARKROOM == ON                                   
+ 128              DEF_BRIGHTNESS_DARKROOM, //ucBrightness_DarkRoom;
+ 129          #endif  
+ 130              DEF_CONTRAST, //UCHAR ucContrast;
+ 131              0x32, //UCHAR ucContrast_sRGB;
+ 132              0x32, //UCHAR ucContrast_Standard;
+ 133              0x32, //UCHAR ucContrast_LBL_Mult;
+ 134              0x32, //UCHAR ucContrast_LBL_Web;    
+ 135              0x32, //UCHAR ucContrast_LBL_Office;
+ 136              0x32, //UCHAR ucContrast_LBL_Read;
+ 137          #if ENABLE_PICTURE_MODE_MOVIE == ON                               
+ 138              0x32, //UCHAR ucContrast_Movie;
+ 139          #endif
+ 140          #if ENABLE_PICTURE_MODE_GAME == ON                           
+ 141              0x32, //UCHAR ucContrast_Game;  
+ 142          #endif
+ 143          #if ENABLE_PICTURE_MODE_PHOTO == ON                           
+ 144              0x32, //UCHAR ucContrast_Photo;
+ 145          #endif    
+ 146              0x32, //UCHAR ucContrast_USER;
+ 147              0x32, //UCHAR ucContrast_MBOOK;
+ 148          #if ENABLE_PICTURE_MODE_ANIMATION == ON                
+ 149              0x32, //UCHAR ucContrast_Animation;
+ 150          #endif
+ 151          #if ENABLE_PICTURE_MODE_CAD == ON    
+ 152              0x32, //UCHAR ucContrast_CAD;
+ 153          #endif
+ 154          #if ENABLE_PRESENTATION_MODE == ON        
+                  0x32, //UCHAR ucContrast_Presentation;
+              #endif 
+ 157              PICTURE_DUALMODE_SRGB,//ucDualViewMode
+ 158          #if ENABLE_PICTURE_MODE_REC709 == ON                                   
+ 159              0x32, //ucContrast_Rec709;
+ 160          #endif  
+ 161          #if ENABLE_PICTURE_MODE_DARKROOM == ON                                   
+ 162              0x32, //ucContrast_DarkRoom;
+ 163          #endif
+ 164              0x00, //UCHAR ucDynamicContrast;
+ 165              DEF_OSDTimer, //UCHAR ucOSDTimer;
+ 166              DEF_OSDPosX, //UCHAR ucOSDX;
+ 167              DEF_OSDPosY, //UCHAR ucOSDY;
+ 168              DEF_OSDTRANSPARENT, //UCHAR ucOSDTransparent;
+ 169              0x1E, //UCHAR ucVolume;
+ 170              DEFAULT_COLORTEMP, //UCHAR ucColorTemp;
+ 171              DEFAULT_COLORTEMP_SRGB,//UCHAR ucColorTemp_sRGB;    
+ 172              DEFAULT_COLORTEMP_STANDARD,//UCHAR ucColorTemp_Standard;
+ 173              DEFAULT_COLORTEMP_LBL_MULT,//UCHAR ucColorTemp_LBL_Mult;
+ 174              DEFAULT_COLORTEMP_LBL_WEB,//UCHAR ucColorTemp_LBL_Web;    
+ 175              DEFAULT_COLORTEMP_LBL_OFFICE,//UCHAR ucColorTemp_LBL_Office;
+ 176              DEFAULT_COLORTEMP_LBL_READ,//UCHAR ucColorTemp_LBL_Read;
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 4   
+
+ 177          #if ENABLE_PICTURE_MODE_MOVIE == ON                                   
+ 178              DEFAULT_COLORTEMP_MOVIE,//UCHAR ucColorTemp_Movie;
+ 179          #endif
+ 180          #if ENABLE_PICTURE_MODE_GAME == ON                         
+ 181              DEFAULT_COLORTEMP_GAME,//UCHAR ucColorTemp_Game;    
+ 182          #endif
+ 183          #if ENABLE_PICTURE_MODE_PHOTO== ON                               
+ 184              DEFAULT_COLORTEMP_PHOTO,//UCHAR ucColorTemp_Photo;    
+ 185          #endif
+ 186              DEFAULT_COLORTEMP_USER,//UCHAR ucColorTemp_USER;
+ 187              DEFAULT_COLORTEMP_MBOOK,//UCHAR ucColorTemp_MBOOK;
+ 188          #if ENABLE_PICTURE_MODE_ANIMATION == ON        
+ 189              DEFAULT_COLORTEMP_ANIMATION,//UCHAR ucColorTemp_Animation;
+ 190          #endif
+ 191          #if ENABLE_PICTURE_MODE_CAD == ON
+ 192              DEFAULT_COLORTEMP_CAD,//UCHAR ucColorTemp_CAD;
+ 193          #endif
+ 194          #if ENABLE_PRESENTATION_MODE == ON    
+                  DEFAULT_COLORTEMP_PRESENTATION,//UCHAR ucColorTemp_Presentation;        
+              #endif
+ 197          #if ENABLE_PICTURE_MODE_REC709 == ON                                   
+ 198              DEFAULT_COLORTEMP_REC709,//UCHAR ucColorTemp_Rec709;
+ 199          #endif  
+ 200          #if ENABLE_PICTURE_MODE_DARKROOM == ON                                   
+ 201              DEFAULT_COLORTEMP_DARKROOM,//UCHAR ucColorTemp_DarkRoom;
+ 202          #endif 
+ 203              DEF_UserRGain, //UCHAR ucUserRGain;
+ 204              DEF_UserRGain, //UCHAR ucUserGGain;
+ 205              DEF_UserRGain, //UCHAR ucUserBGain;
+ 206              0x32, //UCHAR ucUserROffset;
+ 207              0x32, //UCHAR ucUserGOffset;
+ 208              0x32, //UCHAR ucUserBOffset;
+ 209              DSP_SIZE_FULL, //UCHAR ucAspectRatio;
+ 210              DSP_SIZE_FULL, //UCHAR ucAspectRatio_VGADVIDP;
+ 211              DSP_SIZE_FULL, //UCHAR ucAspectRatio_HDMI
+ 212              DEFAULT_OD, //UCHAR ucODMode;
+ 213              DEFAULT_OD_SRGB,//UCHAR ucODMode_sRGB;    
+ 214              DEFAULT_OD_STANDARD,//UCHAR ucODMode_Standard;
+ 215              DEFAULT_OD_LBL_MULT,//UCHAR ucODMode_LBL_Mult;
+ 216              DEFAULT_OD_LBL_WEB,//UCHAR ucODMode_LBL_Web;    
+ 217              DEFAULT_OD_LBL_OFFICE,//UCHAR ucODMode_LBL_Office;
+ 218              DEFAULT_OD_LBL_READ,//UCHAR ucODMode_LBL_Read;
+ 219          #if ENABLE_PICTURE_MODE_MOVIE == ON                                   
+ 220              DEFAULT_OD_MOVIE,//UCHAR ucODMode_Movie;
+ 221          #endif
+ 222          #if ENABLE_PICTURE_MODE_GAME == ON                         
+ 223              DEFAULT_OD_GAME,//UCHAR ucODMode_Game;    
+ 224          #endif
+ 225          #if ENABLE_PICTURE_MODE_PHOTO== ON                               
+ 226              DEFAULT_OD_PHOTO,//UCHAR ucODMode_Photo;    
+ 227          #endif
+ 228              DEFAULT_OD_USER,//UCHAR ucODMode_USER;
+ 229              DEFAULT_OD_MBOOK,//UCHAR ucODMode_MBOOK;
+ 230          #if ENABLE_PICTURE_MODE_ANIMATION == ON        
+ 231              DEFAULT_OD_ANIMATION,//UCHAR ucODMode_Animation;
+ 232          #endif
+ 233          #if ENABLE_PICTURE_MODE_CAD == ON
+ 234              DEFAULT_OD_CAD,//UCHAR ucODMode_CAD;
+ 235          #endif
+ 236          #if ENABLE_PRESENTATION_MODE == ON    
+                  DEFAULT_OD_PRESENTATION,//UCHAR ucODMode_Presentation;        
+              #endif
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 5   
+
+ 239          #if ENABLE_PICTURE_MODE_REC709 == ON                                   
+ 240              DEFAULT_OD_REC709,//UCHAR ucODMode_Rec709;
+ 241          #endif  
+ 242          #if ENABLE_PICTURE_MODE_DARKROOM == ON                                   
+ 243              DEFAULT_OD_DARKROOM,//UCHAR ucODMode_DarkRoom;
+ 244          #endif  
+ 245              
+ 246          #if ENABLE_AUTO_CONTROL == ON
+                  CE_OFF, //UCHAR ucBFMode;
+              #else
+ 249              PICTURE_MODE_STANDARD, //UCHAR ucBFMode;
+ 250          #endif
+ 251          #if ENABLE_HDMI_PRETEST == ON
+                  MODEL_INPUT_DIG1,//MODEL_INPUT_DIG0: HDMI MODEL_INPUT_DIG1:DP MODEL_INPUT_DIG2:DVI
+                  0x00, //PIPType
+                  0x00,
+                  MODEL_INPUT_VGA0,
+              #else
+ 257              DEFAULT_INPUTSOURCE, //UCHAR ucInputSource;
+ 258              0x00, //UCHAR ucAOCPIPPosition;
+ 259              0x00, //UCHAR ucPIPMode;
+ 260              MODEL_INPUT_DIG0, //UCHAR ucPIPInputSrc;
+ 261          #endif
+ 262              DEFAULT_GAMMA,          //UCHAR ucGammaNum;
+ 263              DEFAULT_GAMMA_SRGB,      //UCHAR ucGammaNum_sRGB;    
+ 264              DEFAULT_GAMMA_STANDARD,  //UCHAR ucGammaNum_Standard;
+ 265              DEFAULT_GAMMA_LBL_MULT,  //UCHAR ucGammaNum_LBL_Mult;
+ 266              DEFAULT_GAMMA_LBL_WEB,   //UCHAR ucGammaNum_LBL_Web;    
+ 267              DEFAULT_GAMMA_LBL_OFFICE,//UCHAR ucGammaNum_LBL_Office;
+ 268              DEFAULT_GAMMA_LBL_READ,  //UCHAR ucGammaNum_LBL_Read;
+ 269          #if ENABLE_PICTURE_MODE_MOVIE == ON                                   
+ 270              DEFAULT_GAMMA_MOVIE,//UCHAR ucGammaNum_Movie;
+ 271          #endif
+ 272          #if ENABLE_PICTURE_MODE_GAME == ON                         
+ 273              DEFAULT_GAMMA_GAME,//UCHAR ucGammaNum_Game;    
+ 274          #endif
+ 275          #if ENABLE_PICTURE_MODE_PHOTO== ON                               
+ 276              DEFAULT_GAMMA_PHOTO,//UCHAR ucGammaNum_Photo;    
+ 277          #endif
+ 278              DEFAULT_GAMMA_USER,//UCHAR ucGammaNum_USER;
+ 279              DEFAULT_GAMMA_MBOOK,//UCHAR ucGammaNum_MBOOK;
+ 280          #if ENABLE_PICTURE_MODE_ANIMATION == ON        
+ 281              DEFAULT_GAMMA_ANIMATION,//UCHAR ucGammaNum_Animation;
+ 282          #endif
+ 283          #if ENABLE_PICTURE_MODE_CAD == ON
+ 284              DEFAULT_GAMMA_CAD,//UCHAR ucGammaNum_CAD;
+ 285          #endif
+ 286          #if ENABLE_PRESENTATION_MODE == ON    
+                  DEFAULT_GAMMA_PRESENTATION,//UCHAR ucGammaNum_Presentation;        
+              #endif
+ 289          #if ENABLE_PICTURE_MODE_REC709 == ON                                   
+ 290              DEFAULT_GAMMA_REC709,//UCHAR ucGammaNum_Rec709;
+ 291          #endif  
+ 292          #if ENABLE_PICTURE_MODE_DARKROOM == ON                                   
+ 293              DEFAULT_GAMMA_DARKROOM,//UCHAR ucGammaNum_DarkRoom;
+ 294          #endif  
+ 295              0x00, //UCHAR ucBF_HP;
+ 296              0x00, //UCHAR ucBF_VP;
+ 297              0x00, //UCHAR ucBF_Size;
+ 298              0x32, //ucBF_Brightness;
+ 299              0x32, //ucBF_Contrast;
+ 300              0x00, //ucECOMode;
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 6   
+
+ 301              0x00, //ucOFFTime;
+ 302              DEF_SHARPNESS,
+ 303              0x05,//UCHAR ucSharpness_sRGB;
+ 304              0x05,//UCHAR ucSharpness_Standard;
+ 305              0x05,//UCHAR ucSharpness_LBL_Mult;
+ 306              0x05,//UCHAR ucSharpness_LBL_Web;    
+ 307              0x05,//UCHAR ucSharpness_LBL_Office;
+ 308              0x05,//UCHAR ucSharpness_LBL_Read;
+ 309          #if ENABLE_PICTURE_MODE_MOVIE == ON                               
+ 310              0x06,//UCHAR ucSharpness_Movie;
+ 311          #endif
+ 312          #if ENABLE_PICTURE_MODE_GAME == ON                          
+ 313              0x07,//UCHAR ucSharpness_Game;
+ 314          #endif
+ 315          #if ENABLE_PICTURE_MODE_PHOTO == ON                           
+ 316              0x07,//UCHAR ucSharpness_Photo;
+ 317          #endif    
+ 318              0x05,//UCHAR ucSharpness_USER;
+ 319              0x05,//UCHAR ucSharpness_MBOOK;
+ 320          #if ENABLE_PICTURE_MODE_ANIMATION == ON    
+ 321              0x05,//UCHAR ucSharpness_Animation;
+ 322          #endif
+ 323          #if ENABLE_PICTURE_MODE_CAD == ON
+ 324              0x05,//UCHAR ucSharpness_CAD;
+ 325          #endif
+ 326          #if ENABLE_PRESENTATION_MODE == ON    
+                  0x05,//UCHAR ucSharpness_Presentation;
+              #endif    
+ 329          #if ENABLE_PICTURE_MODE_REC709 == ON                                   
+ 330              0x05,//ucSharpness_Rec709;
+ 331          #endif  
+ 332          #if ENABLE_PICTURE_MODE_DARKROOM == ON                                   
+ 333              0x05,//ucSharpness_DarkRoom;
+ 334          #endif
+ 335              0x00, //UCHAR ucEView;
+ 336              0x00, //UCHAR ucDCBMode;
+ 337              0x00, //UCHAR ucBrightAdj;
+ 338              INPUT_SC_VGA, //ucUserDefVideo;
+ 339              INPUT_SC_YPbPr, //ucUserDefAudio;
+ 340              0x00,//UCHAR ucPIPsize
+ 341              0x00, //UCHAR ucPIPTrans;
+ 342          #if ENABLE_3D_CNV == ON 
+                  0x00, //uc2DTo3DMode;
+                  0x06, //uc2Dto3DDepth;
+                  0x06, //uc2Dto3DView;
+                  0x00, //uc3DCfg;
+              #endif
+ 348              0x00, //ucSRMode;
+ 349          #if ENABLE_PIP == ON
+                  0x00, // ucPIPSRMode
+              #endif
+ 352              AUDIOSRC_AUTO, //UCHAR ucAudioSelect
+ 353              AUDIOSRC_AUTO, //UCHAR ucDPAudioSelect    
+ 354              AUDIOSRC_AUTO, //UCHAR ucHDMIAudioSelect    
+ 355              0x32, //UCHAR ucHue;
+ 356              0x32, //UCHAR ucSaturation;
+ 357              DEF_CUSTOMKEY1, //UCHAR ucCustomerKey1;
+ 358              DEF_CUSTOMKEY2, //UCHAR ucCustomerKey2;
+ 359              DEF_CUSTOMKEY3, //UCHAR ucCustomerKey3;
+ 360              AUTO_POWER_OFF, //UCHAR ucAutoPowerOffTime;
+ 361              MULTIMEDIA,//UCHAR ucLBLMode
+ 362          #if ENABLE_PICTURE_MODE_ANIMATION == ON
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 7   
+
+ 363              DEF_ANIMATIONMODE,   //UCHAR ucAnimationMode;
+ 364          #endif    
+ 365              ERGO_TIME_20MIN,//UCHAR ucErgoTime;
+ 366              ERGO_DURATION_5SEC,//UCHAR ucErgoDuration;    
+ 367              0xFFFF, //USHRT usCurrModeHactive;
+ 368              0xFFFF, //USHRT usCurrModeVactive;
+ 369              0xFFFF, //USHRT usCurrModeVsync;
+ 370              0xFFFF, //usCurrModeIndex;
+ 371              NVRAM_FIELD_END_FLAG //USHRT usUsrEnd;
+ 372          };
+ 373          
+ 374          /*!
+ 375           * Default value of calibration data.
+ 376           */
+ 377          code NvramCalibData CalibDataDefault = {
+ 378              DEF_ADCRGain, //UCHAR ucADCRGain;
+ 379              DEF_ADCGGain, //UCHAR ucADCGGain;
+ 380              DEF_ADCBGain, //UCHAR ucADCBGain;
+ 381              DEF_ADCROffset, //UCHAR ucADCROffset;
+ 382              DEF_ADCGOffset, //UCHAR ucADCGOffset;
+ 383              DEF_ADCBOffset, //UCHAR ucADCBOffset;
+ 384              0xFF, //UCHAR uc5000KRGain;
+ 385              0xFF, //UCHAR uc5000KGGain;
+ 386              0xF0, //UCHAR uc5000KBGain;
+ 387              DEF_5800KRGain, //UCHAR uc5800KRGain;
+ 388              DEF_5800KGGain, //UCHAR uc5800KGGain;
+ 389              DEF_5800KBGain, //UCHAR uc5800KBGain;    
+ 390              DEF_6500KRGain, //UCHAR uc6500KRGain;
+ 391              DEF_6500KGGain, //UCHAR uc6500KGGain;
+ 392              DEF_6500KBGain, //UCHAR uc6500KBGain;
+ 393              DEF_7500KRGain, //UCHAR uc7500KRGain;
+ 394              DEF_7500KGGain, //UCHAR uc7500KGGain;
+ 395              DEF_7500KBGain, //UCHAR uc7500KBGain;
+ 396              0xF8, //UCHAR uc8200KRGain;
+ 397              0xF8, //UCHAR uc8200KGGain;
+ 398              0xFF, //UCHAR uc8200KBGain;
+ 399              DEF_9300KRGain, //UCHAR uc9300KRGain;
+ 400              DEF_9300KGGain, //UCHAR uc9300KGGain;
+ 401              DEF_9300KBGain, //UCHAR uc9300KBGain;
+ 402              0xF0, //UCHAR uc11500KRGain;
+ 403              0xF0, //UCHAR uc11500KGGain;
+ 404              0xFF, //UCHAR uc11500KBGain;
+ 405              DEF_sRGBRGain, //UCHAR ucsRGBRGain;
+ 406              DEF_sRGBGGain, //UCHAR ucsRGBGGain;
+ 407              DEF_sRGBBGain, //UCHAR ucsRGBBGain;
+ 408              DEF_VcomValue  , //UCHAR ucVcomValue; 
+ 409          #if ENABLE_NVT_FGA == ON
+                  0,    //UCHAR ucFGADone;
+                  0xAA, //UCHAR ucFGACkSumH;
+                  0x55, //UCHAR ucFGACkSumL;
+              #endif
+ 414              NVRAM_FIELD_END_FLAG //USHRT usCalEnd;
+ 415          };
+ 416          
+ 417          /*!
+ 418           * Default value of system data.
+ 419           */
+ 420          code NvramSystemData SystemDataDefault = {
+ 421            0x01,   //UCHAR bFactory:1;
+ 422              0x01,   //UCHAR bBurnIn : 1;
+ 423              DEF_SHOWLOGO,   //UCHAR bShowLogo : 1;
+ 424              0x01,   //UCHAR bEnableOnOffHPD : 1;
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 8   
+
+ 425              0x00,  //bHDMI_PRETEST:1
+ 426          
+ 427              0x00,  //UCHAR bDemo : 1;
+ 428              0x00,  //UCHAR bDFR: 1;
+ 429              0x00,  //UCHAR bSR: 1;
+ 430              
+ 431              0x00, //UCHAR bClear_EE : 1;
+ 432              0x01, //UCHAR bEDID_WP : 1;
+ 433              0x00, //UCHAR bClear_Timer :1;
+ 434              //For BENQ Service Menu
+ 435              0x01,//UCHAR bHDMI_HPD : 1;
+ 436              0x00,//UCHAR bDP_HPD : 1;
+ 437              0x00,//UCHAR bDVI_HPD : 1;
+ 438              0x01,//UCHAR bAutoPower : 1;
+ 439              0x00,//UCHAR bCable : 1;
+ 440              //For BENQ Service Menu
+ 441              0x13,//UCHAR SN_len;
+ 442              0x49, //UCHAR ucSN0;    
+ 443              0x30, //UCHAR ucSN1;    
+ 444              0x31, //UCHAR ucSN2;    
+ 445              0x32, //UCHAR ucSN3;        
+ 446              0x33, //UCHAR ucSN4;    
+ 447              0x34, //UCHAR ucSN5;    
+ 448              0x35, //UCHAR ucSN6;    
+ 449              0x36, //UCHAR ucSN7;        
+ 450              0x37, //UCHAR ucSN8;    
+ 451              0x38, //UCHAR ucSN9;    
+ 452              0x39, //UCHAR ucSN10;    
+ 453              0x41, //UCHAR ucSN11;    
+ 454              0x42, //UCHAR ucSN12;    
+ 455              0x43, //UCHAR ucSN13;    
+ 456              0x44, //UCHAR ucSN14;    
+ 457              0x45, //UCHAR ucSN15;    
+ 458              0x46, //UCHAR ucSN16;        
+ 459              0x47, //UCHAR ucSN17;    
+ 460              0x48, //UCHAR ucSN18;    
+ 461          
+ 462              0x00,   //UCHAR ucPowerOnTimerM;
+ 463              0x0000, //USHRT usPowerOnTimerH;
+ 464              0x00,   //UCHAR ucMonitorPowerOnTimerM;
+ 465              0x0000, //USHRT usMonitorPowerOnTimerH;    
+ 466              0x00,   //UCHAR ucPOTimerM_FE2P;
+ 467              0x0000, //USHRT usPOTimerH_FE2P;
+ 468              0x00,   //UCHAR ucTimingWriteIdx;
+ 469              FIRMWARE_VER, //USHRT usFirmwareVer;
+ 470              0x55CC, //USHRT usNvramID;
+ 471              0x55AA,//USHRT usProductMode; 
+ 472              0xFFFF, //USHRT usChkSum;
+ 473              NVRAM_USER_ADDR+sizeof(NvramUserData),
+ 474              NVRAM_CALIB_ADDR+sizeof(NvramCalibData),
+ 475              NVRAM_SYSTEM_ADDR+sizeof(NvramSystemData),
+ 476              NVRAM_FIELD_END_FLAG  //USHRT usSysEnd;
+ 477          };
+ 478          
+ 479          //******************************************************************************
+ 480          // S T A T I C   V A R I A B L E S
+ 481          //******************************************************************************
+ 482          
+ 483          
+ 484          #define DefaultEDID OFF
+ 485          
+ 486          #if ENABLE_AUTO_CONTROL == ON||USE_INTERNAL_EDID
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 9   
+
+ 487          #undef DefaultEDID
+ 488          #define DefaultEDID ON
+ 489          #endif
+ 490          
+ 491          #if DefaultEDID == ON
+ 492          static code UCHAR _Default_VGA_EDID[128]={
+ 493          /*1680x1050
+ 494            0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x41,0x0C,0x6F,0x08,0x01,0x00,0x00,0x00,
+ 495            0x07,0x12,0x01,0x03,0x0E,0x2F,0x1D,0x78,0xEE,0xB5,0x05,0xA5,0x56,0x4A,0x9A,0x25,
+ 496            0x12,0x50,0x54,0xBF,0xEF,0x80,0xB3,0x00,0x81,0x80,0x81,0x8F,0x95,0x00,0x95,0x0F,
+ 497            0xB3,0x0F,0xA9,0x40,0xA9,0x4F,0x08,0x39,0x90,0x30,0x62,0x1A,0x27,0x40,0x68,0xB0,
+ 498            0x36,0x00,0xDA,0x28,0x11,0x00,0x00,0x1E,0x00,0x00,0x00,0xFF,0x00,0x43,0x53,0x33,
+ 499            0x30,0x37,0x31,0x35,0x30,0x30,0x30,0x30,0x30,0x31,0x00,0x00,0x00,0xFC,0x00,0x50,
+ 500            0x68,0x69,0x6C,0x69,0x70,0x73,0x20,0x32,0x32,0x30,0x53,0x57,0x00,0x00,0x00,0xFD,
+ 501            0x00,0x38,0x4C,0x1E,0x53,0x11,0x00,0x0A,0x20,0x20,0x20,0x20,0x20,0x20,0x00,0x09,
+ 502          */
+ 503          //1920x1080
+ 504              /*
+ 505              0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x3A,0xD4,0x01,0x27,0x01,0x00,0x00,0x00,
+ 506              0x0A,0x17,0x01,0x03,0x6C,0x2F,0x1A,0x78,0x2A,0xE6,0x15,0xA6,0x55,0x49,0x99,0x27,
+ 507              0x13,0x50,0x54,0x2F,0x6F,0x00,0x71,0x4F,0x81,0x80,0x81,0x8A,0x95,0x00,0x95,0x0F,
+ 508              0xB3,0x00,0xD1,0xC0,0x01,0x01,0x02,0x3A,0x80,0x18,0x71,0x38,0x2D,0x40,0x58,0x2C,
+ 509              0x45,0x00,0xDC,0x0C,0x11,0x00,0x00,0x1E,0x00,0x00,0x00,0xFF,0x00,0x0A,0x20,0x20,
+ 510              0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFD,0x00,0x38,
+ 511              0x4C,0x18,0x53,0x11,0x00,0x0A,0x20,0x20,0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFC,
+ 512              0x00,0x4E,0x56,0x54,0x20,0x44,0x45,0x4D,0x4F,0x0A,0x20,0x20,0x20,0x20,0x00,0xD7,
+ 513              */
+ 514          //2560x1440
+ 515          /*
+ 516              0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x09,0xD1,0xD6,0x78,0x01,0x01,0x01,0x01,
+ 517              0x04,0x18,0x01,0x03,0x0E,0x3C,0x22,0x78,0x2E,0x0C,0xD5,0xA9,0x55,0x4C,0xA1,0x25,
+ 518              0x0D,0x50,0x54,0xA5,0x6F,0x80,0x81,0x80,0x81,0xC0,0x81,0x00,0xA9,0xC0,0xB3,0x00,
+ 519              0xD1,0xC0,0x01,0x01,0x01,0x01,0x8B,0x5B,0x00,0x50,0xA0,0xA0,0x29,0x50,0x08,0x20,
+ 520              0xB8,0x04,0x55,0x50,0x21,0x00,0x00,0x1A,0x00,0x00,0x00,0xFF,0x00,0x0A,0x20,0x20,
+ 521              0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFD,0x00,0x32,
+ 522              0x4C,0x1E,0x53,0x15,0x00,0x0A,0x20,0x20,0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFC,
+ 523              0x00,0x42,0x65,0x6E,0x51,0x20,0x47,0x57,0x32,0x37,0x36,0x35,0x0A,0x20,0x00,0xD9,
+ 524           */
+ 525            0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,
+ 526            
+ 527            0x5A,0x63,0x33,0x16,0x01,0x01,0x01,0x01,
+ 528            
+ 529            0x01,0x1A,0x01,0x03,0x08,0x46,0x27,0x78,
+ 530            
+ 531            0x2E,0xC6,0x73,0xA9,0x54,0x45,0x98,0x22,
+ 532            
+ 533            0x1F,0x4D,0x5D,0xBF,0xEF,0x80,0xB3,0x00,
+ 534            
+ 535            0xA9,0x40,0xA9,0xC0,0x95,0x00,0x90,0x40,
+ 536            
+ 537            0x81,0x80,0x81,0x40,0x01,0x01,0x02,0x3A,
+ 538            
+ 539            0x80,0x18,0x71,0x38,0x2D,0x40,0x58,0x2C,
+ 540            
+ 541            0x45,0x00,0xB1,0x89,0x21,0x00,0x00,0x1E,
+ 542            
+ 543            0x00,0x00,0x00,0xFF,0x00,0x55,0x52,0x39,
+ 544            
+ 545            0x31,0x36,0x30,0x31,0x30,0x30,0x30,0x30,
+ 546            
+ 547            0x31,0x0A,0x00,0x00,0x00,0xFD,0x00,0x32,
+ 548            
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 10  
+
+ 549            0x4B,0x18,0x52,0x12,0x00,0x0A,0x20,0x20,
+ 550            
+ 551            0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFC,
+ 552            
+ 553            0x00,0x56,0x58,0x33,0x32,0x31,0x36,0x20,
+ 554            
+ 555            0x53,0x65,0x72,0x69,0x65,0x73,0x00,0xD9,
+ 556          };
+ 557          
+ 558          static code UCHAR _Default_DVI_EDID[128]={
+ 559          #if 0
+                  0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x09,0xD1,0x27,0x78,0x45,0x54,0x00,0x00,
+                  0x17,0x0E,0x01,0x03,0x80,0x33,0x1D,0x78,0x2E,0xEE,0x95,0xA3,0x54,0x4C,0x99,0x26,
+                  0x0F,0x50,0x54,0xA5,0x6B,0x80,0x61,0xC0,0x81,0xC0,0x81,0x40,0x81,0x80,0x95,0x00,
+                  0xA9,0x40,0xB3,0x00,0xD1,0xC0,0x1A,0x36,0x80,0xA0,0x70,0x38,0x1F,0x40,0x30,0x20,
+                  0x35,0x00,0xFE,0x1F,0x11,0x00,0x00,0x1A,0x00,0x00,0x00,0xFD,0x00,0x32,0x4C,0x1E,
+                  0x5E,0x15,0x00,0x0A,0x20,0x20,0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFC,0x00,0x42,
+                  0x45,0x4E,0x51,0x20,0x47,0x32,0x33,0x32,0x30,0x48,0x44,0x0A,0x00,0x00,0x00,0xFF,
+                  0x00,0x35,0x36,0x34,0x34,0x35,0x36,0x36,0x34,0x35,0x34,0x35,0x0A,0x20,0x00,0x38,
+              #elif 0
+                0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x41,0x0C,0x68,0x08,0x01,0x01,0x01,0x01,
+                0x27,0x13,0x01,0x03,0x80,0x2F,0x1D,0x78,0xEE,0xB5,0x05,0xA5,0x56,0x4A,0x9A,0x25,
+                0x12,0x50,0x54,0xBF,0xEF,0x80,0x95,0x00,0x95,0x0F,0x81,0x8F,0x81,0x80,0xB3,0x00,
+                0xA9,0x80,0x01,0x01,0x01,0x01,0x7C,0x2E,0x90,0xA0,0x60,0x1A,0x1E,0x40,0x30,0x20,
+                0x36,0x00,0xDA,0x28,0x11,0x00,0x00,0x1A,0x00,0x00,0x00,0xFF,0x00,0x44,0x4C,0x33,
+                0x30,0x37,0x34,0x37,0x31,0x39,0x36,0x34,0x30,0x39,0x00,0x00,0x00,0xFC,0x00,0x50,
+                0x68,0x69,0x6C,0x69,0x70,0x73,0x20,0x32,0x32,0x30,0x53,0x57,0x00,0x00,0x00,0xFD,
+                0x00,0x38,0x4C,0x1E,0x53,0x11,0x00,0x0A,0x20,0x20,0x20,0x20,0x20,0x20,0x00,0xD3,
+              #endif
+ 578          //benq 3206Q
+ 579          #if 0 // 0 test //
+              //启动到桌面无信号
+                  0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,
+                  
+                  0x09,0xD1,0x44,0x7B,0x01,0x00,0x00,0x00,
+                  
+                  0x2A,0x1A,0x01,0x03,0x80,0x46,0x27,0x78,
+                  
+                  0xEA,0xCA,0x95,0xA6,0x55,0x4E,0xA1,0x26,
+                  
+                  0x0F,0x50,0x54,0xA5,0x4B,0x80,0x71,0x4F,
+                  
+                  0x81,0x80,0x81,0xC0,0xA9,0xC0,0xB3,0x00,
+                  
+                  0x01,0x01,0x01,0x01,0x01,0x01,0x43,0x5D,
+                  
+                  0x00,0x80,0xA0,0xA0,0x29,0x50,0x20,0x20,
+                  
+                  0x13,0x00,0xA2,0x08,0x32,0x00,0x00,0x18,
+                  
+                  0x00,0x00,0x00,0xFD,0x00,0x38,0x4C,0x1E,
+                  
+                  0x5A,0x18,0x00,0x0A,0x20,0x20,0x20,0x20,
+                  
+                  0x20,0x20,0x00,0x00,0x00,0xFC,0x00,0x56,
+                  
+                  0x57,0x33,0x32,0x30,0x36,0x51,0x0A,0x20,
+                  
+                  0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFF,
+                  
+                  0x00,0x31,0x32,0x33,0x34,0x35,0x36,0x37,
+                  
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 11  
+
+                  0x38,0x39,0x30,0x31,0x32,0x33,0x00,0x13,
+                  
+              #elif 0
+              //开始就无信号然后无法进待机
+                0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,
+                
+                0x09,0xD1,0x44,0x7B,0x01,0x00,0x00,0x00,
+                
+                0x2A,0x1A,0x01,0x03,0x80,0x46,0x27,0x78,
+                
+                0xEA,0xCA,0x95,0xA6,0x55,0x4E,0xA1,0x26,
+                
+                0x0F,0x50,0x54,0xA5,0x4B,0x80,0x71,0x4F,
+                
+                0x81,0x80,0x81,0xC0,0xA9,0xC0,0xB3,0x00,
+                
+                0xD1,0xC0,0x01,0x01,0x01,0x01,0x88,0x5E,
+                
+                0x00,0xA0,0xA0,0xA0,0x29,0x50,0x20,0x20,
+                
+                0x13,0x00,0xA2,0x08,0x32,0x00,0x00,0x1E,
+                
+                0x00,0x00,0x00,0xFD,0x00,0x38,0x4B,0x1E,
+                
+                0x5A,0x18,0x00,0x0A,0x20,0x20,0x20,0x20,
+                
+                0x20,0x20,0x00,0x00,0x00,0xFC,0x00,0x56,
+                
+                0x57,0x33,0x32,0x30,0x36,0x51,0x0A,0x20,
+                
+                0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFF,
+                
+                0x00,0x31,0x32,0x33,0x34,0x35,0x36,0x37,
+                
+                0x38,0x39,0x30,0x31,0x32,0x33,0x00,0x19,
+                
+              #else
+ 648          #if 0
+                //开始就无信号然后无法进待机
+                0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,
+                0x10,0xAC,0x91,0xA0,0x4C,0x55,0x37,0x30,
+                0x34,0x17,0x01,0x03,0x80,0x3C,0x22,0x78,
+                0x8A,0x1D,0xF5,0xAE,0x4F,0x35,0xB3,0x25,
+                0x0D,0x50,0x54,0xA3,0x08,0x00,0x81,0x00,
+                0xB3,0x00,0x71,0x4F,0xA9,0x40,0x81,0x80,
+                0xD1,0xC0,0x01,0x01,0x01,0x01,0x56,0x5E,
+                0x00,0xA0,0xA0,0xA0,0x29,0x50,0x30,0x20,
+                0x35,0x00,0x55,0x50,0x21,0x00,0x00,0x1E,
+                0x00,0x00,0x00,0xFF,0x00,0x43,0x36,0x46,
+                0x30,0x4B,0x33,0x43,0x4E,0x30,0x37,0x55,
+                0x4C,0x0A,0x00,0x00,0x00,0xFC,0x00,0x44,
+                0x56,0x49,0x0A,0x20,0x20,0x20,0x20,0x20,
+                0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFD,
+                0x00,0x31,0x4B,0x1D,0x71,0x02,0x00,0x0A,
+                0x20,0x20,0x20,0x20,0x20,0x20,0x00,0x96,
+              #else
+ 667          0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x09,0xD1,0x44,0x7B,0x01,0x00,0x00,0x00,
+ 668          0x2A,0x1A,0x01,0x03,0x80,0x46,0x27,0x78,0xEA,0xCA,0x95,0xA6,0x55,0x4E,0xA1,0x26,
+ 669          0x0F,0x50,0x54,0xBF,0xCF,0x80,0x71,0x4F,0x81,0x80,0x81,0xC0,0xA9,0xC0,0xB3,0x00,
+ 670          0xD1,0xC0,0x01,0x01,0x01,0x01,0x88,0x5E,0x00,0xA0,0xA0,0xA0,0x29,0x50,0x20,0x20,
+ 671          0x13,0x00,0xA2,0x08,0x32,0x00,0x00,0x1E,0x00,0x00,0x00,0xFD,0x00,0x38,0x4B,0x1E,
+ 672          0x70,0x18,0x00,0x0A,0x20,0x20,0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFC,0x00,0x56,
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 12  
+
+ 673          0x57,0x33,0x32,0x30,0x36,0x51,0x0A,0x20,0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFF,
+ 674          0x00,0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x30,0x31,0x32,0x33,0x00,0x65, 
+ 675          
+ 676          
+ 677          
+ 678          
+ 679          #endif
+ 680          #endif
+ 681          
+ 682          
+ 683          };
+ 684          
+ 685          static code UCHAR _Default_HDMI_EDID[256]={
+ 686          #if 1
+ 687              /*
+ 688              0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x09, 0xD1, 0x25, 0x78, 0x45, 0x54, 0x00, 0x00,       
+             -                        
+ 689              0x24, 0x12, 0x01, 0x03, 0x80, 0x35, 0x1E, 0x78, 0x2E, 0x60, 0x81, 0xA6, 0x56, 0x4A, 0x9C, 0x25,       
+             -                        
+ 690              0x12, 0x50, 0x54, 0xA5, 0x6B, 0x80, 0x71, 0x00, 0x81, 0xC0, 0x81, 0x40, 0x81, 0x80, 0xA9, 0xC0,       
+             -                        
+ 691              0xB3, 0x00, 0xD1, 0xC0, 0x01, 0x01, 0x02, 0x3A, 0x80, 0x18, 0x71, 0x38, 0x2D, 0x40, 0x58, 0x2C,       
+             -                        
+ 692              0x45, 0x00, 0x13, 0x2B, 0x21, 0x00, 0x00, 0x1A, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x30, 0x30, 0x30,       
+             -                        
+ 693              0x30, 0x30, 0x30, 0x30, 0x30, 0x53, 0x4C, 0x30, 0x0A, 0x20, 0x00, 0x00, 0x00, 0xFD, 0x00, 0x32,       
+             -                        
+ 694              0x4C, 0x18, 0x53, 0x11, 0x00, 0x0A, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x00, 0x00, 0x00, 0xFC,       
+             -                        
+ 695              0x00, 0x42, 0x65, 0x6E, 0x51, 0x20, 0x45, 0x57, 0x32, 0x34, 0x33, 0x30, 0x0A, 0x20, 0x01, 0x7B,       
+             -                        
+ 696              0x02, 0x03, 0x22, 0xF1, 0x4F, 0x90, 0x05, 0x04, 0x03, 0x02, 0x01, 0x11, 0x12, 0x13, 0x14, 0x06,       
+             -                        
+ 697              0x07, 0x15, 0x16, 0x1F, 0x23, 0x09, 0x07, 0x07, 0x65, 0x03, 0x0C, 0x00, 0x10, 0x00, 0x83, 0x01,       
+             -                        
+ 698              0x00, 0x00, 0x02, 0x3A, 0x80, 0x18, 0x71, 0x38, 0x2D, 0x40, 0x58, 0x2C, 0x45, 0x00, 0x13, 0x2B,       
+             -                        
+ 699              0x21, 0x00, 0x00, 0x1F, 0x01, 0x1D, 0x80, 0x18, 0x71, 0x1C, 0x16, 0x20, 0x58, 0x2C, 0x25, 0x00,       
+             -                        
+ 700              0x13, 0x2B, 0x21, 0x00, 0x00, 0x9F, 0x01, 0x1D, 0x00, 0x72, 0x51, 0xD0, 0x1E, 0x20, 0x6E, 0x28,       
+             -                        
+ 701              0x55, 0x00, 0x13, 0x2B, 0x21, 0x00, 0x00, 0x1E, 0x8C, 0x0A, 0xD0, 0x8A, 0x20, 0xE0, 0x2D, 0x10,       
+             -                        
+ 702              0x10, 0x3E, 0x96, 0x00, 0x13, 0x2B, 0x21, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,       
+             -                        
+ 703              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xE7,
+ 704              */
+ 705              //2560x1440
+ 706          #if ENABLE_FREESYNC_DEMO == ON
+              0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x05,0xE3,0x6A,0x24,0xB5,0x69,0x0F,0x00,
+              0x08,0x1A,0x01,0x03,0x80,0x35,0x1E,0x78,0x2A,0xF6,0xE5,0xA7,0x53,0x4D,0x99,0x24,
+              0x14,0x50,0x54,0xBF,0xEF,0x00,0xD1,0xC0,0xB3,0x00,0x95,0x00,0x81,0x80,0x81,0x40,
+              0x81,0xC0,0x01,0x01,0x01,0x01,0x02,0x3A,0x80,0x18,0x71,0x38,0x2D,0x40,0x58,0x2C,
+              0x45,0x00,0x13,0x2B,0x21,0x00,0x00,0x1E,0x68,0x42,0x80,0x6A,0x70,0x38,0x27,0x40,
+              0x08,0x20,0x98,0x04,0x13,0x2B,0x21,0x00,0x00,0x1E,0x00,0x00,0x00,0xFD,0x00,0x23,
+              0x4C,0x53,0x53,0x11,0x00,0x0A,0x20,0x20,0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFC,
+              0x00,0x32,0x34,0x36,0x30,0x47,0x35,0x0A,0x20,0x20,0x20,0x20,0x20,0x20,0x01,0x93,
+              0x02,0x03,0x27,0xF1,0x4B,0x10,0x1F,0x05,0x14,0x04,0x13,0x03,0x12,0x02,0x11,0x01,
+              0x23,0x09,0x07,0x07,0x83,0x01,0x00,0x00,0x65,0x03,0x0C,0x00,0x10,0x00,0x68,0x1A,
+              0x00,0x00,0x01,0x01,0x23,0x4C,0x00,0x8C,0x0A,0xD0,0x8A,0x20,0xE0,0x2D,0x10,0x10,
+              0x3E,0x96,0x00,0x13,0x2B,0x21,0x00,0x00,0x18,0x01,0x1D,0x00,0x72,0x51,0xD0,0x1E,
+              0x20,0x6E,0x28,0x55,0x00,0x13,0x2B,0x21,0x00,0x00,0x1E,0x8C,0x0A,0xD0,0x8A,0x20,
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 13  
+
+              0xE0,0x2D,0x10,0x10,0x3E,0x96,0x00,0x13,0x2B,0x21,0x00,0x00,0x18,0x8C,0x0A,0xD0,
+              0x90,0x20,0x40,0x31,0x20,0x0C,0x40,0x55,0x00,0x13,0x2B,0x21,0x00,0x00,0x18,0x00,
+              0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xB5,
+              #else
+ 724          #if 0
+                  0x00,0xff,0xff,0xff,0xff,0xff,0xff,0x00,0x4c,0x2d,0xcb,0x0b,0x31,0x37,0x4c,0x30,
+                  0x2e,0x18,0x01,0x03,0x80,0x47,0x28,0x78,0x2a,0xd6,0x91,0xa7,0x55,0x4e,0xa0,0x25,
+                  0x0c,0x50,0x54,0xbf,0xef,0x80,0x71,0x4f,0x81,0x00,0x81,0xc0,0x81,0x80,0x95,0x00,
+                  0xa9,0xc0,0xb3,0x00,0x01,0x01,0x56,0x5e,0x00,0xa0,0xa0,0xa0,0x29,0x50,0x30,0x20,
+                  0x35,0x00,0xc4,0x8e,0x21,0x00,0x00,0x1a,0x02,0x3a,0x80,0x18,0x71,0x38,0x2d,0x40,
+                  0x58,0x2c,0x45,0x00,0xc4,0x8e,0x21,0x00,0x00,0x1e,0x00,0x00,0x00,0xfd,0x00,0x18,
+                  0x4b,0x1b,0x5a,0x19,0x00,0x0a,0x20,0x20,0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xfc,
+                  0x00,0x53,0x33,0x32,0x44,0x38,0x35,0x30,0x0a,0x20,0x20,0x20,0x20,0x20,0x01,0x13,
+                  0x02,0x03,0x1c,0xf1,0x48,0x90,0x04,0x1f,0x13,0x03,0x12,0x20,0x22,0x23,0x09,0x07,
+                  0x07,0x83,0x01,0x00,0x00,0x66,0x03,0x0c,0x00,0x10,0x00,0x80,0x02,0x3a,0x80,0x18,
+                  0x71,0x38,0x2d,0x40,0x58,0x2c,0x45,0x00,0xc4,0x8e,0x21,0x00,0x00,0x1e,0x02,0x3a,
+                  0x80,0xd0,0x72,0x38,0x2d,0x40,0x10,0x2c,0x45,0x80,0xc4,0x8e,0x21,0x00,0x00,0x1e,
+                  0x01,0x1d,0x00,0x72,0x51,0xd0,0x1e,0x20,0x6e,0x28,0x55,0x00,0xc4,0x8e,0x21,0x00,
+                  0x00,0x1e,0x01,0x1d,0x00,0xbc,0x52,0xd0,0x1e,0x20,0xb8,0x28,0x55,0x40,0xc4,0x8e,
+                  0x21,0x00,0x00,0x1e,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+                  0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xa2,
+              #elif 0
+                0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,
+                0x5A,0x63,0x33,0x16,0x01,0x01,0x01,0x01,
+                0x01,0x1A,0x01,0x03,0x80,0x46,0x27,0x78,
+                0x2E,0x4E,0xC0,0xA6,0x55,0x50,0x9C,0x26,
+                0x11,0x50,0x54,0xBF,0xEF,0x80,0xD1,0xC0,
+                0xB3,0x00,0x95,0x00,0x81,0x80,0x81,0x40,
+                0x81,0xC0,0x01,0x01,0x01,0x01,0x1A,0x36,
+                0x80,0xA0,0x70,0x38,0x1F,0x40,0x58,0x2C,
+                0x45,0x00,0x09,0x25,0x21,0x00,0x00,0x1E,
+                0x00,0x00,0x00,0xFD,0x00,0x32,0x4C,0x1E,
+                0x53,0x11,0x00,0x0A,0x20,0x20,0x20,0x20,
+                0x20,0x20,0x00,0x00,0x00,0xFC,0x00,0x56,
+                0x58,0x33,0x32,0x31,0x36,0x20,0x53,0x65,
+                0x72,0x69,0x65,0x73,0x00,0x00,0x00,0xFF,
+                0x00,0x55,0x52,0x39,0x31,0x36,0x30,0x31,
+                0x30,0x30,0x30,0x30,0x31,0x0A,0x01,0x54,
+                0x02,0x03,0x22,0xF2,0x4A,0x9F,0x90,0x14,0x13,0x12,0x1E,0x01,0x04,0x05,0x03,0x23,
+                0x09,0x07,0x07,0x83,0x01,0x00,0x00,0x67,0x03,0x0C,0x00,0x10,0x00,0x00,0x1E,0xE2,
+                0x00,0x4F,0x8C,0x0A,0xD0,0x8A,0x20,0xE0,0x2D,0x10,0x10,0x3E,0x96,0x00,0xDD,0x0C,
+                0x11,0x00,0x00,0x18,0x01,0x1D,0x80,0x18,0x71,0x1C,0x16,0x20,0x58,0x2C,0x25,0x00,
+                0xDD,0x0C,0x11,0x00,0x00,0x9E,0x02,0x3A,0x80,0x18,0x71,0x38,0x2D,0x40,0x58,0x2C,
+                0x45,0x00,0xDD,0x0C,0x11,0x00,0x00,0x1E,0x01,0x1D,0x80,0xD0,0x72,0x1C,0x16,0x20,
+                0x10,0x2C,0x25,0x80,0xDD,0x0C,0x11,0x00,0x00,0x9E,0x02,0x3A,0x80,0xD0,0x72,0x38,
+                0x2D,0x40,0x10,0x2C,0x45,0x80,0xDD,0x0C,0x11,0x00,0x00,0x1E,0x00,0x00,0x00,0x68,
+              #else
+ 767          // benq 3206
+ 768          0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,
+ 769          
+ 770          0x09,0xD1,0x44,0x7B,0x01,0x00,0x00,0x00,
+ 771          
+ 772          0x2A,0x1A,0x01,0x03,0x80,0x46,0x27,0x78,
+ 773          
+ 774          0xEA,0x6A,0x1F,0xA6,0x54,0x4E,0xA1,0x26,
+ 775          
+ 776          0x0F,0x4F,0x53,0xBF,0xEF,0x80,0x71,0x40,
+ 777          
+ 778          0x81,0x80,0x81,0xC0,0xA9,0xC0,0xB3,0x00,
+ 779          
+ 780          0x01,0x01,0x01,0x01,0x01,0x01,0x56,0x5E,
+ 781          
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 14  
+
+ 782          0x00,0xA0,0xA0,0xA0,0x29,0x50,0x30,0x20,
+ 783          
+ 784          0x35,0x00,0x55,0x50,0x21,0x00,0x00,0x1E,
+ 785          
+ 786          0x00,0x00,0x00,0xFF,0x00,0x31,0x32,0x33,
+ 787          
+ 788          0x34,0x35,0x36,0x37,0x38,0x39,0x30,0x31,
+ 789          
+ 790          0x32,0x33,0x00,0x00,0x00,0xFC,0x00,0x56,
+ 791          
+ 792          0x57,0x33,0x32,0x30,0x36,0x51,0x0A,0x20,
+ 793          
+ 794          0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFD,
+ 795          
+ 796          0x00,0x38,0x4C,0x1D,0x71,0x11,0x00,0x0A,
+ 797          
+ 798          0x20,0x20,0x20,0x20,0x20,0x20,0x01,0xD7,
+ 799          
+ 800          0x02,0x03,0x25,0xF1,0x50,0x90,0x05,0x04,
+ 801          
+ 802          0x03,0x02,0x07,0x16,0x01,0x06,0x11,0x12,
+ 803          
+ 804          0x15,0x13,0x14,0x1F,0x20,0x23,0x09,0x9F,
+ 805          
+ 806          0x07,0x67,0x03,0x0C,0x00,0x10,0x00,0x08,
+ 807          
+ 808          0x31,0x83,0x01,0x00,0x00,0x02,0x3A,0x80,
+ 809          
+ 810          0x18,0x71,0x38,0x2D,0x40,0x58,0x2C,0x45,
+ 811          
+ 812          0x00,0x55,0x50,0x21,0x00,0x00,0x1E,0x01,
+ 813          
+ 814          0x1D,0x80,0x18,0x71,0x1C,0x16,0x20,0x58,
+ 815          
+ 816          0x2C,0x25,0x00,0x55,0x50,0x21,0x00,0x00,
+ 817          
+ 818          0x9E,0x01,0x1D,0x00,0x72,0x51,0xD0,0x1E,
+ 819          
+ 820          0x20,0x6E,0x28,0x55,0x00,0x55,0x50,0x21,
+ 821          
+ 822          0x00,0x00,0x1E,0x8C,0x0A,0xD0,0x8A,0x20,
+ 823          
+ 824          0xE0,0x2D,0x10,0x10,0x3E,0x96,0x00,0x55,
+ 825          
+ 826          0x50,0x21,0x00,0x00,0x18,0x00,0x00,0x00,
+ 827          
+ 828          0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+ 829          
+ 830          0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x56,
+ 831          
+ 832          
+ 833          
+ 834          #endif
+ 835          #endif 
+ 836          /*
+ 837          0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x09,0xD1,0xD6,0x78,0x01,0x01,0x01,0x01,
+ 838          0x04,0x18,0x01,0x04,0xA5,0x3C,0x22,0x78,0x26,0x0C,0xD5,0xA9,0x55,0x4C,0xA1,0x25,
+ 839          0x0D,0x50,0x54,0xA5,0x6F,0x80,0x81,0x80,0x81,0xC0,0x81,0x00,0xA9,0xC0,0xB3,0x00,
+ 840          0xD1,0xC0,0x01,0x01,0x01,0x01,0x8B,0x5B,0x00,0x50,0xA0,0xA0,0x29,0x50,0x08,0x20,
+ 841          0xB8,0x04,0x55,0x50,0x21,0x00,0x00,0x1A,0x00,0x00,0x00,0xFF,0x00,0x0A,0x20,0x20,
+ 842          0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFD,0x00,0x32,
+ 843          0x4C,0x1E,0x53,0x15,0x00,0x0A,0x20,0x20,0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xFC,
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 15  
+
+ 844          0x00,0x42,0x65,0x6E,0x51,0x20,0x47,0x57,0x32,0x37,0x36,0x35,0x0A,0x20,0x01,0x48,
+ 845          0x02,0x03,0x22,0xF1,0x4F,0x90,0x1F,0x05,0x14,0x04,0x13,0x03,0x12,0x07,0x16,0x15,
+ 846          0x01,0x06,0x11,0x02,0x23,0x09,0x07,0x07,0x83,0x01,0x00,0x00,0x65,0x03,0x0C,0x00,
+ 847          0x10,0x00,0x02,0x3A,0x80,0x18,0x71,0x38,0x2D,0x40,0x58,0x2C,0x45,0x00,0x56,0x50,
+ 848          0x21,0x00,0x00,0x1F,0x01,0x1D,0x80,0x18,0x71,0x1C,0x16,0x20,0x58,0x2C,0x25,0x00,
+ 849          0x56,0x50,0x21,0x00,0x00,0x9F,0x01,0x1D,0x00,0x72,0x51,0xD0,0x1E,0x20,0x6E,0x28,
+ 850          0x55,0x00,0x56,0x50,0x21,0x00,0x00,0x1E,0x8C,0x0A,0xD0,0x8A,0x20,0xE0,0x2D,0x10,
+ 851          0x10,0x3E,0x96,0x00,0x56,0x50,0x21,0x00,0x00,0x18,0x00,0x00,0x00,0x00,0x00,0x00,
+ 852          0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x47,
+ 853          */
+ 854          #elif 0
+              //HDMI 1.3 EDID
+                  0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x3A,0xD4,0x76,0x06,0x01,0x00,0x00,0x00,
+                  0x0C,0x13,0x01,0x03,0x80,0x0C,0x09,0x78,0x0A,0x1E,0xAC,0x98,0x59,0x56,0x85,0x28,
+                  0x29,0x52,0x57,0x00,0x00,0x00,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,
+                  0x01,0x01,0x01,0x01,0x01,0x01,0x8C,0x0A,0xD0,0x8A,0x20,0xE0,0x2D,0x10,0x10,0x3E,
+                  0x96,0x00,0x81,0x60,0x00,0x00,0x00,0x18,0x01,0x1D,0x80,0x18,0x71,0x1C,0x16,0x20,
+                  0x58,0x2C,0x25,0x00,0x81,0x49,0x00,0x00,0x00,0x9E,0x00,0x00,0x00,0xFC,0x00,0x4E,
+                  0x54,0x36,0x38,0x36,0x37,0x36,0x20,0x64,0x65,0x6D,0x6F,0x0A,0x00,0x00,0x00,0xFD,
+                  0x00,0x17,0x3D,0x0D,0x2E,0x11,0x00,0x0A,0x20,0x20,0x20,0x20,0x20,0x20,0x01,0x27,
+                  0x02,0x03,0x43,0x71,0x4D,0x82,0x05,0x04,0x01,0x10,0x11,0x14,0x13,0x1F,0x06,0x15,
+                  0x03,0x12,0x26,0x0D,0x7F,0x07,0x4D,0x7F,0x00,0x26,0x0D,0x7F,0x07,0x4D,0x7F,0x00,
+                  0x26,0x0D,0x7F,0x07,0x4D,0x7F,0x00,0x26,0x0D,0x7F,0x07,0x4D,0x7F,0x00,0x83,0x2F,
+                  0x00,0x00,0xE3,0x05,0x03,0x01,0x6C,0x03,0x0C,0x00,0x10,0x00,0xB8,0x2D,0x00,0x00,
+                  0x00,0x00,0x00,0x01,0x1D,0x00,0x72,0x51,0xD0,0x1E,0x20,0x6E,0x28,0x55,0x00,0x81,
+                  0x49,0x00,0x00,0x00,0x1E,0xD6,0x09,0x80,0xA0,0x20,0xE0,0x2D,0x10,0x10,0x60,0xA2,
+                  0x00,0x81,0x60,0x00,0x08,0x08,0x18,0x8C,0x0A,0xD0,0x90,0x20,0x40,0x31,0x20,0x0C,
+                  0x40,0x55,0x00,0x81,0x60,0x00,0x00,0x00,0x18,0x00,0x00,0x00,0x00,0x00,0x00,0x5B,
+              #else
+              //HDMI 1.4 3D EDID
+                  0x00,0xff,0xff,0xff,0xff,0xff,0xff,0x00,0x4d,0xd9,0x01,0xf8,0x01,0x01,0x01,0x01,
+                  0x01,0x14,0x01,0x03,0x80,0x90,0x51,0x78,0x0a,0x0d,0xc9,0xa0,0x57,0x47,0x98,0x27,
+                  0x12,0x48,0x4c,0x21,0x08,0x00,0x81,0x80,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,
+                  0x01,0x01,0x01,0x01,0x01,0x01,0x02,0x3a,0x80,0x18,0x71,0x38,0x2d,0x40,0x58,0x2c,
+                  0x45,0x00,0xa0,0x2a,0x53,0x00,0x00,0x1e,0x01,0x1d,0x00,0x72,0x51,0xd0,0x1e,0x20,
+                  0x6e,0x28,0x55,0x00,0xa0,0x2a,0x53,0x00,0x00,0x1e,0x00,0x00,0x00,0xfc,0x00,0x53,
+                  0x4f,0x4e,0x59,0x20,0x54,0x56,0x0a,0x20,0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xfd,
+                  0x00,0x30,0x3e,0x0e,0x46,0x0f,0x00,0x0a,0x20,0x20,0x20,0x20,0x20,0x20,0x01,0xe1,
+                  0x02,0x03,0x42,0xf0,0x51,0x1f,0x10,0x14,0x05,0x13,0x04,0x12,0x11,0x16,0x15,0x03,
+                  0x02,0x07,0x06,0x20,0x3c,0x01,0x26,0x09,0x07,0x07,0x15,0x07,0x50,0x83,0x01,0x00,
+                  0x00,0x7d,0x03,0x0c,0x00,0x10,0x00,0xb8,0x2d,0x2f,0x88,0x13,0x20,0x30,0xf0,0x08,
+                  0x10,0x18,0x10,0x28,0x10,0x48,0x10,0x58,0x10,0xe8,0x10,0x06,0x16,0x26,0x36,0xe2,
+                  0x00,0x7b,0x02,0x3a,0x80,0xd0,0x72,0x38,0x2d,0x40,0x10,0x2c,0x45,0x80,0xa0,0x2a,
+                  0x53,0x00,0x00,0x1e,0x01,0x1d,0x00,0xbc,0x52,0xd0,0x1e,0x20,0xb8,0x28,0x55,0x40,
+                  0xa0,0x2a,0x53,0x00,0x00,0x1e,0x01,0x1d,0x80,0x18,0x71,0x1c,0x16,0x20,0x58,0x2c,
+                  0x25,0x00,0xa0,0x2a,0x53,0x00,0x00,0x9e,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xf9,
+              #endif
+ 891          };
+ 892          #endif
+ 893          
+ 894          //******************************************************************************
+ 895          // E X T E R N A L   V A R I A B L E   P R O T O T Y P E S
+ 896          //******************************************************************************
+ 897          
+ 898          //******************************************************************************
+ 899          // S T A T I C   F U N C T I O N   P R O T O T Y P E S
+ 900          //******************************************************************************
+ 901          static UCHAR NvramIsEmpty(void);
+ 902          static void NvramValidCheck(void);
+ 903          static void NvramClearAll(void);
+ 904          static void NvramWpOn(void);
+ 905          static void NvramWpOff(void);
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 16  
+
+ 906          
+ 907          //******************************************************************************
+ 908          // E X T E R N A L   F U N C T I O N   P R O T O T Y P E S
+ 909          //******************************************************************************
+ 910          
+ 911          //******************************************************************************
+ 912          // F U N C T I O N   B O D Y S
+ 913          //******************************************************************************
+ 914          
+ 915          /**************************************************************************//**
+ 916           * Write the data to NVRam.
+ 917           * @param addr Address in NVRam.
+ 918           * @param len Length of the data array.
+ 919           * @param ptr Pointer to the data array.
+ 920           ******************************************************************************/
+ 921          void NvramWrite(USHRT addr, USHRT len, UCHAR *ptr)
+ 922          {
+ 923   1      #if ENABLE_FE2P == ON
+ 924   1          FE2P_NvramWrite(addr, len, ptr);
+ 925   1      #else
+                  #define PAGE_SIZE   16
+                  UCHAR slave, remainder;
+                  USHRT local_timer;
+              
+                  NvramWpOff();
+                  while (len) {
+                      remainder = PAGE_SIZE - (addr % PAGE_SIZE);
+                      if (remainder > len) {
+                          remainder = len;
+                      }
+                      slave =  NVRAM_ADDR | (UCHAR)((addr>>7) & 0x0E);
+                      NvramWriteIICSeq(slave, addr, remainder, ptr);
+                      addr += remainder;
+                      ptr += remainder;
+                      len -= remainder;
+                      local_timer = GetTimerTick();
+                      do {
+                          if (NvramCheckDevice(NVRAM_ADDR)) {
+                              break;
+                          }
+                      } while ((GetTimerTick()-local_timer) < 20);
+                  }
+                  NvramWpOn();
+              #endif
+ 950   1      }
+ 951          
+ 952          /**************************************************************************//**
+ 953           * Read the data from NVRam.
+ 954           * @param addr Address in NVRam.
+ 955           * @param len Length of the data array.
+ 956           * @param[out] ptr Pointer to the data array.
+ 957           ******************************************************************************/
+ 958          void NvramRead(USHRT addr, USHRT len, UCHAR *ptr)
+ 959          {
+ 960   1      #if ENABLE_FE2P == ON
+ 961   1          FE2P_NvramRead(addr, len, ptr);
+ 962   1      #else
+                  UCHAR slave;
+              
+                  slave = NVRAM_ADDR | (((UCHAR)(addr>>8)) << 1);
+                  NvramReadIICSeq(slave, addr, len, ptr);
+              #endif
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 17  
+
+ 968   1      }
+ 969          
+ 970          /**************************************************************************//**
+ 971           * Check the NVRam is empty or not
+ 972           * If NVRam is empty, load default values.
+ 973           * If NVRam is no empty, read back the user/system/... data from NVRam.
+ 974           ******************************************************************************/
+ 975          void NvramLoadData(void)
+ 976          {
+ 977   1          if (NvramIsEmpty() == NVRAM_UPDATE_ALL) {
+ 978   2              NvramClearAll(); //To avoid previous wrong Nvram data
+ 979   2              NvramInitialize(NVRAM_UPDATE_ALL);
+ 980   2      #if ENABLE_FE2P == ON
+ 981   2              EraseTimeScale();
+ 982   2      #endif
+ 983   2          }
+ 984   1          else if (NvramIsEmpty() == NVRAM_UPDATE_USER) {
+ 985   2              NvramClearTiming(); //To avoid previous wrong Nvram data
+ 986   2              NvramInitialize(NVRAM_UPDATE_USER);
+ 987   2          }
+ 988   1          NvramReadUserData(&UserData);
+ 989   1          NvramReadCalibData(&CalibData);
+ 990   1          NvramReadSystemData(&SystemData);
+ 991   1        
+ 992   1          NvramValidCheck();
+ 993   1          //...
+ 994   1      #if ENABLE_FE2P == ON
+ 995   1          DecodeTimeScale();
+ 996   1      #endif
+ 997   1      }
+ 998          
+ 999          /**************************************************************************//**
+1000           * Check the NVRam is empty or not.
+1001           * @return TRUE if NVRam is empty else FALSE.
+1002           ******************************************************************************/
+1003          static UCHAR NvramIsEmpty(void)
+1004          {
+1005   1          NvramSystemData system_data;
+1006   1          USHRT nvram_id;
+1007   1      
+1008   1          do {
+1009   2              NvramReadSystemData(&system_data);
+1010   2              nvram_id = system_data.usNvramID;
+1011   2              NvramReadSystemData(&system_data);
+1012   2          } while (nvram_id != system_data.usNvramID);
+1013   1      
+1014   1          if (nvram_id != SystemDataDefault.usNvramID) {
+1015   2              return NVRAM_UPDATE_ALL;
+1016   2          }
+1017   1          else if (system_data.usNVSysSize != SystemDataDefault.usNVSysSize) {
+1018   2              return NVRAM_UPDATE_ALL;
+1019   2          }
+1020   1          else if (system_data.usNVCalSize != SystemDataDefault.usNVCalSize) {
+1021   2              return NVRAM_UPDATE_ALL;
+1022   2          }
+1023   1          else if (system_data.usNVUsrSize != SystemDataDefault.usNVUsrSize) {
+1024   2              return NVRAM_UPDATE_USER;
+1025   2          }
+1026   1          else if (system_data.usFirmwareVer != SystemDataDefault.usFirmwareVer) {
+1027   2              return NVRAM_UPDATE_USER;
+1028   2          }
+1029   1      #if ENABLE_EMBEDDED_CHECKSUM == ON
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 18  
+
+1030   1          else if (system_data.usChkSum != GetEmbeddedCheckSum()) {
+1031   2              return NVRAM_UPDATE_USER;
+1032   2          }
+1033   1      #endif
+1034   1          else {
+1035   2              return NVRAM_UPDATE_FREE;
+1036   2          }
+1037   1      }
+1038          
+1039          /**************************************************************************//**
+1040           * Check size/address/the number of field are valid or not.
+1041           * If the deployment of NVRam is invalid, hold the system!
+1042           ******************************************************************************/
+1043          static void NvramValidCheck(void)
+1044          {
+1045   1          if (UserDataDefault.usUsrEnd != NVRAM_FIELD_END_FLAG) {
+1046   2              while(1);
+1047   2          }
+1048   1          if (CalibDataDefault.usCalEnd != NVRAM_FIELD_END_FLAG) {
+1049   2              while(1);
+1050   2          }
+1051   1          if (SystemDataDefault.usSysEnd != NVRAM_FIELD_END_FLAG) {
+1052   2              while(1);
+1053   2          }
+1054   1          if (sizeof(NvramUserData) > NVRAM_USER_SIZE) {
+1055   2              while(1);
+1056   2          }
+1057   1          if (sizeof(NvramCalibData) > NVRAM_CALIB_SIZE) {
+1058   2              while(1);
+1059   2          }
+1060   1          if (sizeof(NvramSystemData) > NVRAM_SYSTEM_SIZE) {
+1061   2              while(1);
+1062   2          }
+1063   1      }
+1064          
+1065          /**************************************************************************//**
+1066           * Load the default to NVRam.
+1067           * @param type Update type.
+1068           ******************************************************************************/
+1069          void NvramInitialize(UCHAR type)
+1070          {
+1071   1          NvramUserData user_data;
+1072   1          NvramCalibData calib_data;
+1073   1          NvramSystemData system_data;
+1074   1      
+1075   1          user_data = UserDataDefault;
+1076   1          if (type == NVRAM_UPDATE_ALL) {
+1077   2              calib_data = CalibDataDefault;
+1078   2              system_data = SystemDataDefault;
+1079   2          }
+1080   1          else {
+1081   2              NvramReadSystemData(&system_data);
+1082   2              system_data.usFirmwareVer = SystemDataDefault.usFirmwareVer;
+1083   2              system_data.ucTimingWriteIdx = SystemDataDefault.ucTimingWriteIdx;
+1084   2              system_data.usNVUsrSize = SystemDataDefault.usNVUsrSize;
+1085   2              system_data.usNVCalSize = SystemDataDefault.usNVCalSize;
+1086   2              system_data.usNVSysSize = SystemDataDefault.usNVSysSize;
+1087   2          }
+1088   1      
+1089   1      #if ENABLE_EMBEDDED_CHECKSUM == ON
+1090   1          system_data.usChkSum = GetEmbeddedCheckSum();
+1091   1      #endif
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 19  
+
+1092   1          
+1093   1          NvramWriteUserData(&user_data);
+1094   1          if (type == NVRAM_UPDATE_ALL) {
+1095   2              NvramWriteCalibData(&calib_data);
+1096   2          }
+1097   1          NvramWriteSystemData(&system_data);
+1098   1      }
+1099          
+1100          /**************************************************************************//**
+1101           * Initialize the whole NVRam to 0xFF.
+1102           ******************************************************************************/
+1103          static void NvramClearAll(void)
+1104          {
+1105   1          UCHAR init_data[16] = {
+1106   1              0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+1107   1              0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+1108   1          };
+1109   1          USHRT i;
+1110   1          
+1111   1          for (i=0; i<((NVRAM_END+1)/16); i++) {
+1112   2              NvramWrite(16*i, 16, init_data);
+1113   2          }
+1114   1      }
+1115          
+1116          /**************************************************************************//**
+1117           * Initialize the timing area in NVRam to 0xFF.
+1118           ******************************************************************************/
+1119          void NvramClearTiming(void)
+1120          {
+1121   1          UCHAR init_data[16] = { 
+1122   1              0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+1123   1              0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+1124   1          };
+1125   1          USHRT i;
+1126   1          
+1127   1          for (i = 0; i < (NVRAM_TIMING_AREA / 16); i++) {
+1128   2              NvramWrite(i * 16 + NVRAM_TIMING_ADDR, 16, init_data);
+1129   2          }
+1130   1      }
+1131          
+1132          /**************************************************************************//**
+1133           * Read back the timing data from Nvram.
+1134           * @param[out] ptr Pointer to the timing data buffer.
+1135           ******************************************************************************/
+1136          BOOL NvramReadTimingData(InputTimingFormat *ptr)
+1137          {
+1138   1          BOOL found=FALSE;
+1139   1          UCHAR i, nvram_timing_size;
+1140   1          USHRT nvram_start_addr;
+1141   1          NvramTimingFormat nvram;
+1142   1      
+1143   1          nvram_timing_size = (UCHAR) sizeof(NvramTimingFormat);
+1144   1          for (i=0; i<(NVRAM_TIMING_AREA/nvram_timing_size); i++) {
+1145   2              nvram_start_addr = (USHRT) NVRAM_TIMING_ADDR + i*nvram_timing_size;
+1146   2              NvramRead(nvram_start_addr, nvram_timing_size, (UCHAR *)&nvram);
+1147   2              if (ptr->usModeIndex == nvram.usModeIndex) { //We found current mode in NVRAM
+1148   3                  found = TRUE;
+1149   3                  break;
+1150   3              }
+1151   2          }
+1152   1      
+1153   1          if (found == TRUE) {
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 20  
+
+1154   2              ptr->usHTotal = nvram.usHTotal;
+1155   2              ptr->usHStart = nvram.usHStart;
+1156   2              ptr->usVStart = nvram.usVStart;
+1157   2              ptr->usHTotal50 = nvram.usHTotal50;
+1158   2              ptr->usHStart50 = nvram.usHStart50;
+1159   2              ptr->usVStart50 = nvram.usVStart50;
+1160   2              ptr->ucPhase = nvram.ucPhase;
+1161   2              ptr->ucAutoTune = nvram.ucAutoTune;
+1162   2              return TRUE;
+1163   2          }
+1164   1          else {
+1165   2              return FALSE;
+1166   2          }
+1167   1      }
+1168          
+1169          /**************************************************************************//**
+1170           * Write the timing data to NVRam.
+1171           * @param ptr Pointer to the timing data buffer.
+1172           ******************************************************************************/
+1173          void NvramWriteTimingData(InputTimingFormat *ptr)
+1174          {
+1175   1          BOOL found=FALSE;
+1176   1          UCHAR i, nvram_timing_size;
+1177   1          USHRT nvram_start_addr;
+1178   1          NvramTimingFormat nvram;
+1179   1      
+1180   1          nvram_timing_size = (UCHAR) sizeof(NvramTimingFormat);
+1181   1          for (i=0; i<(NVRAM_TIMING_AREA/nvram_timing_size); i++) {
+1182   2              nvram_start_addr = (USHRT) NVRAM_TIMING_ADDR + i*nvram_timing_size;
+1183   2              NvramRead(nvram_start_addr, nvram_timing_size, (UCHAR *)&nvram);
+1184   2              if (nvram.usModeIndex == ptr->usModeIndex) { //Found the same mode index in Nvram
+1185   3                  found = TRUE;
+1186   3                  break;
+1187   3              }
+1188   2          }
+1189   1      
+1190   1          nvram.usHTotal = ptr->usHTotal;
+1191   1          nvram.usHStart = ptr->usHStart;
+1192   1          nvram.usVStart = ptr->usVStart;
+1193   1          nvram.usHTotal50 = ptr->usHTotal50;
+1194   1          nvram.usHStart50 = ptr->usHStart50;
+1195   1          nvram.usVStart50 = ptr->usVStart50;
+1196   1          nvram.ucPhase = ptr->ucPhase;
+1197   1          nvram.ucAutoTune = ptr->ucAutoTune;
+1198   1          nvram.usModeIndex = ptr->usModeIndex;
+1199   1          
+1200   1          if (found == FALSE) {
+1201   2              nvram_start_addr = (USHRT) NVRAM_TIMING_ADDR + SystemData.ucTimingWriteIdx*nvram_timing_size;
+1202   2              //Update system data
+1203   2              SystemData.ucTimingWriteIdx = (SystemData.ucTimingWriteIdx+1) % (NVRAM_TIMING_AREA/nvram_timing_si
+             -ze);
+1204   2              NvramWriteSystemData(&SystemData);
+1205   2          }
+1206   1          NvramWrite(nvram_start_addr, nvram_timing_size, (UCHAR *)&nvram);
+1207   1      }
+1208          
+1209          /**************************************************************************//**
+1210           * Read back the user data from Nvram.
+1211           * @param[out] ptr Pointer to the user data buffer.
+1212           ******************************************************************************/
+1213          void NvramReadUserData(NvramUserData *ptr)
+1214          {
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 21  
+
+1215   1          NvramRead(NVRAM_USER_ADDR, sizeof(NvramUserData), (UCHAR *)ptr);
+1216   1      }
+1217          
+1218          /**************************************************************************//**
+1219           * Write the user data to Nvram.
+1220           * @param ptr Pointer to the user data buffer.
+1221           ******************************************************************************/
+1222          void NvramWriteUserData(NvramUserData *ptr)
+1223          {
+1224   1         NvramWrite(NVRAM_USER_ADDR, sizeof(NvramUserData), (UCHAR *)ptr);
+1225   1      }
+1226          
+1227          /**************************************************************************//**
+1228           * Read back the calibration data from Nvram.
+1229           * @param[out] ptr Pointer to the calibration data buffer.
+1230           ******************************************************************************/
+1231          void NvramReadCalibData(NvramCalibData *ptr)
+1232          {
+1233   1          NvramRead(NVRAM_CALIB_ADDR, sizeof(NvramCalibData), (UCHAR *)ptr);
+1234   1      }
+1235          
+1236          /**************************************************************************//**
+1237           * Write the calibration data to Nvram.
+1238           * @param ptr Pointer to the calibration data buffer.
+1239           ******************************************************************************/
+1240          void NvramWriteCalibData(NvramCalibData *ptr)
+1241          {
+1242   1          NvramWrite(NVRAM_CALIB_ADDR, sizeof(NvramCalibData), (UCHAR *)ptr);
+1243   1      }
+1244          
+1245          /**************************************************************************//**
+1246           * Read back the system data from Nvram.
+1247           * @param[out] ptr Pointer to the system data buffer.
+1248           ******************************************************************************/
+1249          void NvramReadSystemData(NvramSystemData *ptr)
+1250          {
+1251   1          NvramRead(NVRAM_SYSTEM_ADDR, sizeof(NvramSystemData), (UCHAR *)ptr);
+1252   1      }
+1253          
+1254          /**************************************************************************//**
+1255           * Write the system data to Nvram.
+1256           * @param ptr Pointer to the system data buffer.
+1257           ******************************************************************************/
+1258          void NvramWriteSystemData(NvramSystemData *ptr)
+1259          {
+1260   1          NvramWrite(NVRAM_SYSTEM_ADDR, sizeof(NvramSystemData), (UCHAR *)ptr);
+1261   1      }
+1262          
+1263          //******************************************************************************
+1264          // Prototype: 
+1265          //  void NvramDumpToSram(void)
+1266          // Parameters:
+1267          //  void
+1268          // Return:
+1269          //  None
+1270          // Purpose:
+1271          //  Dump the Nvram data to SRAM
+1272          // Notes:
+1273          //  None
+1274          //******************************************************************************
+1275          /*
+1276          xdata UCHAR SramArea[2048] _at_ 0xA800;
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 22  
+
+1277          void NvramDumpToSram(void)
+1278          {
+1279              NvramRead(0, sizeof(SramArea), SramArea);
+1280          }
+1281          */
+1282          
+1283          #if ENABLE_HDCP == ON
+1284          #if ENABLE_NVT_HDCP_WRITER == ON
+1285          /**************************************************************************//**
+1286           * Write the HDCP data to Nvram.
+1287           * @param ptr Pointer to HDCP data.
+1288           ******************************************************************************/
+1289          void NvramWriteHDCPdata(UCHAR *ptr)
+1290          {
+1291   1          NvramWrite(NVRAM_HDCP_ADDR, NUM_HDCP_TOTAL, ptr);
+1292   1      }
+1293          #endif
+1294          /**************************************************************************//**
+1295           * Read back the HDCP data from Nvram.
+1296           * @param[out] ptr Pointer to HDCP data buffer.
+1297           ******************************************************************************/
+1298          void NvramReadHDCPdata(UCHAR *ptr)
+1299          {
+1300   1          NvramRead(NVRAM_HDCP_ADDR, NUM_HDCP_TOTAL, ptr);
+1301   1      }
+1302          #endif
+1303          
+1304          
+1305          bit IsEdidHeader(UCHAR *EdidBuf)
+1306          {
+1307   1        UCHAR i;
+1308   1        UCHAR code EdidHeader[] = {0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00};
+1309   1      
+1310   1        i = 8;
+1311   1        do{
+1312   2          i--;
+1313   2          if (*(EdidBuf+i) != EdidHeader[i]) return 0;
+1314   2          }while(i);
+1315   1        return 1;
+1316   1      }
+1317          
+1318          #if USE_INTERNAL_EDID == 1
+1319          #if VGA_DDC_CHANNEL != 0xFF
+              /**************************************************************************//**
+               * Write the VGA EDID to Nvram
+               * @param ptr Pointer to VGA EDID.
+               ******************************************************************************/
+              void NvramWriteVGAEdid(UCHAR *ptr)
+              {
+                  NvramWrite(NVRAM_VGA_EDID_ADDR, NVRAM_VGA_EDID_AREA, ptr);
+              }
+              
+              /**************************************************************************//**
+               * Read back the VGA EDID from Nvram
+               * @param[out] ptr Pointer to VGA EDID.
+               ******************************************************************************/
+              void NvramReadVGAEdid(UCHAR *ptr)
+              {
+                  USHRT i;
+              #if (DefaultEDID == ON) && (!USE_INTERNAL_EDID_ALLOW_WR_EDID)
+                  for (i=0; i<128; i++) {
+                      *ptr = _Default_VGA_EDID[i];
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 23  
+
+                      ptr++;
+                  }
+              #else
+                  NvramRead(NVRAM_VGA_EDID_ADDR, NVRAM_VGA_EDID_AREA, ptr);
+                if(!IsEdidHeader(ptr))
+                {
+                  for (i=0; i<128; i++) {
+                    *ptr = _Default_VGA_EDID[i];
+                    ptr++;
+                  }   
+                }
+              #endif
+              }
+              #endif
+1353          
+1354          #if DVI_DDC_CHANNEL != 0xFF
+1355          /**************************************************************************//**
+1356           * Write the DVI EDID to Nvram
+1357           * @param ptr Pointer to DVI EDID.
+1358           ******************************************************************************/
+1359          void NvramWriteDVIEdid(UCHAR *ptr)
+1360          {
+1361   1          NvramWrite(NVRAM_DVI_EDID_ADDR, NVRAM_DVI_EDID_AREA, ptr);
+1362   1      }
+1363          
+1364          /**************************************************************************//**
+1365           * Read back the DVI EDID from Nvram
+1366           * @param[out] ptr Pointer to DVI EDID.
+1367           ******************************************************************************/
+1368          void NvramReadDVIEdid(UCHAR *ptr)
+1369          {
+1370   1          USHRT i, k;
+1371   1      #if (DefaultEDID == ON) && (!USE_INTERNAL_EDID_ALLOW_WR_EDID)
+              #if DVI_DDC_CHANNEL == 0
+                  if (MCU_DDC0_EDIDLEN == 0) {
+                      k = 128;
+                  }
+                  else {
+                      k = 256;
+                  }
+              #endif
+              #if DVI_DDC_CHANNEL == 1
+                  if (MCU_DDC1_EDIDLEN == 0) {
+                      k = 128;
+                  }
+                  else {
+                      k = 256;
+                  }
+              #endif
+              #if DVI_DDC_CHANNEL == 2
+                  if (MCU_DDC2_EDIDLEN == 0) {
+                      k = 128;
+                  }
+                  else {
+                      k = 256;
+                  }
+              #endif
+              #if DVI_DDC_CHANNEL == 3
+                  if (MCU_DDC3_EDIDLEN == 0) {
+                      k = 128;
+                  }
+                  else {
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 24  
+
+                      k = 256;
+                  }
+              #endif
+              
+                  if (k == 128) {
+                      for (i=0; i<128; i++) {
+                          *ptr = _Default_DVI_EDID[i];
+                          ptr++;
+                      }
+                  }
+                  else {
+                      for (i=0; i<256; i++) {
+                          *ptr = _Default_HDMI_EDID[i];
+                          ptr++;
+                      }
+                  }
+              #else
+1418   1          NvramRead(NVRAM_DVI_EDID_ADDR, NVRAM_DVI_EDID_AREA, ptr);
+1419   1        if(!IsEdidHeader(ptr))
+1420   1        {
+1421   2      #if DVI_DDC_CHANNEL == 0
+                    if (MCU_DDC0_EDIDLEN == 0) {
+                        k = 128;
+                    }
+                    else {
+                        k = 256;
+                    }
+              #endif
+1429   2      #if DVI_DDC_CHANNEL == 1
+                    if (MCU_DDC1_EDIDLEN == 0) {
+                        k = 128;
+                    }
+                    else {
+                        k = 256;
+                    }
+              #endif
+1437   2      #if DVI_DDC_CHANNEL == 2
+1438   2            if (MCU_DDC2_EDIDLEN == 0) {
+1439   3                k = 128;
+1440   3            }
+1441   2            else {
+1442   3                k = 256;
+1443   3            }
+1444   2      #endif
+1445   2      #if DVI_DDC_CHANNEL == 3
+                    if (MCU_DDC3_EDIDLEN == 0) {
+                        k = 128;
+                    }
+                    else {
+                        k = 256;
+                    }
+              #endif
+1453   2      
+1454   2            if (k == 128) {
+1455   3                for (i=0; i<128; i++) {
+1456   4                    *ptr = _Default_DVI_EDID[i];
+1457   4                    ptr++;
+1458   4                }
+1459   3            }
+1460   2            else {
+1461   3                for (i=0; i<256; i++) {
+1462   4                    *ptr = _Default_HDMI_EDID[i];
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 25  
+
+1463   4                    ptr++;
+1464   4                }
+1465   3            }
+1466   2      
+1467   2        }
+1468   1      #endif
+1469   1      }
+1470          #endif
+1471          
+1472          #if HDMI_DDC_CHANNEL != 0xFF
+1473          /**************************************************************************//**
+1474           * Write the HDMI EDID to Nvram
+1475           * @param ptr Pointer to HDMI EDID.
+1476           ******************************************************************************/
+1477          void NvramWriteHDMIEdid(UCHAR *ptr)
+1478          {
+1479   1          NvramWrite(NVRAM_HDMI_EDID_ADDR, NVRAM_HDMI_EDID_AREA, ptr);
+1480   1      }
+1481          
+1482          /**************************************************************************//**
+1483           * Read back the HDMI EDID from Nvram
+1484           * @param[out] ptr Pointer to HDMI EDID.
+1485           ******************************************************************************/
+1486          void NvramReadHDMIEdid(UCHAR *ptr)
+1487          {
+1488   1          USHRT i;
+1489   1      #if (DefaultEDID == ON) && (!USE_INTERNAL_EDID_ALLOW_WR_EDID)
+                  for (i=0; i<256; i++) {
+                      *ptr = _Default_HDMI_EDID[i];
+                      ptr++;
+                  }
+              #else
+1495   1          NvramRead(NVRAM_HDMI_EDID_ADDR, NVRAM_HDMI_EDID_AREA, ptr);
+1496   1        if(!IsEdidHeader(ptr))
+1497   1        {
+1498   2            for (i=0; i<256; i++) {
+1499   3                *ptr = _Default_HDMI_EDID[i];
+1500   3                ptr++;
+1501   3            }
+1502   2        }
+1503   1      #endif
+1504   1      }
+1505          #endif
+1506          
+1507          /**************************************************************************//**
+1508           * Save EDID from DDC buffer to NVRam
+1509           ******************************************************************************/
+1510           
+1511          void NvramSaveEDID(void)
+1512          {
+1513   1      #if VGA_DDC_CHANNEL == 0
+                  NvramWriteVGAEdid(EDID_SRAM_BUFF0);
+              #elif VGA_DDC_CHANNEL == 1
+                  NvramWriteVGAEdid(EDID_SRAM_BUFF1);
+              #elif VGA_DDC_CHANNEL == 2
+                  NvramWriteVGAEdid(EDID_SRAM_BUFF2);
+              #elif VGA_DDC_CHANNEL == 3
+                  NvramWriteVGAEdid(EDID_SRAM_BUFF3);
+              #endif
+1522   1      
+1523   1      #if DVI_DDC_CHANNEL == 0
+                  NvramWriteDVIEdid(EDID_SRAM_BUFF0);
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 26  
+
+              #elif DVI_DDC_CHANNEL == 1
+                  NvramWriteDVIEdid(EDID_SRAM_BUFF1);
+              #elif DVI_DDC_CHANNEL == 2
+1528   1          NvramWriteDVIEdid(EDID_SRAM_BUFF2); //DVI
+1529   1      #elif DVI_DDC_CHANNEL == 3
+                  NvramWriteDVIEdid(EDID_SRAM_BUFF3);
+              #elif DVI_DDC_CHANNEL == 4
+                  NvramWriteDVIEdid(EDID_SRAM_BUFF4);  // feng-160823
+              #endif
+1534   1      
+1535   1      #if HDMI_DDC_CHANNEL == 0
+                  NvramWriteHDMIEdid(EDID_SRAM_BUFF0);
+              #elif HDMI_DDC_CHANNEL == 1
+                  NvramWriteHDMIEdid(EDID_SRAM_BUFF1);
+              #elif HDMI_DDC_CHANNEL == 2
+                  NvramWriteHDMIEdid(EDID_SRAM_BUFF2);
+              #elif HDMI_DDC_CHANNEL == 3
+                  NvramWriteHDMIEdid(EDID_SRAM_BUFF3);
+              #elif HDMI_DDC_CHANNEL == 4
+1544   1          NvramWriteHDMIEdid(EDID_SRAM_BUFF4);// feng-160823 //HDMI
+1545   1      #endif
+1546   1      
+1547   1      }
+1548          
+1549          /**************************************************************************//**
+1550           * Load EDID from NVRam to DDC buffer.
+1551           ******************************************************************************/
+1552          void NvramLoadEDID(void)
+1553          {
+1554   1      #if VGA_DDC_CHANNEL == 0
+                  NvramReadVGAEdid(EDID_SRAM_BUFF0);
+              #elif VGA_DDC_CHANNEL == 1
+                  NvramReadVGAEdid(EDID_SRAM_BUFF1);
+              #elif VGA_DDC_CHANNEL == 2
+                  NvramReadVGAEdid(EDID_SRAM_BUFF2);
+              #elif VGA_DDC_CHANNEL == 3
+                  NvramReadVGAEdid(EDID_SRAM_BUFF3);
+              #endif
+1563   1      
+1564   1      #if DVI_DDC_CHANNEL == 0
+                  NvramReadDVIEdid(EDID_SRAM_BUFF0);
+              #elif DVI_DDC_CHANNEL == 1
+                  NvramReadDVIEdid(EDID_SRAM_BUFF1);
+              #elif DVI_DDC_CHANNEL == 2
+1569   1          NvramReadDVIEdid(EDID_SRAM_BUFF2);
+1570   1      #elif DVI_DDC_CHANNEL == 3
+                  NvramReadDVIEdid(EDID_SRAM_BUFF3);
+              #elif DVI_DDC_CHANNEL == 4
+                  NvramReadDVIEdid(EDID_SRAM_BUFF4); // feng-160823
+              #endif
+1575   1      
+1576   1      #if HDMI_DDC_CHANNEL == 0
+                  NvramReadHDMIEdid(EDID_SRAM_BUFF0);
+              #elif HDMI_DDC_CHANNEL == 1
+                  NvramReadHDMIEdid(EDID_SRAM_BUFF1);
+              #elif HDMI_DDC_CHANNEL == 2
+                  NvramReadHDMIEdid(EDID_SRAM_BUFF2);
+              #elif HDMI_DDC_CHANNEL == 3
+                  NvramReadHDMIEdid(EDID_SRAM_BUFF3);
+              #elif HDMI_DDC_CHANNEL == 4
+1585   1          NvramReadHDMIEdid(EDID_SRAM_BUFF4); // feng-160823
+1586   1      #endif
+C51 COMPILER V9.54   NVRAM                                                                 01/06/2017 14:56:42 PAGE 27  
+
+1587   1      
+1588   1      }
+1589          #endif
+1590          
+1591          #if ENABLE_FE2P == OFF
+              /**************************************************************************//**
+               * Turn on the NVRAM write protect function.
+               ******************************************************************************/
+              static void NvramWpOn(void)
+              {
+                  McuSetIOBit(NVRAM_WP_PORT, NVRAM_WP_BIT, NVRAM_WP_ACTIVE);
+              }
+              
+              /**************************************************************************//**
+               * Turn off the NVRAM write protect function.
+               ******************************************************************************/
+              static void NvramWpOff(void)
+              {
+                  McuSetIOBit(NVRAM_WP_PORT, NVRAM_WP_BIT, ~NVRAM_WP_ACTIVE);
+              }
+              #endif
+*** WARNING C294 IN LINE 1442 OF Sys\Nvram.c: unreachable code
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1607    ----
+   CONSTANT SIZE    =    797    ----
+   XDATA SIZE       =   ----     387
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       2
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)
